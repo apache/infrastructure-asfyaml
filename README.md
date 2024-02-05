@@ -1,4 +1,4 @@
-**THIS IS A WORKING COPY - CHANGES AND CORRECTIONS ARE CONTINUOUSLY BEING MADE AT PRESENT**
+**Note: This is a work in progress. There will be omissions, factually incorrect items, and placeholders while we work to fully migrate the .asf.yaml specifications to this repository. Issues can be reported in this repository, and Pull Requests are also welcome. We ask that you do not create Jira tickets for suggestions or other remarks concerning this repisotiryrepository.**
 
 # Working with .asf.yaml
 
