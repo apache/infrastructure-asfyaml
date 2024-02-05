@@ -1,3 +1,5 @@
+**THIS IS A WORKING COPY - CHANGES AND CORRECTIONS ARE CONTINUOUSLY BEING MADE AT PRESENT**
+
 # Working with .asf.yaml
 
 `.asf.yaml` is a branch-specific <a href="https://en.wikipedia.org/wiki/YAML" target="_blank">YAML</a> configuration file that a project may create (using a text editor of your choice) and put in the root of a Git repository to control features such as
