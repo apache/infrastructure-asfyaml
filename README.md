@@ -756,6 +756,6 @@ These features have not been implemented in production yet, but are documented h
 
   - <a href="https://docs.github.com/en/github/administering-a-repository/managing-repository-settings/configuring-autolinks-to-reference-external-resources" target="_blank">Autolinks</a>
 
-If you would like to add features you are free to open a pull request and propose your changes. The whole logic is defined in the `asfyaml.py` file.
+If you would like to add features you are free to open a pull request and propose your changes. The whole logic is defined in the `asfyaml.py` file that you create.
 
 <p align="right"><a href="#top">Return to top</a>
