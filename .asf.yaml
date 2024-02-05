@@ -1,0 +1,12 @@
+github:
+  features:
+    # Enable issue management
+    issues: true
+  description: " .asf.yaml documentation and schema "
+  homepage: https://infra.apache.org/
+  labels:
+    - apache
+    - selfserve
+    - yaml
+    - git
+    - github
