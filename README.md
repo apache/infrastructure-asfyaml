@@ -498,16 +498,6 @@ github:
 
 You can revert this by setting the variable back to false. (Merely removing the entry will not do that).
 
-<h3 id="dependabot">Dependabot alerts and updates</h3>
-
-Projects can enable and disable Dependabot alerts and automatic security update pull requests: 
-
-~~~yaml
-github:
-  dependabot_alerts:  true
-  dependabot_updates: false
-~~~
-
 <h3 id="depend_alerts">Dependabot alerts and updates</h3>
 
 Projects can enable and disable Dependabot alerts and automatic security update pull requests: 
