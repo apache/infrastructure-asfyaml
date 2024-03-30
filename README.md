@@ -366,7 +366,7 @@ We will evaluate the need for other autolink features.
 
 Projects can enable branch protection in their repos, including most of the sub-level protection features such as 'require status checks to pass before merging' , 'approval by at least $n people' , and 'require pull request reviews'.
 
-The reviewers can be autoamatically assigned to the PR based on the [CODEOWNERS](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners) file.
+The reviewers can be automatically assigned to the PR based on the [CODEOWNERS](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners) file.
 
 Here are some examples:
 
