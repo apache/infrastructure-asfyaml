@@ -244,6 +244,8 @@ staging:
   autostage: site/*
 ~~~
 
+Note that the autostage parameter must be `$foo/*`, e.g. `site/*` or `feature/*`.
+
 The autostaging feature derives a profile from the branch name, thus `site/*` would stage all branches matching `site/*`-staging as `<project>-*.staged.apache.org`. For instance:
 
   - Branch `site/foo` is autobuilt and the output goes to `site/foo-staging`.
