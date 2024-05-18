@@ -257,7 +257,7 @@ The autostaging feature derives a profile from the branch name, thus `site/*` wo
 **Notes**
 
   - if you have previously used `gitwcsub` for website publishing, your first publish action using `.asf.yaml` will cause any existing `gitwcsub` or `svnwcsub` subscription to stop working. This ensures that there are no race conditions or "repository fights" going on when you publish.
-  - lthough publishing the `asf-site` branch used to work without `.asf.yaml` being present, since May 2021 that file **must** be present at the root of the branch you wish to publish for everything (including soft purging the CDN cache on updates) to work correctly.
+  - Although publishing the `asf-site` branch used to work without `.asf.yaml` being present, since May 2021 that file **must** be present at the root of the branch you wish to publish for everything (including soft purging the CDN cache on updates) to work correctly.
 
 To publish a branch to your project website sub-domain (`yourproject.apache.org`), set up a configuration block called `publish` in your `.asf.yaml` file. Enable branch-protection through the `whoami` parameter, like so:
 
