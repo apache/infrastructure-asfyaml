@@ -383,7 +383,6 @@ github:
           - another/build-that-must-pass
       required_pull_request_reviews:
         dismiss_stale_reviews: true
-        require_code_owner_reviews: true
         required_approving_review_count: 3
 
       # squash or rebase must be allowed in the repo for this setting to be set to true.
