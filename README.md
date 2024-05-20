@@ -400,6 +400,24 @@ github:
 **Notes**
   1. Enabling any of the above checks overrides what you may have set previously, so you'll need to add all the existing checks to your `.asf.yaml` file to reproduce any that Infra set manually for you.
   2. If you need to remove a required check in order to push a change to `.asf.yaml`, create an Infra Jira ticket with a request to have the check manually removed.
+  
+Using the 'contexts' list will automatically set an app ID of `-1` (any source) for checks. If you wish to specify a specific source app ID, you can make use of the expanded `checks` list instead:
+
+~~~yaml
+github:
+  protected_branches:
+    main:
+      required_status_checks:
+        # strict means "Require branches to be up to date before merging".
+        strict: true
+        checks:
+          - context: gh-infra/jenkins
+            app_id: 1234
+          - context: another/build-that-must-pass
+            app_id: -1
+      ...
+~~~
+
 
 All protected branches in the YAML must be dictionary entries. Thus, if you only want to disable force push from a branch, you can construct a **minimal dictionary**:
 
