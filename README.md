@@ -704,6 +704,14 @@ jekyll:
 
 <h3 id="pelican_cms">Pelican CMS</h3>
 
+**Note**: In 2019 Infra created `ASF-Pelican` as a structure and template for projects to use to build their websites, and for the ASF's own website.
+
+In 2024, Infra moved from ASF-Pelican to the ASF **Infrastructure Pelican Action** GitHub Action to perform the same functions without being closely tied to BuildBot. The repository for this GHA is <a href="https//:github.com/apache/infrastructure-actions/tree/main/pelican" target="_blank">github.com/apache/infrastructure-actions/tree/main/pelican</a>.
+
+We are updating the help documentation for Pelican, which starts at <a href="https://infra.apache.org/asf-pelican.html" target="_blank">infra.apache.org/asf-pelican.html</a>, to provide what you need to know about the ASF Pelican GHA.
+
+<hr/>
+
 Projects can automatically build web sites using the <a href="https://blog.getpelican.com/" target="_blank">Pelican Static Site Generator</a> and have the result either staged or pushed directly to production (with the addition of a staging or publish configuration, as seen above).
 
 To set up an automatic build, add a Pelican section to `.asf.yaml`:
