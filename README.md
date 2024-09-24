@@ -773,7 +773,7 @@ The GitHub IDs listed here would have access to start builds based on PRs, in ad
 
 These features have not been implemented in production yet, but are documented here for future use.
 
-  - <a href="https://docs.github.com/en/github/administering-a-repository/managing-repository-settings/configuring-autolinks-to-reference-external-resources" target="_blank">Autolinks</a>
+  None currently
 
 If you would like to add features please open a pull request or propose your changes via (github issue or infra ticket TBD.) The whole logic is defined in the `asfyaml.py` file that you create.
 
