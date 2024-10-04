@@ -15,7 +15,7 @@ import asfyaml
 def test_basic_yaml():
     EXPECTED_ENVS = {"production", "dev"}  # We expect these two envs enabled
     EXPECTED_FEATURES_MIN = {"test"}
-    basic_yaml = open("basic-dev-env.yaml", "r").read()
+    basic_yaml = open("tests/basic-dev-env.yaml", "r").read()
     a = asfyaml.ASFYamlInstance(basic_yaml)
     a.run_parts()
 
