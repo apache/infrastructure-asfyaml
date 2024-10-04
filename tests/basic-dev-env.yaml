@@ -1,0 +1,5 @@
+# Example .asf.yaml config with the runtime environment set to 'dev'
+meta:
+  environment: dev
+test:
+  foo: bar
