@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Simple unit test for .asf.yaml"""
+import os
 import sys
 sys.path.extend(
     (
@@ -7,9 +8,12 @@ sys.path.extend(
         "../",
     )
 )
-
+# If run locally inside the tests dir, we'll move one dir up for imports
+if "tests" in os.getcwd():
+    os.chdir("..")
 import pytest
 import asfyaml
+
 
 @pytest.mark.validator
 def test_basic_yaml():
