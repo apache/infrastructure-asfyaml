@@ -41,7 +41,7 @@ class ASFYamlInstance:
             if feature_name in self.enabled_features:
                 feature_yaml_as_string = feature_yaml.as_yaml()
                 feature_class = self.enabled_features[feature_name]
-                # If the feature has a a schema, validate the sub-yaml before running the feature.
+                # If the feature has a schema, validate the sub-yaml before running the feature.
                 if hasattr(feature_class, "schema"):
                     try:
                         yaml_parsed = strictyaml.load(feature_yaml_as_string, feature_class.schema)
