@@ -17,6 +17,6 @@ allowing you to make full use of existing production features as well as the pre
 features. In the case of a feature existing in both environments, the feature in the 
 preview environment will take precedence.
 
-When a new feature is available, we will be listing it on [this page](features/index.md). Once a feature
+When a new feature is available, we will be listing it on [this page](features/readme.md). Once a feature
 has been merged into the production environment, any old references will stop yielding a 
 different feature from production.
