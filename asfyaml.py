@@ -18,6 +18,7 @@ class ASFYamlInstance:
             if "environment" in self.yaml["meta"]:
                 self.environments_enabled.add(str(self.yaml["meta"]["environment"]))
         if DEBUG:
+            print("")
             print(f"Using environment(s): {', '.join(self.environments_enabled)}")
 
         # Make a list of enabled features for this repo, based on the environments enabled for it.
