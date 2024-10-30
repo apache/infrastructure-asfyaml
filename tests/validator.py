@@ -13,7 +13,7 @@ if "tests" in os.getcwd():
     os.chdir("..")
 import pytest
 import asfyaml
-
+asfyaml.DEBUG = True
 
 @pytest.mark.validator
 def test_basic_yaml():
