@@ -23,7 +23,12 @@ class ASFTestFeature(ASFYamlFeature, name="test", env="production", priority=4):
     )
 
     def run(self):
-        pass
+        # Do some things with the 'foo' directive in our section...
+        if not do_things(self.yaml.foo):
+            # Oh no, something bad! We better relay this back to .asf.yaml
+            # This will notify the git client as well as send an error report to 
+            # private@project.apache.org.
+            raise Exception("Something bad happened")
 ~~~
 
 This would create a new feature called 'test' in .asf.yaml that is accessible to all repositories, 
