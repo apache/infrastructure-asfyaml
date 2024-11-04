@@ -98,10 +98,12 @@ iterating through the parent `ASFYamlInstance` object:
 
 ~~~python3
 def run(self):
-    # Grab the notifications feature data from self.instance if the feature exists
-    notifs = self.instance.features.get("notifications")
-    # Make sure there is a valid target set for GitHub Discussions
-    if not (notifs and "discussions" in notifs.valid_targets):
+    # Make sure there is a valid target set for GitHub Discussions, through the notifications feature.
+    if not (
+            # Notifications must be configured
+            self.instance.features.notifications
+            and "discussions" in self.instance.features.notifications.valid_targets  # GH Discussions must have a validated mailing list destination.
+    ):
         raise Exception("You need to set up a 'discussions' notification target before enabling GitHub Discussions")
     pass
 ~~~

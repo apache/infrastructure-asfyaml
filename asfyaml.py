@@ -12,10 +12,23 @@ DEBUG = False
 DEFAULT_PRIORITY = 5
 
 
+class FeatureList(dict):
+    """Simple dictionary-style object with a default return value of None for non-existent features"""
+    def __init__(self):
+        super().__init__()
+
+    def __getattr__(self, item):
+        return super(FeatureList, self).get(item)
+
+    def __setattr__(self, key, value):
+        super(FeatureList, self).__setattr__(key, value)
+        super(FeatureList, self).__setitem__(key, value)
+
+
 class ASFYamlInstance:
     def __init__(self, config_data: str):
         self.yaml = strictyaml.load(config_data)
-        self.features = {}  # Placeholder for enabled and verified features during runtime.
+        self.features = FeatureList()  # Placeholder for enabled and verified features during runtime.
         # TODO: Set up repo details inside this class (repo name, file-path, project, private/public, etc)
 
         # Sort out which environments we are going to be using. This will determine which
@@ -67,7 +80,7 @@ class ASFYamlInstance:
                 feature = feature_class(self, yaml_parsed)
                 features_to_run.append(feature)
                 # Log that this feature is enabled, configured, and validated. For cross-feature access.
-                self.features[feature_name] = feature
+                self.features[str(feature_name)] = feature
             elif feature_name != "meta":  # meta is reserved for asfyaml.py, all else needs a feature or it should break.
                 raise KeyError(f"No such .asf.yaml feature: {feature_name}")
 
