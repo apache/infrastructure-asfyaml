@@ -4,6 +4,12 @@ import strictyaml
 DEFAULT_ENVIRONMENT = "production"
 DEBUG = False
 
+# Default priority for features. If set to this, they will be executed in the order they appear
+# in the YAML. If a priority other than this (five) is set, the feature will be moved ahead or
+# behind the rest in the feature run queue, depending on the integer value. Features are run
+# according to their priority level, going from priority 0 to 10.
+DEFAULT_PRIORITY = 5
+
 
 class ASFYamlInstance:
     def __init__(self, config_data: str):
@@ -38,6 +44,7 @@ class ASFYamlInstance:
 
         # For each enabled feature, spin up validation and runtime processing if directives are found
         # for the feature inside our .asf.yaml file.
+        features_to_run = []
         for feature_name, feature_yaml in self.yaml.items():
             if feature_name in self.enabled_features:
                 feature_yaml_as_string = feature_yaml.as_yaml()
@@ -55,12 +62,15 @@ class ASFYamlInstance:
                         raise e  # Just pass back the original exception for now
                 else:
                     yaml_parsed = strictyaml.load(feature_yaml_as_string)
-                # Everything seems in order, spin up an instance of the feature class and run it with our sub-yaml
+                # Everything seems in order, spin up an instance of the feature class for future use.
                 feature = feature_class(self, yaml_parsed)
-                feature.run()
+                features_to_run.append(feature)
             elif feature_name != "meta":  # meta is reserved for asfyaml.py, all else needs a feature or it should break.
                 raise KeyError(f"No such .asf.yaml feature: {feature_name}")
 
+        # If everything validated okay, we will sort the features by priority and then run them
+        for feature in sorted(features_to_run, key=lambda x: x.priority):
+            feature.run()
 
 class ASFYamlFeature:
     features = []  # List for tracking all sub-classes we come across in any environment.
@@ -69,14 +79,18 @@ class ASFYamlFeature:
         self.yaml = yaml  # Our sub-yaml for this feature
         self.instance = parent  # This is the parent .asf.yaml instance class
 
-    def __init_subclass__(cls, name: str, env: str = "production", **kwargs):
+    def __init_subclass__(cls, name: str, env: str = "production", priority: int = DEFAULT_PRIORITY, **kwargs):
         """Instantiates a new sub-class of ASFYamlFeature. The `name` argument should be the
         top dict keyword for this feature in .asf.yaml, for instance 'github' or 'pelican'.
         The `env` variable can be used to denote which environment this .asf.yaml feature will
-        be available in. The default environment is 'production', but this can be any name."""
+        be available in. The default environment is 'production', but this can be any name."
+        If a priority other than the default (5) is set, the feature will be run based on
+        that priority level (0 is highest, 10 lowest)m otherwise it will be run in order of
+        appearance in the YAML with the rest of the default priority features."""
         cls.name = name
         cls.env = env
         cls.features.append(cls)
+        cls.priority = priority
         super().__init_subclass__(**kwargs)
 
 
