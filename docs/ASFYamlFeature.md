@@ -5,6 +5,8 @@ For each new feature, you should generate a subclass of this, optionally specify
 the [YAML schema](#the-yaml-schema), the [environment](#feature-environments) name, 
 and/or [priority](#priority-scheduling) you wish to attach to this feature.
 
+Features are located in the [feature/](../feature/) directory and needs to be manually 
+enabled in [feature/__init__.py](../feature/__init__.py) prior to using.
 
 ## Example feature class
 ~~~python3
