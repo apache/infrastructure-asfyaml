@@ -14,7 +14,7 @@ DEFAULT_PRIORITY = 5
 class ASFYamlInstance:
     def __init__(self, config_data: str):
         self.yaml = strictyaml.load(config_data)
-
+        self.features = {}  # Placeholder for enabled and verified features during runtime.
         # TODO: Set up repo details inside this class (repo name, file-path, project, private/public, etc)
 
         # Sort out which environments we are going to be using. This will determine which
@@ -65,6 +65,8 @@ class ASFYamlInstance:
                 # Everything seems in order, spin up an instance of the feature class for future use.
                 feature = feature_class(self, yaml_parsed)
                 features_to_run.append(feature)
+                # Log that this feature is enabled, configured, and validated. For cross-feature access.
+                self.features[feature_name] = feature
             elif feature_name != "meta":  # meta is reserved for asfyaml.py, all else needs a feature or it should break.
                 raise KeyError(f"No such .asf.yaml feature: {feature_name}")
 
