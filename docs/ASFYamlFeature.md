@@ -66,11 +66,12 @@ TO-DO: Allow priority relative to other features.
 
 ## Feature Environments
 
-Features can be enabled for specific environments, meaning only repositories set (and allowed) 
+A Feature can be enabled for specific environments, meaning only repositories set (and allowed) 
 to use that environment will be able to run it. This can be used for protected features, as 
-well as for feature previews that should only apply to one or more specific repositories.
+well as for feature previews that should only be enabled for one or more specific repositories, 
+either during the initial testing, or because the feature is tailored to a specific project.
 
-The default environment is `production`, which is available to all repositories .
+The default environment is `production`, which is available to all repositories.
 
 A feature environment branch is declared in the subclass definition:
 ~~~python3
