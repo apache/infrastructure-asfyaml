@@ -38,7 +38,13 @@ slightly before the default placement of features.
 
 ## The YAML Schema
 
-... TBD
+YAML schemas are validated using [StrictYAML](https://hitchdev.com/strictyaml/)
+For detailed documentation on how to construct a schema, see the 
+[StrictYAML Users Guide](https://hitchdev.com/strictyaml/using/)
+
+All features with schemas are validated before any feature is actually run, so having a 
+schema properly defined can help spot typical configuration errors early on.
+
 
 ## Priority Scheduling
 
