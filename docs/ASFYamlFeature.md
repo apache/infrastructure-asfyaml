@@ -31,10 +31,18 @@ class ASFTestFeature(ASFYamlFeature, name="test", env="production", priority=4):
             raise Exception("Something bad happened")
 ~~~
 
-This would create a new feature called 'test' in .asf.yaml that is accessible to all repositories, 
+This would create a new feature called `test` in .asf.yaml that is accessible to all repositories, 
 with a required directive, `foo` which MUST be set, as well as an optional boolean value, `enable`, 
 which defaults to `False`. It would also run at [priority](#priority-scheduling) `4`, meaning 
 slightly before the default placement of features.
+
+A valid .asf.yaml configuration section for this feature could look like this:
+
+~~~yaml
+test:
+    foo: pony
+    enable: true
+~~~
 
 ## The YAML Schema
 
