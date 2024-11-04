@@ -73,8 +73,8 @@ class ASFSchemaTestFeature(ASFYamlFeature, name="schematest"):
 The above schema example would require `email_address` to be set to a string value, 
 `howmany` to be set to an integer value, and optionally `enable_feature` can be set 
 to True or False, with False being the default if not set. If the YAML in a 
-repository's .asf.yaml section for this feature does not conform to the schema,  
-an error will be thrown and the .asf.yaml processing will be stopped.
+repository's .asf.yaml section for this feature does not conform to the schema, an 
+error will be thrown and the .asf.yaml processing will be stopped.
 
 All features with schemas are validated before any feature is actually run, so having a 
 schema properly defined can help spot typical configuration errors early on.
