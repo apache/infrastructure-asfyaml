@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import strictyaml
+import easydict
 
 DEFAULT_ENVIRONMENT = "production"
 DEBUG = False
@@ -77,8 +78,8 @@ class ASFYamlInstance:
 class ASFYamlFeature:
     features = []  # List for tracking all sub-classes we come across in any environment.
 
-    def __init__(self, parent: ASFYamlInstance, yaml: dict):
-        self.yaml = yaml  # Our sub-yaml for this feature
+    def __init__(self, parent: ASFYamlInstance, yaml: strictyaml.YAML):
+        self.yaml = easydict.EasyDict(yaml.data)  # Our sub-yaml for this feature
         self.instance = parent  # This is the parent .asf.yaml instance class
 
     def __init_subclass__(cls, name: str, env: str = "production", priority: int = DEFAULT_PRIORITY, **kwargs):
