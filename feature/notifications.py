@@ -66,14 +66,10 @@ RE_VALID_MAILING_LIST = re.compile(r"[-a-z0-9]+@[-a-z0-9]+(\.incubator)?\.apache
 
 class ASFNotificationsFeature(ASFYamlFeature, name="notifications", priority=0):
     """.asf.yaml notifications feature class. Runs before anything else."""
-    # Overload to set valid_targets
-    # Note to other devs: The super() is only needed because we are changing the init function here.
-    # If you don't need special instance variables, you can omit the init function.
-    def __init__(self, parent: ASFYamlInstance, yaml_part: strictyaml.YAML):
-        self.valid_targets = {}  # Validated mailing list targets for events
-        super().__init__(parent, yaml_part)
+    valid_targets = {}  # Placeholder for self.valid_targets. Will be re-initialized on run.
 
     def run(self):
+        self.valid_targets = {}  # Set to a brand-new instance-local dict for valid scheme entries.
         # Read the list of valid mailing list targets from disk
         valid_lists = json.load(open(VALID_LISTS_FILE))
         # For each setting in our YAML, validate and then set.
