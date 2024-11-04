@@ -27,7 +27,7 @@ asfyaml.DEBUG = True
 def test_basic_yaml():
     expected_envs = {"production", "dev"}  # We expect these two envs enabled
     expected_minimum_features = {"test"}
-    repo_path = "/x1/gitbox/repos/private/whimsy/whimsy-private.git"
+    repo_path = "./repos/private/whimsy/whimsy-private.git"
     if not os.path.isdir(repo_path):  # Make test repo dir
         os.makedirs(repo_path, exist_ok=True)
     basic_yaml = open("tests/basic-dev-env.yaml", "r").read()
