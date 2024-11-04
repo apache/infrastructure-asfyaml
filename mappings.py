@@ -12,3 +12,10 @@ LDAP_TO_HOSTNAME = {
 
 # Repository filename syntax for inferring project names.
 REPO_RE = re.compile(r"(?:incubator-)?([^-.]+)")
+
+# Mailing list overrides. Also to be centralized elsewhere.
+ML_OVERRIDES = {
+    "www-site": "site-cvs@apache.org",
+    "apachecon-planning": "private@apachecon.com",
+    "privacy-website": "privacy-commits@apache.org",
+}
