@@ -95,8 +95,9 @@ class ASFYamlFeature:
     features = []  # List for tracking all sub-classes we come across in any environment.
 
     def __init__(self, parent: ASFYamlInstance, yaml: strictyaml.YAML):
-        self.yaml = easydict.EasyDict(yaml.data)  # Our sub-yaml for this feature
-        self.instance = parent  # This is the parent .asf.yaml instance class
+        self.yaml_raw = yaml.data  # The YAML configuration for this feature, in raw format.
+        self.yaml = easydict.EasyDict(yaml.data)  # The YAML, but in EasyDict format.
+        self.instance = parent  # This is the parent .asf.yaml instance class.
         self.repository = parent.repository  # The repository we're working on, and its push info.
         self.committer = parent.committer
 
