@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 import strictyaml
 import easydict
-
+import repository
 DEFAULT_ENVIRONMENT = "production"
 DEBUG = False
+
 
 # Default priority for features. If set to this, they will be executed in the order they appear
 # in the YAML. If a priority other than this (five) is set, the feature will be moved ahead or
@@ -26,8 +27,9 @@ class FeatureList(dict):
 
 
 class ASFYamlInstance:
-    def __init__(self, config_data: str):
+    def __init__(self, repo: repository.Repository, config_data: str):
         self.yaml = strictyaml.load(config_data)
+        self.repository = repo
         self.features = FeatureList()  # Placeholder for enabled and verified features during runtime.
         # TODO: Set up repo details inside this class (repo name, file-path, project, private/public, etc)
 
@@ -94,6 +96,7 @@ class ASFYamlFeature:
     def __init__(self, parent: ASFYamlInstance, yaml: strictyaml.YAML):
         self.yaml = easydict.EasyDict(yaml.data)  # Our sub-yaml for this feature
         self.instance = parent  # This is the parent .asf.yaml instance class
+        self.repository = parent.repository  # The repository we're working on, and its push info.
 
     def __init_subclass__(cls, name: str, env: str = "production", priority: int = DEFAULT_PRIORITY, **kwargs):
         """Instantiates a new sub-class of ASFYamlFeature. The `name` argument should be the
