@@ -68,3 +68,18 @@ meta:  # The `meta` section manages things like which environment to use for .as
 test:
    foo: bar
 ~~~
+
+
+## [Accessing Other Features]
+Any feature can perform lookups on other enabled features in the .asf.yaml instance by 
+iterating through the parent `ASFYamlInstance` object:
+
+~~~python3
+def run(self):
+    # Grab the notifications feature data from self.instance if the feature exists
+    notifs = self.instance.features.get("notifications")
+    # Make sure there is a valid target set for GitHub Discussions
+    if not (notifs and "discussions" in notifs.valid_targets):
+        raise Exception("You need to set up a 'discussions' notification target before enabling GitHub Discussions")
+    pass
+~~~
