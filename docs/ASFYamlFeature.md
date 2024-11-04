@@ -71,7 +71,7 @@ class ASFTestFeature(ASFYamlFeature, name="test", env="beta"):
 ~~~
 
 If a feature of the same type exists in the `production` environment, this environment will 
-override it for any repository that has `beta` set as their .asf.yaml environment:
+override it for any repository that has `beta` set as their [.asf.yaml environment](testing.md):
 
 ~~~yaml
 meta:  # The `meta` section manages things like which environment to use for .asf.yaml
