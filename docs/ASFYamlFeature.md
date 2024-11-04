@@ -80,6 +80,8 @@ test:
    foo: bar
 ~~~
 
+Environments can be set for any branch of a repository, although some features will only work on 
+certain branches (such as the default branch or if a specific `whoami` is set).
 
 ## Accessing Other Features
 Any feature can perform lookups on other enabled features in the .asf.yaml instance by 
