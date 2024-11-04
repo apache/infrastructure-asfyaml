@@ -12,6 +12,7 @@ pyyaml = "*"
 strictyaml = "*"
 pytest = "*"
 easydict = "*"
+asfpy = "*"
 
 [build-system]
 requires = ["poetry-core"]
