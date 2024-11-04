@@ -13,8 +13,11 @@ if "tests" in os.getcwd():
     os.chdir("..")
 import pytest
 import asfyaml
+import feature.notifications
+feature.notifications.VALID_LISTS_FILE = "tests/mailinglists.json"
 import repository
 asfyaml.DEBUG = True
+
 
 @pytest.mark.validator
 def test_basic_yaml():
