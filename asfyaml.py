@@ -27,9 +27,10 @@ class FeatureList(dict):
 
 
 class ASFYamlInstance:
-    def __init__(self, repo: repository.Repository, config_data: str):
+    def __init__(self, repo: repository.Repository, committer: str, config_data: str):
         self.yaml = strictyaml.load(config_data)
         self.repository = repo
+        self.committer = repository.Committer(committer)
         self.features = FeatureList()  # Placeholder for enabled and verified features during runtime.
         # TODO: Set up repo details inside this class (repo name, file-path, project, private/public, etc)
 
@@ -97,6 +98,7 @@ class ASFYamlFeature:
         self.yaml = easydict.EasyDict(yaml.data)  # Our sub-yaml for this feature
         self.instance = parent  # This is the parent .asf.yaml instance class
         self.repository = parent.repository  # The repository we're working on, and its push info.
+        self.committer = parent.committer
 
     def __init_subclass__(cls, name: str, env: str = "production", priority: int = DEFAULT_PRIORITY, **kwargs):
         """Instantiates a new sub-class of ASFYamlFeature. The `name` argument should be the

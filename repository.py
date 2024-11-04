@@ -25,3 +25,10 @@ class Repository:
     def hostname(self):
         """Returns the hostname for the project. httpd for httpd, but whimsical for whimsy."""
         return mappings.LDAP_TO_HOSTNAME.get(self.project, self.project)
+
+
+class Committer:
+    """"Simple info class for committer(pusher) of code"""
+    def __init__(self, username):
+        self.username = username
+        self.email = f"{username}@apache.org"
