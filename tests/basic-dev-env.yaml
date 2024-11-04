@@ -1,5 +1,10 @@
 # Example .asf.yaml config with the runtime environment set to 'dev'
 meta:
   environment: dev
+notifications:
+  discussions: private@whimsical.apache.org
+  issues: private@whimsical.apache.org
+  commits_by_path:
+    /foo/bar: foo@apache.org
 test:
   foo: bar
