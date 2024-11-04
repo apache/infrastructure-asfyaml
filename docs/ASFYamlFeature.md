@@ -36,11 +36,11 @@ with a required directive, `foo` which MUST be set, as well as an optional boole
 which defaults to `False`. It would also run at [priority](#priority-scheduling) `4`, meaning 
 slightly before the default placement of features.
 
-## [The YAML Schema]
+## The YAML Schema
 
 ... TBD
 
-## [Priority Scheduling]
+## Priority Scheduling
 
 Features are, by default, scheduled with a priority level of `5`. This means they will be run in 
 order of appearance in the YAML file. If a feature needs to run before or after other features, 
@@ -50,7 +50,7 @@ priority of `9` would run after the default group.
 
 TO-DO: Allow priority relative to other features.
 
-## [Feature Environments]
+## Feature Environments
 
 Features can be enabled for specific environments, meaning only repositories set (and allowed) 
 to use that environment will be able to run it. This can be used for protected features, as 
@@ -75,7 +75,7 @@ test:
 ~~~
 
 
-## [Accessing Other Features]
+## Accessing Other Features
 Any feature can perform lookups on other enabled features in the .asf.yaml instance by 
 iterating through the parent `ASFYamlInstance` object:
 
