@@ -1,0 +1,8 @@
+.document {
+    max-width: 1800px !important;
+    min-width: 1400px !important;
+}
+
+.body {
+    min-width: 940px !important;
+}
