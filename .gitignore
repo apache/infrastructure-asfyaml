@@ -2,5 +2,5 @@
 __pycache__
 poetry.*
 repos/*
-docs/api/_*
+docs/api/_sources
 docs/api/.*
