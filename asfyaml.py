@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import strictyaml
 import easydict
-import dataclasses
+import dataobjects
 DEFAULT_ENVIRONMENT = "production"
 DEBUG = False
 
@@ -30,10 +30,10 @@ class ASFYamlInstance:
     """This is the base instance class for a .asf.yaml process. It contains all the enabled features,
     as well as the repository and committer data needed to process events.
     """
-    def __init__(self, repo: dataclasses.Repository, committer: str, config_data: str):
+    def __init__(self, repo: dataobjects.Repository, committer: str, config_data: str):
         self.yaml = strictyaml.load(config_data)
         self.repository = repo
-        self.committer = dataclasses.Committer(committer)
+        self.committer = dataobjects.Committer(committer)
         self.features = FeatureList()  # Placeholder for enabled and verified features during runtime.
         # TODO: Set up repo details inside this class (repo name, file-path, project, private/public, etc)
 
@@ -135,6 +135,7 @@ class ASFYamlFeature:
         class ASFTestFeature(ASFYamlFeature, name="test", priority=4):
              def run(self):  # run() is the function that gets called once all YAML is validated for all features.
                  pass
+
     For information on how to create your own feature sub-class, see :func:`asfyaml.ASFYamlFeature.__init_subclass__`
     """
     features = []

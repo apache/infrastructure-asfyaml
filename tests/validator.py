@@ -13,7 +13,7 @@ if "tests" in os.getcwd():
     os.chdir("..")
 import pytest
 import asfyaml
-import repository
+import dataobjects
 
 # Rewire the notifications path, so we can test with a mock json file
 import feature.notifications
@@ -31,7 +31,7 @@ def test_basic_yaml():
     if not os.path.isdir(repo_path):  # Make test repo dir
         os.makedirs(repo_path, exist_ok=True)
     basic_yaml = open("tests/basic-dev-env.yaml", "r").read()
-    testrepo = repository.Repository(repo_path)
+    testrepo = dataobjects.Repository(repo_path)
     a = asfyaml.ASFYamlInstance(testrepo, "humbedooh", basic_yaml)
     a.run_parts()
 
