@@ -8,7 +8,7 @@ class Repository:
     :parameter path: The filesystem path to the .git directory for this repository.
 
     Example::
-    
+
         import dataobjects
         repo = dataobjects.Repository("/x1/repos/asf/tomcat/tomcat9.git")
         assert repo.is_private is False, "This should not be a private repo!"
