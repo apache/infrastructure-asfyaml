@@ -1,5 +1,5 @@
 version control classes
-==================
+=======================
 
 .. automodule:: dataobjects
    :members:
