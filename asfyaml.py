@@ -65,7 +65,13 @@ class ASFYamlInstance:
                         print(f"We have these mailing lis targets: {notifs.valid_targets}")
                     else:
                         raise Exception("You need to enable notifications!")
-                        
+        
+        As the :class:`FeatureList` object acts like a dictionary (more precisely, like an EasyDict), 
+        you can inspect the list as a dictionary and learn which features are currently enabled::
+        
+            def run(self):
+                features_we_have = ", ".join(self.instance.enabled_features)  # Dicts act like lists of keys in join
+                print(f"The following is enabled: {features_we_have}")  # Could be "notifications, github, jekyll"
         """
 
         # Make a list of enabled features for this repo, based on the environments enabled for it.
