@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import strictyaml
 import easydict
-import repository
+import dataclasses
 DEFAULT_ENVIRONMENT = "production"
 DEBUG = False
 
@@ -27,10 +27,13 @@ class FeatureList(dict):
 
 
 class ASFYamlInstance:
-    def __init__(self, repo: repository.Repository, committer: str, config_data: str):
+    """This is the base instance class for a .asf.yaml process. It contains all the enabled features,
+    as well as the repository and committer data needed to process events.
+    """
+    def __init__(self, repo: dataclasses.Repository, committer: str, config_data: str):
         self.yaml = strictyaml.load(config_data)
         self.repository = repo
-        self.committer = repository.Committer(committer)
+        self.committer = dataclasses.Committer(committer)
         self.features = FeatureList()  # Placeholder for enabled and verified features during runtime.
         # TODO: Set up repo details inside this class (repo name, file-path, project, private/public, etc)
 
@@ -44,11 +47,31 @@ class ASFYamlInstance:
             print("")
             print(f"Using environment(s): {', '.join(self.environments_enabled)}")
 
+        self.enabled_features = {}
+        """: FeatureList: This variable contains all features that are enabled for this run, as an object with of all the features that are enabled and their class instances as attributes.
+        Each feature is accessible as an attribute with the feature name as key, for instance :code:`self.instance.enabled_features.gitub`.
+        If a feature is not available (not enabled or not configured), a None value will be returned instead, 
+        allowing you to easily test for whether a feature is enabled or not without running into key errors.
+         
+        Example use::
+        
+            class ASFTestFeature(ASFYamlFeature, name="test", priority=4):
+                def run(self):
+                    # Check if we have notification features enabled for this repo or not
+                    notifs = self.instance.enabled_features.notifications
+                    if notifs:  # If notifications are in use...
+                        # The notifications feature runs before the rest, so we can
+                        # access its data already.
+                        print(f"We have these mailing lis targets: {notifs.valid_targets}")
+                    else:
+                        raise Exception("You need to enable notifications!")
+                        
+        """
+
         # Make a list of enabled features for this repo, based on the environments enabled for it.
         # Features are loaded in environment order, sop later environments can override features from other envs.
         # For instance, a production+test env list would load all production features and mix in test
         # features, overriding any features that are already in production.
-        self.enabled_features = {}
         for env in self.environments_enabled:
             for feat in ASFYamlFeature.features:
                 if feat.env == env:
@@ -58,7 +81,10 @@ class ASFYamlInstance:
             print(f"Features seen inside .asf.yaml: {', '.join([str(x) for x in self.yaml.keys()])}")
 
     def run_parts(self):
-
+        """Runs every enabled and configured feature for the .asf.yaml file.
+        If an exception is encountered, the processing will halt at the module that raised
+        it, and an email with the error message(s) will be sent to the git client as well as
+        private@$project.apache.org."""
         # For each enabled feature, spin up validation and runtime processing if directives are found
         # for the feature inside our .asf.yaml file.
         features_to_run = []
@@ -91,24 +117,73 @@ class ASFYamlInstance:
         for feature in sorted(features_to_run, key=lambda x: x.priority):
             feature.run()
 
+
+class ClassProperty(object):
+    """Simple proxy class for base class objects"""
+    def __init__(self, fget):
+        self.fget = fget
+
+    def __get__(self, parent_self, parent_cls):
+        return self.fget(parent_cls)
+
+
 class ASFYamlFeature:
-    features = []  # List for tracking all sub-classes we come across in any environment.
+    """The base .asf.yaml feature class.
+
+    Example::
+
+        class ASFTestFeature(ASFYamlFeature, name="test", priority=4):
+             def run(self):  # run() is the function that gets called once all YAML is validated for all features.
+                 pass
+    For information on how to create your own feature sub-class, see :func:`asfyaml.ASFYamlFeature.__init_subclass__`
+    """
+    features = []
+    """: list: List for tracking all ASFYamlFeature sub-classes we come across in any environment.
+    
+        Example use::
+        
+            class ASFTestFeature(ASFYamlFeature, name="test", priority=4):
+                def run(self):
+                    for feature in ASFYamlFeature.features:
+                        print(feature.name, feature.env)  # prints all discovered features and their environments
+
+        :meta hide-value:
+    """
 
     def __init__(self, parent: ASFYamlInstance, yaml: strictyaml.YAML):
-        self.yaml_raw = yaml.data  # The YAML configuration for this feature, in raw format.
-        self.yaml = easydict.EasyDict(yaml.data)  # The YAML, but in EasyDict format.
-        self.instance = parent  # This is the parent .asf.yaml instance class.
-        self.repository = parent.repository  # The repository we're working on, and its push info.
+        #: dict: The YAML configuration for this feature, in raw format.
+        self.yaml_raw = yaml.data
+
+        #: easydict.EasyDict: The YAML, but in `EasyDict` format.
+        self.yaml = easydict.EasyDict(yaml.data)
+
+        #: ASFYamlInstance: This is the parent .asf.yaml instance class. Useful for accessing other features and their data.
+        self.instance = parent
+
+        #: repository.Repository: The repository we're working on, and its push info.
+        self.repository = parent.repository
+
+        #: repository.Committer: The committer (userid+email) that pushed this commit.
         self.committer = parent.committer
 
     def __init_subclass__(cls, name: str, env: str = "production", priority: int = DEFAULT_PRIORITY, **kwargs):
-        """Instantiates a new sub-class of ASFYamlFeature. The `name` argument should be the
-        top dict keyword for this feature in .asf.yaml, for instance 'github' or 'pelican'.
-        The `env` variable can be used to denote which environment this .asf.yaml feature will
-        be available in. The default environment is 'production', but this can be any name."
+        """Instantiates a new sub-class of ASFYamlFeature. The :attr:`name` argument should be the
+        top dict keyword for this feature in .asf.yaml, for instance :kbd:`github` or :kbd:`pelican`.
+        The :attr:`env` variable can be used to denote which environment this .asf.yaml feature will
+        be available in. The default environment is :kbd:`production`, but this can be any name.
         If a priority other than the default (5) is set, the feature will be run based on
         that priority level (0 is highest, 10 lowest)m otherwise it will be run in order of
-        appearance in the YAML with the rest of the default priority features."""
+        appearance in the YAML with the rest of the default priority features.
+
+        Example sub-class definition::
+
+            # Create a new feature that runs after most other features (priority 9)
+            class ASFTestFeature(ASFYamlFeature, name="test", priority=9):
+                schema = ... # If you want to supply a YAML schema, you can do so here. Otherwise, leave it out.
+                def run(self):  # This is where your magic happens
+                    pass
+
+        """
         cls.name = name
         cls.env = env
         cls.features.append(cls)
