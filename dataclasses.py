@@ -3,9 +3,21 @@ import mappings
 
 
 class Repository:
-    """Simple class that holds information about the repository (and branch) being processed."""
+    """Simple class that holds information about the repository (and branch) being processed.
+
+    :parameter path: The filesystem path to the .git directory for this repository.
+
+    Example::
+        import repository
+        repo = repository.Repository("/x1/repos/asf/tomcat/tomcat9.git")
+        assert repo.is_private is False, "This should not be a private repo!"
+        website = f"https://{repo.hostname}.apache.org/"
+
+    """
     def __init__(self, path):
+        #: str|Pathlike: The filesystem path to this repository directory
         self.path = pathlib.Path(path)
+        #: str: The name of this repository (sans the .git part), for instance :samp:`whimsy-website`.
         self.name = self.path.name.removesuffix(".git")
 
     @property
@@ -30,5 +42,7 @@ class Repository:
 class Committer:
     """"Simple info class for committer(pusher) of code"""
     def __init__(self, username):
+        #: str: The ASF user id of the person that pushed this commit, for instance :samp:`humbedooh`
         self.username = username
+        #: str: The ASF email address of the person that pushed this commit, for instance :samp:`humbedooh@apache.org`.
         self.email = f"{username}@apache.org"
