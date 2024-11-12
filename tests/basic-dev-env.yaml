@@ -1,6 +1,6 @@
 # Example .asf.yaml config with the runtime environment set to 'dev'
 meta:
-  environment: dev
+  environment: quietmode
 notifications:
   discussions: private@whimsical.apache.org
   issues: private@whimsical.apache.org
@@ -8,3 +8,7 @@ notifications:
     /foo/bar: foo@apache.org
 test:
   foo: bar
+staging:
+  autostage: foo/*
+  subdir: foo
+  profile: bar
