@@ -156,9 +156,9 @@ class ASFNotificationsFeature(ASFYamlFeature, name="notifications", priority=0):
         print(changes)
 
         # If in test mode, bail!
-        if "quietmode" in self.instance.enabled_features:
+        if "quietmode" in self.instance.environments_enabled:
             return
-        
+
         # Tell project what happened, on private@
         msg = f"""The following notification schemes have been changed on {self.repository.name} by {self.committer.email}:
 {changes}
