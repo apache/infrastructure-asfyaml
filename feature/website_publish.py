@@ -20,11 +20,6 @@
 import mappings
 from asfyaml import ASFYamlFeature
 import re
-import fnmatch
-import json
-import os
-import yaml
-import asfpy
 import requests
 
 
