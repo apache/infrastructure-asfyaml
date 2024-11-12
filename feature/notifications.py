@@ -154,8 +154,11 @@ class ASFNotificationsFeature(ASFYamlFeature, name="notifications", priority=0):
                 changes += "- updating scheme %s: %r -> %r\n" % (key, old_yml[key], self.yaml[key])
         # Print the changes to the git client
         print(changes)
-        if True:
+
+        # If in test mode, bail!
+        if "quietmode" in self.instance.enabled_features:
             return
+        
         # Tell project what happened, on private@
         msg = f"""The following notification schemes have been changed on {self.repository.name} by {self.committer.email}:
 {changes}
