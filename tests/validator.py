@@ -25,7 +25,7 @@ asfyaml.DEBUG = True
 
 @pytest.mark.validator
 def test_basic_yaml():
-    expected_envs = {"production", "dev"}  # We expect these two envs enabled
+    expected_envs = {"production", "quietmode"}  # We expect these two envs enabled
     expected_minimum_features = {"test"}
     repo_path = "./repos/private/whimsy/whimsy-private.git"
     os.environ["PATH_INFO"] = "whimsy-site.git/git-receive-pack"
