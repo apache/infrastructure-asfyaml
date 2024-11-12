@@ -66,7 +66,7 @@ class ASFWebsitePublishingFeature(ASFYamlFeature, name="publish", priority=9):
         if whoami and whoami != self.instance.branch:
             return
 
-        subdir = self.yaml.subdir
+        subdir = self.yaml.get("subdir")
         if subdir:
             validate_subdir(subdir)
 
