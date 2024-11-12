@@ -2,6 +2,7 @@
 import strictyaml
 import easydict
 import dataobjects
+import envvars
 DEFAULT_ENVIRONMENT = "production"
 DEBUG = False
 
@@ -35,6 +36,8 @@ class ASFYamlInstance:
         self.repository = repo
         self.committer = dataobjects.Committer(committer)
         self.features = FeatureList()  # Placeholder for enabled and verified features during runtime.
+        self.branch = "main"  # TODO: Set somewhere during runtime.
+        self.environment = envvars.Environment()
         # TODO: Set up repo details inside this class (repo name, file-path, project, private/public, etc)
 
         # Sort out which environments we are going to be using. This will determine which
