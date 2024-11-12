@@ -19,3 +19,9 @@ ML_OVERRIDES = {
     "apachecon-planning": "private@apachecon.com",
     "privacy-website": "privacy-commits@apache.org",
 }
+
+# Repositories that override hostname for publishing
+WS_HOSTNAME_OVERRIDES = {
+    "comdev-events-site": "events.apache.org",
+    "logging-flume-site": "flume.apache.org",
+}
