@@ -28,12 +28,16 @@ def test_basic_yaml():
     expected_envs = {"production", "dev"}  # We expect these two envs enabled
     expected_minimum_features = {"test"}
     repo_path = "./repos/private/whimsy/whimsy-private.git"
+    os.environ["PATH_INFO"] = "whimsy-site.git/git-receive-pack"
+    os.environ["GIT_PROJECT_ROOT"] = "./repos/private"
     if not os.path.isdir(repo_path):  # Make test repo dir
         os.makedirs(repo_path, exist_ok=True)
     basic_yaml = open("tests/basic-dev-env.yaml", "r").read()
     testrepo = dataobjects.Repository(repo_path)
     a = asfyaml.ASFYamlInstance(testrepo, "humbedooh", basic_yaml)
     a.run_parts()
+
+
 
     # We should have both prod+dev envs enabled here
     assert a.environments_enabled == expected_envs
