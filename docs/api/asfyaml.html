@@ -68,6 +68,13 @@ allowing you to easily test for whether a feature is enabled or not without runn
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;You need to enable notifications!&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>As the <a class="reference internal" href="#asfyaml.FeatureList" title="asfyaml.FeatureList"><code class="xref py py-class docutils literal notranslate"><span class="pre">FeatureList</span></code></a> object acts like a dictionary (more precisely, like an EasyDict),
+you can inspect the list as a dictionary and learn which features are currently enabled:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">features_we_have</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">instance</span><span class="o">.</span><span class="n">enabled_features</span><span class="p">)</span>  <span class="c1"># Dicts act like lists of keys in join</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The following is enabled: </span><span class="si">{</span><span class="n">features_we_have</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>  <span class="c1"># Could be &quot;notifications, github, jekyll&quot;</span>
+</pre></div>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference internal" href="#asfyaml.FeatureList" title="asfyaml.FeatureList">FeatureList</a></p>
