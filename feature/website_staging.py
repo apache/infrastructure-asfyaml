@@ -22,7 +22,7 @@ from asfyaml import ASFYamlFeature
 import re
 import fnmatch
 import requests
-
+import strictyaml
 
 def validate_subdir(subdir):
     """Validates a sub-directory for projects with multiple website repos."""
@@ -36,6 +36,16 @@ def validate_subdir(subdir):
 
 class ASFWebsiteStagingFeature(ASFYamlFeature, name="staging", priority=9):
     """.asf.yaml website publishing feature class."""
+
+    schema = strictyaml.Map(
+        {
+            strictyaml.Optional("whoami", default="main"): strictyaml.Str(),
+            strictyaml.Optional("subdir", default=None): strictyaml.Str(),
+            strictyaml.Optional("type", default="website"): strictyaml.Str(),
+            strictyaml.Optional("hostname", default=None): strictyaml.Str(),
+            strictyaml.Optional("profile", default=None): strictyaml.Str(),
+            strictyaml.Optional("autostage", default=None): strictyaml.Str(),
+        })
 
     def run(self):
         """Publishing for websites. Sample entry .asf.yaml entry:
