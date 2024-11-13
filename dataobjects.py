@@ -1,5 +1,8 @@
 import pathlib
 import mappings
+import os
+
+DEFAULT_BRANCH = "main"
 
 
 class Repository:
@@ -38,6 +41,16 @@ class Repository:
     def hostname(self):
         """Returns the hostname for the project. httpd for httpd, but whimsical for whimsy."""
         return mappings.LDAP_TO_HOSTNAME.get(self.project, self.project)
+
+    @property
+    def default_branch(self):
+        """Returns the default branch for this repository."""
+        head_path = os.path.join(self.path, "HEAD")
+        if os.path.isfile(head_path):
+            hb = open(head_path).read().removeprefix("ref: refs/heads/")
+        else:
+            hb = DEFAULT_BRANCH
+        return hb
 
 
 class Committer:
