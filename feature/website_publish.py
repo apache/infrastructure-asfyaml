@@ -70,6 +70,13 @@ class ASFWebsitePublishingFeature(ASFYamlFeature, name="publish", priority=9):
         if deploy_type not in ("website", "blog"):
             raise Exception(f".asf.yaml: Invalid deployment type '{deploy_type}' - must be either 'website' or 'blog'!")
 
+        print(f"Publishing contents at https://{self.repository.hostname}.apache.org/ ...")
+
+        # If in NO-OP mode, we shouldn't actually try to stage anything.
+        if "noop" in self.instance.environments_enabled:
+            print("No-op mode enabled, not actually publishing this site!")
+            return
+
         # Try sending publish payload to pubsub
         try:
             payload = {
@@ -86,6 +93,5 @@ class ASFWebsitePublishingFeature(ASFYamlFeature, name="publish", priority=9):
 
             # Send to pubsub.a.o
             requests.post(f"https://pubsub.apache.org:2070/publish/{self.repository.project}", json=payload)
-            print(f"Publishing contents at https://{self.repository.hostname}.apache.org/ ...")
         except Exception as e:
             print(e)

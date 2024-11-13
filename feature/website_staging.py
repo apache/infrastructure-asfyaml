@@ -78,6 +78,16 @@ class ASFWebsiteStagingFeature(ASFYamlFeature, name="staging", priority=9):
                 f".asf.yaml: Invalid staging profile, '{profile}'. Must only contain permitted DNS characters (see RFC1035, §2.3.1)"
             )
 
+        wsname = f"https://{self.repository.hostname}.staged.apache.org"
+        if profile:
+            wsname = f"https://{self.repository.hostname}-{profile}.staged.apache.org"
+        print(f"Staging contents at {wsname} ...")
+
+        # If in NO-OP mode, we shouldn't actually try to stage anything.
+        if "noop" in self.instance.environments_enabled:
+            print("No-op mode enabled, not actually publishing this site!")
+            return
+
         # Try sending publish payload to pubsub
         try:
             payload = {
@@ -95,9 +105,5 @@ class ASFWebsiteStagingFeature(ASFYamlFeature, name="staging", priority=9):
             # Send to pubsub.a.o
             requests.post(f"https://pubsub.apache.org:2070/staging/{self.repository.project}", json=payload)
 
-            wsname = f"https://{self.repository.hostname}.staged.apache.org"
-            if profile:
-                wsname = f"https://{self.repository.hostname}-{profile}.staged.apache.org"
-            print(f"Staging contents at {wsname} ...")
         except Exception as e:
             print(e)
