@@ -58,7 +58,7 @@ class Repository:
         """Returns the default branch for this repository."""
         head_path = os.path.join(self.path, "HEAD")
         if os.path.isfile(head_path):
-            hb = open(head_path).read().removeprefix("ref: refs/heads/")
+            hb = open(head_path).read().removeprefix("ref: refs/heads/").strip()
         else:
             hb = DEFAULT_BRANCH
         return hb
