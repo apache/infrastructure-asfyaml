@@ -20,7 +20,6 @@ def _repo_name():
     path = filter(None, os.environ.get("PATH_INFO", '').split("/"))
     path = filter(lambda p: p != "git-receive-pack", list(path))
     plist = list(path)
-    print(plist)
     if len(plist) != 1:
         raise ValueError("Invalid PATH_INFO: %s" % os.environ.get("PATH_INFO"))
     return plist[0].removesuffix(".git")
