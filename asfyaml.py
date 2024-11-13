@@ -124,6 +124,8 @@ class ASFYamlInstance:
 
         # If everything validated okay, we will sort the features by priority and then run them
         for feature in sorted(features_to_run, key=lambda x: x.priority):
+            if DEBUG:
+                print(f"Running feature: {feature.name}")
             feature.run()
 
 
