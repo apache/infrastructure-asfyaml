@@ -38,6 +38,7 @@ class ASFYamlInstance:
         self.features = FeatureList()  # Placeholder for enabled and verified features during runtime.
         self.branch = "main"  # TODO: Set somewhere during runtime.
         self.environment = envvars.Environment()
+        self.no_cache = False  # Set "cache: false" in the meta section to force a complete parse in all features.
         # TODO: Set up repo details inside this class (repo name, file-path, project, private/public, etc)
 
         # Sort out which environments we are going to be using. This will determine which
@@ -46,6 +47,7 @@ class ASFYamlInstance:
         if "meta" in self.yaml:
             if "environment" in self.yaml["meta"]:
                 self.environments_enabled.add(str(self.yaml["meta"]["environment"]))
+                self.no_cache = self.yaml["meta"].get("cache", True) is False
         if DEBUG:
             print("")
             print(f"Using environment(s): {', '.join(self.environments_enabled)}")
