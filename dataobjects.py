@@ -5,6 +5,17 @@ import os
 DEFAULT_BRANCH = "main"
 
 
+class ChangeSet:
+    def __init__(self, repo: "Repository", old_rev: str = None, new_rev: str = None, ref_name: str = None, author: str = None):
+        """A single Git change event, with old-rev, new-rev, ref (tag/branch) and whodunnit"""
+        self.old_rev = old_rev
+        self.new_rev = new_rev
+        self.branch = ref_name.removeprefix("refs/heads/") if ref_name.startswith("refs/heads/") else None
+        self.tag = ref_name.removeprefix("refs/tags/") if ref_name.startswith("refs/tags/") else None
+        self.author = author
+        self.repository = repo
+
+
 class Repository:
     """Simple class that holds information about the repository (and branch) being processed.
 
