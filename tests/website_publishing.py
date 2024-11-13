@@ -2,6 +2,7 @@
 """Unit tests for .asf.yaml website publishing"""
 import os
 import sys
+
 sys.path.extend(
     (
         "./",
@@ -20,8 +21,9 @@ import fnmatch
 # Set .asf.yaml to debug mode
 asfyaml.DEBUG = True
 
+
 class YamlTest:
-    def __init__(self, exc = None, errstr: str = None, yml=""):
+    def __init__(self, exc=None, errstr: str = None, yml=""):
         self.exception = exc
         self.errmsg = errstr
         self.yaml = yml
@@ -42,34 +44,74 @@ class YamlTest:
                 pass
 
 
-valid_staging = YamlTest(None, None, """
+valid_staging = YamlTest(
+    None,
+    None,
+    """
 staging:
   subdir: foo
   profile: foo
   autostage: foo/*
-""")
+""",
+)
 
 # Valid staging section, but invalid subdir directive
-invalid_staging_subdir_slash = YamlTest(Exception, "cannot start with a forward slash", """
+invalid_staging_subdir_slash = YamlTest(
+    Exception,
+    "cannot start with a forward slash",
+    """
 staging:
   subdir: /foo
   autostage: foo/*
-""")
+""",
+)
 
 # Valid staging section, but invalid profile directive
-invalid_staging_bad_profile = YamlTest(Exception, "Must only contain permitted DNS characters", """
+invalid_staging_bad_profile = YamlTest(
+    Exception,
+    "Must only contain permitted DNS characters",
+    """
 staging:
   profile: a+b+c
   autostage: foo/*
-""")
+""",
+)
 
 # Valid staging section, but invalid autostage directive
-invalid_staging_bad_autostage = YamlTest(Exception, "autostage parameter must be", """
+invalid_staging_bad_autostage = YamlTest(
+    Exception,
+    "autostage parameter must be",
+    """
 staging:
   profile: a+b+c
   autostage: foo/bar
-""")
+""",
+)
 
+# Valid publish section
+valid_publish = YamlTest(
+    None,
+    None,
+    """
+publish:
+  whoami: asf-site
+  subdir: foobar
+  type: website
+""",
+)
+
+# Valid publish, but invalid hostname
+invalid_publish_hostname = YamlTest(
+    Exception,
+    "you cannot specify .*?apache.org hostnames, they must be inferred!",
+    """
+publish:
+  whoami: asf-site
+  subdir: foobar
+  type: website
+  hostname: foo.apache.org
+""",
+)
 
 
 def test_basic_yaml():
@@ -80,8 +122,13 @@ def test_basic_yaml():
         os.makedirs(repo_path, exist_ok=True)
     testrepo = dataobjects.Repository(repo_path)
 
-
-    tests_to_run = (valid_staging,invalid_staging_subdir_slash, invalid_staging_bad_profile, invalid_staging_bad_autostage)
+    print("STAGING TESTS")
+    tests_to_run = (
+        valid_staging,
+        invalid_staging_subdir_slash,
+        invalid_staging_bad_profile,
+        invalid_staging_bad_autostage,
+    )
 
     for test in tests_to_run:
         with test.ctx() as vs:
@@ -89,3 +136,11 @@ def test_basic_yaml():
             a.environments_enabled.add("noop")
             a.run_parts()
 
+    print("PUBLISHING TESTS")
+    tests_to_run = (valid_publish, invalid_publish_hostname)
+
+    for test in tests_to_run:
+        with test.ctx() as vs:
+            a = asfyaml.ASFYamlInstance(testrepo, "humbedooh", test.yaml)
+            a.environments_enabled.add("noop")
+            a.run_parts()
