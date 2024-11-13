@@ -16,7 +16,7 @@ import pytest
 import asfyaml
 import dataobjects
 import contextlib
-import fnmatch
+import strictyaml
 
 # Set .asf.yaml to debug mode
 asfyaml.DEBUG = True
@@ -88,13 +88,24 @@ staging:
 """,
 )
 
+# Valid staging section, but invalid unknown directive
+invalid_staging_unknown_directive = YamlTest(
+    strictyaml.exceptions.YAMLValidationError,
+    "key not in schema",
+    """
+staging:
+  blorp: foo
+  autostage: foo/bar
+""",
+)
+
 # Valid publish section
 valid_publish = YamlTest(
     None,
     None,
     """
 publish:
-  whoami: asf-site
+  whoami: main
   subdir: foobar
   type: website
 """,
@@ -106,7 +117,7 @@ invalid_publish_hostname = YamlTest(
     "you cannot specify .*?apache.org hostnames, they must be inferred!",
     """
 publish:
-  whoami: asf-site
+  whoami: main
   subdir: foobar
   type: website
   hostname: foo.apache.org
@@ -128,6 +139,7 @@ def test_basic_yaml():
         invalid_staging_subdir_slash,
         invalid_staging_bad_profile,
         invalid_staging_bad_autostage,
+        invalid_staging_unknown_directive,
     )
 
     for test in tests_to_run:
@@ -137,7 +149,7 @@ def test_basic_yaml():
             a.run_parts()
 
     print("PUBLISHING TESTS")
-    tests_to_run = (valid_publish, invalid_publish_hostname)
+    tests_to_run = (valid_publish, invalid_publish_hostname,)
 
     for test in tests_to_run:
         with test.ctx() as vs:
