@@ -131,6 +131,7 @@ class ASFYamlInstance:
             feature.run()
 
 
+
 class ClassProperty(object):
     """Simple proxy class for base class objects"""
     def __init__(self, fget):
@@ -204,6 +205,13 @@ class ASFYamlFeature:
         cls.priority = priority
         super().__init_subclass__(**kwargs)
 
+    def noop(self, directivename):
+        """Helper condition that determines whether to apply changes or not. If "no-op" mode is set, this returns true,
+        and prints out "[feature::directivename] Not applying changes, noop mode active."""
+        if "noop" in self.instance.environments_enabled:
+            print(f"[{self.name}::{directivename}] Not applying changes, noop mode active.")
+            return True
+        return False
 
 # Import all the feature classes. TODO: move this import elsewhere.
 from feature import *
