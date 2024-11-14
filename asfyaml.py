@@ -207,7 +207,18 @@ class ASFYamlFeature:
 
     def noop(self, directivename):
         """Helper condition that determines whether to apply changes or not. If "no-op" mode is set, this returns true,
-        and prints out "[feature::directivename] Not applying changes, noop mode active."""
+        and prints out "[feature::directivename] Not applying changes, noop mode active.
+
+        Example use::
+
+            def run(self):
+                if not self.noop("foodirective"):
+                    do_thing()
+
+        When production mode is enabled, this would run do_thing(). When testing is enabled, this will
+        print out something like `[github::foodirective] Not applying changes, noop mode active.` instead of
+        running do_thing().
+        """
         if "noop" in self.instance.environments_enabled:
             print(f"[{self.name}::{directivename}] Not applying changes, noop mode active.")
             return True
