@@ -84,7 +84,7 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             return
 
         # Check if cached yaml exists, compare if changed
-        yaml_filepath = f"/x1/asfyaml/ghsettings.self.repository.name.yml"
+        yaml_filepath = f"/x1/asfyaml/ghsettings.{self.repository.name}.yml"
         if not self.instance.no_cache:
             try:
                 if os.path.exists(yaml_filepath):
