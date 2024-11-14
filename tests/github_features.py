@@ -83,6 +83,7 @@ github:
 """,
 )
 
+os.makedirs("/x1/asfyaml", exist_ok=True)
 
 def test_basic_yaml():
     repo_path = "./repos/private/whimsy/whimsy-private.git"
