@@ -106,6 +106,5 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             _feat(self)
 
 
-
-# Import our sub-directives
+# Import our sub-directives (...after we have declared the feature class, to avoid circular imports)
 from . import labels, autolink, features, merge_buttons
