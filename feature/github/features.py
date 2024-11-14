@@ -13,7 +13,7 @@ def config_features(self: ASFGitHubFeature):
             if (not notifs) or "discussions" not in notifs.valid_targets:
                 raise Exception("GitHub discussions can only be enabled if a mailing list target exists for it.")
 
-        # If in NO-OP mode, we shouldn't actually try to stage anything.
+        # Apply the changes to GitHub, unless we are in no-op (test) mode.
         if not self.noop("features"):
             self.ghrepo.edit(
                 has_issues=features.get("issues", False),
