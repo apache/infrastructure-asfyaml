@@ -35,6 +35,8 @@ github:
         - a
         - b
         - c
+    description: Apache Foo
+    homepage: https://foo.apache.org/
 """,
 )
 
