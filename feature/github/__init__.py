@@ -26,6 +26,7 @@ import string
 
 _features = []
 
+
 def directive(func):
     _features.append(func)
     return func
@@ -84,12 +85,13 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             return
 
         # Check if cached yaml exists, compare if changed
+        self.previous_yaml = {}
         yaml_filepath = f"/x1/asfyaml/ghsettings.{self.repository.name}.yml"
         if not self.instance.no_cache:
             try:
                 if os.path.exists(yaml_filepath):
-                    old_yaml = yaml.safe_load(open(yaml_filepath).read())
-                    if old_yaml == self.yaml:
+                    self.previous_yaml = yaml.safe_load(open(yaml_filepath).read())
+                    if self.previous_yaml == self.yaml:
                         if asfyaml.DEBUG:
                             print("[github] Saw no changes to GitHub settings, skipping this run.")
                         return
@@ -100,6 +102,7 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
         print("GitHub meta-data changed, updating...")
 
         self.ghrepo = None  # TODO: Init this!
+        self.ghtoken = None # TODO: Also set this
 
         # For each sub-feature we see (with the @directive decorator on it), run it
         for _feat in _features:
