@@ -5,7 +5,7 @@ from . import directive, ASFGitHubFeature
 
 
 @directive
-def labels(self: ASFGitHubFeature):
+def set_labels(self: ASFGitHubFeature):
     # Labels for repo
     labels = self.yaml.get("labels")
     if labels:
@@ -16,5 +16,6 @@ def labels(self: ASFGitHubFeature):
                 raise Exception(
                     f".asf.yaml: Invalid GitHub label '{label}' - must be lowercase alphanumerical and <= 35 characters!"
                 )
+        # Apply changes, unless we are in no-op (test) mode.
         if not self.noop("labels"):
             self.ghrepo.replace_topics(labels)
