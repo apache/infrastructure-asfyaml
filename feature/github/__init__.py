@@ -110,4 +110,4 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             f.write(yaml.dump(self.yaml_raw, default_flow_style=False))
 
 # Import our sub-directives (...after we have declared the feature class, to avoid circular imports)
-from . import labels, autolink, features, merge_buttons
+from . import metadata, autolink, features, merge_buttons
