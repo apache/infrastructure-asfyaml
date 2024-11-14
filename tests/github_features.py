@@ -12,10 +12,8 @@ sys.path.extend(
 # If run locally inside the tests dir, we'll move one dir up for imports
 if "tests" in os.getcwd():
     os.chdir("..")
-import pytest
 import asfyaml
 import dataobjects
-import contextlib
 import strictyaml
 from helpers import YamlTest
 # Set .asf.yaml to debug mode
