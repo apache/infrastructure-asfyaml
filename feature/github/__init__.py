@@ -101,35 +101,11 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
 
         self.ghrepo = None  # TODO: Init this!
 
+        # For each sub-feature we see (with the @directive decorator on it), run it
         for _feat in _features:
             _feat(self)
 
-        # Generic features: issues, wiki, projects, discussions
-        features = self.yaml.get("features")
-        if features:
-            if features.get("discussions", False):
-                notifs = self.instance.features.notifications
-                if (not notifs) or "discussions" not in notifs.valid_targets:
-                    raise Exception("GitHub discussions can only be enabled if a mailing list target exists for it.")
 
-            # If in NO-OP mode, we shouldn't actually try to stage anything.
-            if not self.noop("features"):
-                repo.edit(
-                    has_issues=features.get("issues", False),
-                    has_wiki=features.get("wiki", False),
-                    has_projects=features.get("projects", False),
-                    has_discussions=features.get("discussions", False),
-                )
-
-        # Merge buttons
-        merges = self.yaml.get("enabled_merge_buttons")
-        if merges:
-            if not self.noop("enabled_merge_buttons"):
-                repo.edit(
-                    allow_squash_merge=merges.get("squash", False),
-                    allow_merge_commit=merges.get("merge", False),
-                    allow_rebase_merge=merges.get("rebase", False),
-                )
 
 # Import our sub-directives
-from . import labels, autolink
+from . import labels, autolink, features, merge_buttons
