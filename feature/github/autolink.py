@@ -11,17 +11,9 @@ def autolink(self: ASFGitHubFeature):
         # If not a list, assume a string and listify it (we'll validate shortly...)
         if not isinstance(autolink, list):
             autolink = [autolink]
-        # Validate all jira names listed first
-        for jiraname in autolink:
-            # Must be string, uppercase alpha only.
-            if not isinstance(jiraname, str) and re.match(r"^([A-Z][A-Z]+)$", jiraname):
-                raise Exception(
-                    ".asf.yaml: Invalid Jira project for GitHub autolink '%r' - must be a string of uppercase alphabetical characters only!"
-                    % jiraname
-                )
         # Grab any existing autolinks (to ensure we don't recreate them over and over)
         if not self.instance.no_cache:
-            existing_autolinks = [x for x in repo.get_autolinks()]  # Paginated (Iter) result -> list
+            existing_autolinks = [x for x in self.ghrepo.get_autolinks()]  # Paginated (Iter) result -> list
         else:
             existing_autolinks = []
         # Now add the autolink if not already there
@@ -31,4 +23,4 @@ def autolink(self: ASFGitHubFeature):
             if not any(jira_url == al.url_template for al in existing_autolinks):
                 print(f"Setting up new auto-link for {jiraname}-<num> -> {jira_url}")
                 if not self.noop("autolink_jira"):
-                    repo.create_autolink(key_prefix=f"{jiraname}-", url_template=jira_url)
+                    self.ghrepo.create_autolink(key_prefix=f"{jiraname}-", url_template=jira_url)
