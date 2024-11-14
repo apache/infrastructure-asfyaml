@@ -93,27 +93,24 @@ class ASFWebsiteStagingFeature(ASFYamlFeature, name="staging", priority=9):
             wsname = f"https://{self.repository.hostname}-{profile}.staged.apache.org"
         print(f"Staging contents at {wsname} ...")
 
-        # If in NO-OP mode, we shouldn't actually try to stage anything.
-        if "noop" in self.instance.environments_enabled:
-            print("No-op mode enabled, not actually publishing this site!")
-            return
 
         # Try sending publish payload to pubsub
-        try:
-            payload = {
-                "staging": {
-                    "project": self.repository.project,
-                    "subdir": subdir,
-                    "source": "https://gitbox.apache.org/repos/asf/%s.git" % self.repository.name,
-                    "branch": self.instance.branch,
-                    "pusher": self.committer.username,
-                    "target": hostname,
-                    "profile": profile,
+        if not self.noop("staging"):
+            try:
+                payload = {
+                    "staging": {
+                        "project": self.repository.project,
+                        "subdir": subdir,
+                        "source": "https://gitbox.apache.org/repos/asf/%s.git" % self.repository.name,
+                        "branch": self.instance.branch,
+                        "pusher": self.committer.username,
+                        "target": hostname,
+                        "profile": profile,
+                    }
                 }
-            }
 
-            # Send to pubsub.a.o
-            requests.post(f"https://pubsub.apache.org:2070/staging/{self.repository.project}", json=payload)
+                # Send to pubsub.a.o
+                requests.post(f"https://pubsub.apache.org:2070/staging/{self.repository.project}", json=payload)
 
-        except Exception as e:
-            print(e)
+            except Exception as e:
+                print(e)

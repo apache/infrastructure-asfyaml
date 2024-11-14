@@ -81,25 +81,22 @@ class ASFWebsitePublishingFeature(ASFYamlFeature, name="publish", priority=9):
         print(f"Publishing contents at https://{self.repository.hostname}.apache.org/ ...")
 
         # If in NO-OP mode, we shouldn't actually try to stage anything.
-        if "noop" in self.instance.environments_enabled:
-            print("No-op mode enabled, not actually publishing this site!")
-            return
-
-        # Try sending publish payload to pubsub
-        try:
-            payload = {
-                "publish": {
-                    "project": self.repository.project,
-                    "subdir": subdir,
-                    "source": "https://gitbox.apache.org/repos/asf/%s.git" % self.repository.name,
-                    "branch": self.instance.branch,
-                    "pusher": self.committer.username,
-                    "target": hostname,
-                    "type": deploy_type,
+        if not self.noop("publish"):
+            # Try sending publish payload to pubsub
+            try:
+                payload = {
+                    "publish": {
+                        "project": self.repository.project,
+                        "subdir": subdir,
+                        "source": "https://gitbox.apache.org/repos/asf/%s.git" % self.repository.name,
+                        "branch": self.instance.branch,
+                        "pusher": self.committer.username,
+                        "target": hostname,
+                        "type": deploy_type,
+                    }
                 }
-            }
 
-            # Send to pubsub.a.o
-            requests.post(f"https://pubsub.apache.org:2070/publish/{self.repository.project}", json=payload)
-        except Exception as e:
-            print(e)
+                # Send to pubsub.a.o
+                requests.post(f"https://pubsub.apache.org:2070/publish/{self.repository.project}", json=payload)
+            except Exception as e:
+                print(e)
