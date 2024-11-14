@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""GitHub labels feature"""
+"""GitHub metadata features"""
 import re
+import os
 from . import directive, ASFGitHubFeature
 
 
@@ -19,3 +20,18 @@ def set_labels(self: ASFGitHubFeature):
         # Apply changes, unless we are in no-op (test) mode.
         if not self.noop("labels"):
             self.ghrepo.replace_topics(labels)
+
+
+@directive
+def set_homepage_desc(self: ASFGitHubFeature):
+    desc = self.yaml.get("description")
+    homepage = self.yaml.get("homepage")
+    if desc:
+        if not self.noop("description"):
+            self.ghrepo.edit(description=desc)
+            # Update on gitbox as well
+            desc_path = os.path.join(self.repository.path, "description")
+            with open(desc_path, "w", encoding="utf8") as f:
+                f.write(desc)
+    if homepage and not self.noop("homepage"):
+        self.ghrepo.edit(homepage=homepage)
