@@ -73,6 +73,10 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                 JiraSpaceString(),
                 strictyaml.Seq(JiraSpaceString()),
             ),
+
+            # GitHub Pages
+            strictyaml.Optional("ghp_branch"): strictyaml.Str(),
+            strictyaml.Optional("ghp_path", default="/docs"): strictyaml.Str(),
         }
     )
 
@@ -113,4 +117,4 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             f.write(yaml.dump(self.yaml_raw, default_flow_style=False))
 
 # Import our sub-directives (...after we have declared the feature class, to avoid circular imports)
-from . import metadata, autolink, features, merge_buttons
+from . import metadata, autolink, features, merge_buttons, pages
