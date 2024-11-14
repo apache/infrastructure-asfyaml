@@ -84,11 +84,11 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             return
 
         # Check if cached yaml exists, compare if changed
-        ymlfile = "/x1/asfyaml/ghsettings.%s.yml" % self.repository.name
+        yaml_filepath = f"/x1/asfyaml/ghsettings.self.repository.name.yml"
         if not self.instance.no_cache:
             try:
-                if os.path.exists(ymlfile):
-                    old_yaml = yaml.safe_load(open(ymlfile).read())
+                if os.path.exists(yaml_filepath):
+                    old_yaml = yaml.safe_load(open(yaml_filepath).read())
                     if old_yaml == self.yaml:
                         if asfyaml.DEBUG:
                             print("[github] Saw no changes to GitHub settings, skipping this run.")
@@ -105,6 +105,9 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
         for _feat in _features:
             _feat(self)
 
+        # Save cached version of this YAML for next time.
+        with open(yaml_filepath, "w") as f:
+            f.write(yaml.dump(self.yaml_raw, default_flow_style=False))
 
 # Import our sub-directives (...after we have declared the feature class, to avoid circular imports)
 from . import labels, autolink, features, merge_buttons
