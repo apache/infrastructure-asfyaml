@@ -74,7 +74,7 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                 strictyaml.Seq(JiraSpaceString()),
             ),
 
-            # GitHub Pages
+            # GitHub Pages: branch (can be default or gh-pages) and path (can be /docs or /)
             strictyaml.Optional("ghp_branch"): strictyaml.Str(),
             strictyaml.Optional("ghp_path", default="/docs"): strictyaml.Str(),
         }
