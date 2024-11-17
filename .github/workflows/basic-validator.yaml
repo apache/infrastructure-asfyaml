@@ -28,8 +28,8 @@ jobs:
           python3 -m pip install pylint
           python3 -m pip install mypy
           python3 -m pip install types-requests
-          python3 -m pip install yaml
-          python3 -m pip install PyYAML
+          python3 -m pip install types-yaml
+          python3 -m pip install types-PyYAML
       - name: Test with pytest
         run: |
           poetry run python3 -m pytest tests/*.py
