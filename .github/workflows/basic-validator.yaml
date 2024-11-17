@@ -34,10 +34,10 @@ jobs:
             python3 -m pip install mypy
             python3 -m pip install types-requests
             python3 -m pip install types-PyYAML
-            mypy --cache-dir /tmp/ --install-types
-            mypy --cache-dir /tmp/ --ignore-missing-imports *.py feature/*.py tests/*.py
+            poetry run mypy --cache-dir /tmp/ --install-types
+            poetry run mypy --cache-dir /tmp/ --ignore-missing-imports *.py feature/*.py tests/*.py
       - name: Testing with pylint
         if: always() # even if mypy fails
         run: |
             python3 -m pip install pylint
-            pylint --recursive y .
+            poetry run pylint --recursive y .
