@@ -27,6 +27,9 @@ jobs:
           poetry install
           python3 -m pip install pylint
           python3 -m pip install mypy
+          python3 -m pip install types-requests
+          python3 -m pip install yaml
+          python3 -m pip install PyYAML
       - name: Test with pytest
         run: |
           poetry run python3 -m pytest tests/*.py
