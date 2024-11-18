@@ -7,7 +7,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = '.asf.yaml'
-copyright = '2024, ASF Infrastructure'
+project_copyright = '2024, ASF Infrastructure'
 author = 'ASF Infrastructure'
 
 # -- General configuration ---------------------------------------------------

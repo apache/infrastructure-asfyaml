@@ -225,5 +225,5 @@ class ASFYamlFeature:
         return False
 
 # Import all the feature classes. TODO: move this import elsewhere.
-from feature import *
+from feature import * # pylint: disable=wildcard-import,unused-wildcard-import
 

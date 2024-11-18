@@ -75,7 +75,7 @@ def test_basic_yaml():
     )
 
     for test in tests_to_run:
-        with test.ctx() as vs:
+        with test.ctx() as _vs:
             a = asfyaml.ASFYamlInstance(testrepo, "humbedooh", test.yaml)
             a.environments_enabled.add("noop")
             a.no_cache = True

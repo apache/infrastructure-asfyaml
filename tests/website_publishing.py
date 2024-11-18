@@ -12,10 +12,8 @@ sys.path.extend(
 # If run locally inside the tests dir, we'll move one dir up for imports
 if "tests" in os.getcwd():
     os.chdir("..")
-import pytest
 import asfyaml
 import dataobjects
-import contextlib
 import strictyaml
 from helpers import YamlTest
 # Set .asf.yaml to debug mode
@@ -120,7 +118,7 @@ def test_basic_yaml():
     )
 
     for test in tests_to_run:
-        with test.ctx() as vs:
+        with test.ctx() as _vs:
             a = asfyaml.ASFYamlInstance(testrepo, "humbedooh", test.yaml)
             a.environments_enabled.add("noop")
             a.run_parts()
@@ -129,7 +127,7 @@ def test_basic_yaml():
     tests_to_run = (valid_publish, invalid_publish_hostname,)
 
     for test in tests_to_run:
-        with test.ctx() as vs:
+        with test.ctx() as _vs:
             a = asfyaml.ASFYamlInstance(testrepo, "humbedooh", test.yaml)
             a.environments_enabled.add("noop")
             a.run_parts()

@@ -80,16 +80,21 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
         }
     )
 
+    def __init__(self):
+        super().__init__(None, None)
+        self.previous_yaml = {}
+        self.ghrepo = None  # TODO: Init this!
+        self.ghtoken = None # TODO: Also set this
+
     def run(self):
         """GitHub features"""
         # Test if we need to process this (only works on the default branch)
         if self.instance.branch != self.repository.default_branch:
-            print(f"Saw GitHub meta-data in .asf.yaml, but not in default branch of repository, not updating...")
+            print("Saw GitHub meta-data in .asf.yaml, but not in default branch of repository, not updating...")
             print(self.instance.branch, self.repository.default_branch)
             return
 
         # Check if cached yaml exists, compare if changed
-        self.previous_yaml = {}
         yaml_filepath = f"/x1/asfyaml/ghsettings.{self.repository.name}.yml"
         if not self.instance.no_cache:
             try:
@@ -104,9 +109,6 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
 
         # Update items
         print("GitHub meta-data changed, updating...")
-
-        self.ghrepo = None  # TODO: Init this!
-        self.ghtoken = None # TODO: Also set this
 
         # For each sub-feature we see (with the @directive decorator on it), run it
         for _feat in _features:
