@@ -10,6 +10,7 @@ class ChangeSet:
         """A single Git change event, with old-rev, new-rev, ref (tag/branch) and whodunnit"""
         self.old_rev = old_rev
         self.new_rev = new_rev
+        self.ref_raw = ref_name  # Store raw reference as well, some features might use it.
         if ref_name:
             self.branch = ref_name.removeprefix("refs/heads/") if ref_name.startswith("refs/heads/") else None
             self.tag = ref_name.removeprefix("refs/tags/") if ref_name.startswith("refs/tags/") else None
