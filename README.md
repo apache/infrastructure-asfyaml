@@ -638,7 +638,7 @@ github:
         - id: user_id
           type: User
       prevent_self_review: true
-      wait_timer: 60
+      wait_timer: 5
       deployment_branch_policy:
         protected_branches: false
         custom_branch_policies: true
@@ -666,7 +666,7 @@ The `environments` section is a dictionary of environment names, each with a dic
 
   - `required_reviewers`: A list of reviewers that must approve the deployment. (The `id` is the GitHub user ID or provide user name.)
   - `prevent_self_review`: Prevents the person who created the deployment from approving it.
-  - `wait_timer`: The number of minutes to wait before auto-approving the deployment.
+  - `wait_timer`: To delay a job for a specific amount of time after the job is initially triggered. (in minutes)
   - `deployment_branch_policy`: A dictionary of branch policy settings.
   - `protected_branches`: Whether to protect the branch. If set to `true`, the deployment branch policy will be used all the protected branches.
   - `custom_branch_policies`: Whether to use custom branch policies. If set to `true`, the `policies` list will be used. You must provide at least one policy.
