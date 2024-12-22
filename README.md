@@ -56,7 +56,8 @@ It operates on a per-branch basis, meaning you can have different settings for d
       <li><a href="#merge">Merge buttons</a></li>
       <li><a href="#repo_features">Repository features</a></li>
       <li><a href="#repo_meta">Repository metadata</a></li>
-      <li><a href="#tag_protect">Tag protection</a></li>      
+      <li><a href="#tag_protect">Tag protection</a></li>
+      <li><a href="#repo_environments">Repository deployment environments</a></li>
     </ul>
   </li>
   <li><a href="#static">Generating static website content</a>
@@ -624,6 +625,54 @@ github:
     - "rel/*"
     - "v*.*.*"
 ~~~
+
+<h3 id="repo_environments">Repository deployment environments</h3>
+
+Projects can create deployment environments and deployment branch policies via `.asf.yaml` like this:
+
+~~~yaml
+github:
+  environments:
+    pypi:
+      required_reviewers:
+        - id: user_id
+          type: User
+      prevent_self_review: true
+      wait_timer: 60
+      deployment_branch_policy:
+        protected_branches: false
+        custom_branch_policies: true
+        policies:
+          - name: main
+            type: branch
+          - name: 1.2.0
+            type: tag
+          - name: "release/*"
+            
+    test-pypi:
+      required_reviewers:
+        - id: user_id
+          type: User
+      prevent_self_review: true
+      wait_timer: 60
+      deployment_branch_policy:
+        protected_branches: true
+        custom_branch_policies: false
+~~~
+
+The above example creates two deployment environments, `pypi` and `test-pypi`. first environment `pypi` has a deployment branch policy `custom_branch_policies` it will use the `policies` list. The second environment `test-pypi` has a deployment branch policy `protected_branches` it will use the protected branches from the repository.
+
+The `environments` section is a dictionary of environment names, each with a dictionary of settings. The settings are:
+
+  - `required_reviewers`: A list of reviewers that must approve the deployment. (The `id` is the GitHub user ID or provide user name.)
+  - `prevent_self_review`: Prevents the person who created the deployment from approving it.
+  - `wait_timer`: The number of minutes to wait before auto-approving the deployment.
+  - `deployment_branch_policy`: A dictionary of branch policy settings.
+  - `protected_branches`: Whether to protect the branch. If set to `true`, the deployment branch policy will be used all the protected branches.
+  - `custom_branch_policies`: Whether to use custom branch policies. If set to `true`, the `policies` list will be used. You must provide at least one policy.
+  - `policies`: A list of branch policies to apply.
+
+**Note**: You must not set both `protected_branches` and `custom_branch_policies` to `true`. you have to set at least one of them to `true` and provide both `protected_branches` and `custom_branch_policies` under the `deployment_branch_policy`.
 
 <p align="right"><a href="#top">Return to top</a>
 
