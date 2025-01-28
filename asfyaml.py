@@ -32,7 +32,7 @@ class ASFYamlInstance:
     as well as the repository and committer data needed to process events.
     """
     def __init__(self, repo: dataobjects.Repository, committer: str, config_data: str):
-        self.yaml = strictyaml.load(config_data)
+        self.yaml = strictyaml.load(config_data, label=f"{repo.name}.git/.asf.yaml")
         self.repository = repo
         self.committer = dataobjects.Committer(committer)
         self.features = FeatureList()  # Placeholder for enabled and verified features during runtime.
@@ -119,13 +119,12 @@ class ASFYamlInstance:
                 # If the feature has a schema, validate the sub-yaml before running the feature.
                 if hasattr(feature_class, "schema"):
                     try:
-                        yaml_parsed = strictyaml.load(feature_yaml_as_string, feature_class.schema)
+                        yaml_parsed = strictyaml.load(feature_yaml_as_string, feature_class.schema, label=f"{self.repository.name}.git/.asf.yaml::{feature_name}")
                     except strictyaml.exceptions.YAMLValidationError as e:
                         feature_start = feature_yaml.start_line
                         problem_line = feature_start + e.problem_mark.line
                         problem_column = e.problem_mark.column
                         # TODO: Make this much more reader friendly!
-                        print(problem_line, problem_column, str(e))
                         raise e  # Just pass back the original exception for now
                 else:
                     yaml_parsed = strictyaml.load(feature_yaml_as_string)
