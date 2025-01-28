@@ -45,8 +45,21 @@ class ASFYamlInstance:
         # features to add, or which version of a feature to use.
         self.environments_enabled = {DEFAULT_ENVIRONMENT}
         if "meta" in self.yaml:
+            # environment: fooenv
+            # merges a single environment with production
             if "environment" in self.yaml["meta"]:
                 self.environments_enabled.add(str(self.yaml["meta"]["environment"]))
+                self.no_cache = self.yaml["meta"].get("cache", True) is False
+            # environments:
+            #   - foobar
+            #   - barbaz
+            # merges a list of environments with production.
+            # Merging happens in order of appearance in the yaml configuration, so having environments
+            # a, b, c in the configuration will be based off production, with features then added or
+            # overridden by a, then b, then c.
+            if "environments" in self.yaml["meta"]:
+                for env in self.yaml["meta"]["environments"]:
+                    self.environments_enabled.add(str(env))
                 self.no_cache = self.yaml["meta"].get("cache", True) is False
         if DEBUG:
             print("")

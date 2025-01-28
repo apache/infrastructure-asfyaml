@@ -118,6 +118,15 @@ test:
 Environments can be set for any branch of a repository, although some features will only work on 
 certain branches (such as the default branch or if a specific `whoami` is set).
 
+You can also add multiple environments in order to merge several features:
+~~~yaml
+meta:  # The `meta` section manages things like which environment to use for .asf.yaml
+  environments: # Note, this is a list instead of a single string
+    - foobar
+    - otherfoo
+    - quietmode
+~~~
+
 ## Accessing Other Features
 Any feature can perform lookups on other enabled features in the .asf.yaml instance by 
 iterating through the parent `ASFYamlInstance` object:
