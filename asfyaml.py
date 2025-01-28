@@ -31,12 +31,15 @@ class ASFYamlInstance:
     """This is the base instance class for a .asf.yaml process. It contains all the enabled features,
     as well as the repository and committer data needed to process events.
     """
-    def __init__(self, repo: dataobjects.Repository, committer: str, config_data: str):
+    def __init__(self, repo: dataobjects.Repository, committer: str, config_data: str, branch: str = "main"):
         self.yaml = strictyaml.load(config_data, label=f"{repo.name}.git/.asf.yaml")
         self.repository = repo
         self.committer = dataobjects.Committer(committer)
         self.features = FeatureList()  # Placeholder for enabled and verified features during runtime.
-        self.branch = "main"  # TODO: Set somewhere during runtime.
+        if branch and branch.startswith("refs/heads/"):
+            self.branch = branch[11:]  # If actual branch, crop and set
+        else:
+            self.branch = dataobjects.DEFAULT_BRANCH  # Not a valid branch pattern, set to default branch
         self.environment = envvars.Environment()
         self.no_cache = False  # Set "cache: false" in the meta section to force a complete parse in all features.
         # TODO: Set up repo details inside this class (repo name, file-path, project, private/public, etc)
