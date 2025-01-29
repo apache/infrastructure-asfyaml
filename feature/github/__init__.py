@@ -83,7 +83,6 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
         # Test if we need to process this (only works on the default branch)
         if self.instance.branch != self.repository.default_branch:
             print(f"Saw GitHub meta-data in .asf.yaml, but not in default branch of repository, not updating...")
-            print(self.instance.branch, self.repository.default_branch)
             return
 
         # Check if cached yaml exists, compare if changed
