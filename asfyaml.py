@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import strictyaml
+import strictyaml.ruamel.scanner
 import easydict
 import dataobjects
 import envvars
@@ -12,6 +13,14 @@ DEBUG = False
 # behind the rest in the feature run queue, depending on the integer value. Features are run
 # according to their priority level, going from priority 0 to 10.
 DEFAULT_PRIORITY = 5
+
+
+class ASFYAMLException(Exception):
+    def __init__(self, repository: dataobjects.Repository, branch: str, feature: str = "", error_message: str = ""):
+        self.repository = repository
+        self.branch = branch
+        self.feature = feature
+        self.error_message = error_message
 
 
 class FeatureList(dict):
@@ -32,14 +41,20 @@ class ASFYamlInstance:
     as well as the repository and committer data needed to process events.
     """
     def __init__(self, repo: dataobjects.Repository, committer: str, config_data: str, branch: str = "main"):
-        self.yaml = strictyaml.load(config_data, label=f"{repo.name}.git/.asf.yaml")
         self.repository = repo
         self.committer = dataobjects.Committer(committer)
-        self.features = FeatureList()  # Placeholder for enabled and verified features during runtime.
         if branch and branch.startswith("refs/heads/"):
             self.branch = branch[11:]  # If actual branch, crop and set
         else:
             self.branch = dataobjects.DEFAULT_BRANCH  # Not a valid branch pattern, set to default branch
+
+        # Load YAML and, if any parsing errors happen, bail and raise exception
+        try:
+            self.yaml = strictyaml.load(config_data, label=f"{repo.name}.git/.asf.yaml")
+        except strictyaml.ruamel.scanner.ScannerError as e:
+            raise ASFYAMLException(repository=self.repository, branch=self.branch, feature="main", error_message=str(e))
+
+        self.features = FeatureList()  # Placeholder for enabled and verified features during runtime.
         self.environment = envvars.Environment()
         self.no_cache = False  # Set "cache: false" in the meta section to force a complete parse in all features.
         # TODO: Set up repo details inside this class (repo name, file-path, project, private/public, etc)
@@ -143,7 +158,12 @@ class ASFYamlInstance:
         for feature in sorted(features_to_run, key=lambda x: x.priority):
             if DEBUG:
                 print(f"Running feature: {feature.name}")
-            feature.run()
+            try:
+                feature.run()
+            except strictyaml.YAMLValidationError as e:
+                raise ASFYAMLException(repository=self.repository, branch=self.branch, feature=feature.name, error_message=str(e))
+            except Exception as e:
+                raise ASFYAMLException(repository=self.repository, branch=self.branch, feature=feature.name, error_message=str(e))
 
 
 
