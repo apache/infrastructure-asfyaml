@@ -17,8 +17,8 @@
 
 """This is the notifications feature for .asf.yaml. It validates and sets up mailing list targets for repository events."""
 
-import mappings
-from asfyaml import ASFYamlFeature
+import asfyaml.mappings as mappings
+from asfyaml.asfyaml import ASFYamlFeature
 import re
 import fnmatch
 import json

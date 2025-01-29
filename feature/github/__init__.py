@@ -16,9 +16,7 @@
 # limitations under the License.
 
 """This is the GitHub feature for .asf.yaml."""
-import asfyaml
-from asfyaml import ASFYamlFeature
-import re
+from asfyaml.asfyaml import ASFYamlFeature, DEBUG
 import strictyaml
 import os
 import yaml
@@ -96,7 +94,7 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                 if os.path.exists(yaml_filepath):
                     self.previous_yaml = yaml.safe_load(open(yaml_filepath).read())
                     if self.previous_yaml == self.yaml:
-                        if asfyaml.DEBUG:
+                        if DEBUG:
                             print("[github] Saw no changes to GitHub settings, skipping this run.")
                         return
             except yaml.YAMLError as _e:  # Failed to parse old yaml? bah.

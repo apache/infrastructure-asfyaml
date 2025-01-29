@@ -1,4 +1,4 @@
-from asfyaml import ASFYamlFeature
+from asfyaml.asfyaml import ASFYamlFeature
 import strictyaml
 
 
