@@ -1,5 +1,5 @@
 import pathlib
-import mappings
+import asfyaml.mappings as mappings
 import os
 
 DEFAULT_BRANCH = "main"

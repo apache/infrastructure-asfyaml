@@ -2,8 +2,8 @@
 import strictyaml
 import strictyaml.ruamel.scanner
 import easydict
-import dataobjects
-import envvars
+import asfyaml.dataobjects as dataobjects
+import asfyaml.envvars as envvars
 DEFAULT_ENVIRONMENT = "production"
 DEBUG = False
 
@@ -260,5 +260,5 @@ class ASFYamlFeature:
         return False
 
 # Import all the feature classes. TODO: move this import elsewhere.
-from feature import *
+from asfyaml.feature import *
 
