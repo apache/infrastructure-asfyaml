@@ -27,5 +27,4 @@ jobs:
           poetry install
       - name: Test with pytest
         run: |
-          mkdir -p /x1/asfyaml
           poetry run python3 -m pytest tests/*.py
