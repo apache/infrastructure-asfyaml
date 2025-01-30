@@ -159,6 +159,11 @@ class ASFNotificationsFeature(ASFYamlFeature, name="notifications", priority=0):
         # Print the changes to the git client
         print(changes)
 
+        changesets = ""
+        for push in self.repository.changesets:
+            for commit in push.commits:
+                if ".asf.yaml" in commit.files:
+                    changesets += f"{commit.sha}: [{commit.committer_uname}] {commit.subject}\n"
         # If in test mode, bail!
         if "quietmode" in self.instance.environments_enabled:
             return
@@ -166,6 +171,10 @@ class ASFNotificationsFeature(ASFYamlFeature, name="notifications", priority=0):
         # Tell project what happened, on private@
         msg = f"""The following notification schemes have been changed on {self.repository.name} by {self.committer.email}:
 {changes}
+
+These changes were caused by the following commits to the {self.instance.branch} branch:
+
+{changesets}
 
 With regards,
 ASF Infra.
