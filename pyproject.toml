@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "infrastructure-asfyaml"
+name = "asfyaml"
 version = "0.1.0"
 description = ""
 authors = ["Daniel Gruno <humbedooh@apache.org>"]

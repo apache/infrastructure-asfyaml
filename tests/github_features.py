@@ -12,8 +12,8 @@ sys.path.extend(
 # If run locally inside the tests dir, we'll move one dir up for imports
 if "tests" in os.getcwd():
     os.chdir("..")
-import asfyaml
-import dataobjects
+import asfyaml.asfyaml
+import asfyaml.dataobjects
 import strictyaml
 from helpers import YamlTest
 # Set .asf.yaml to debug mode
@@ -42,7 +42,7 @@ github:
 
 # Something isn't a bool
 invalid_github_features_not_bool = YamlTest(
-    strictyaml.exceptions.YAMLValidationError,
+    asfyaml.asfyaml.ASFYAMLException,
     "expecting a boolean value",
     """
 github:
@@ -56,7 +56,7 @@ github:
 
 # Something isn't a valid directive
 invalid_github_features_unknown_directive = YamlTest(
-    strictyaml.exceptions.YAMLValidationError,
+    asfyaml.asfyaml.ASFYAMLException,
     "unexpected key not in schema 'foobar'",
     """
 github:
@@ -71,7 +71,7 @@ github:
 
 # Discussions enabled but no mailing list target set
 invalid_github_features_no_disc_target = YamlTest(
-    Exception,
+    asfyaml.asfyaml.ASFYAMLException,
     "GitHub discussions can only be enabled if a mailing list target exists",
     """
 github:
@@ -91,7 +91,7 @@ def test_basic_yaml():
     os.environ["GIT_PROJECT_ROOT"] = "./repos/private"
     if not os.path.isdir(repo_path):  # Make test repo dir
         os.makedirs(repo_path, exist_ok=True)
-    testrepo = dataobjects.Repository(repo_path)
+    testrepo = asfyaml.dataobjects.Repository(repo_path)
 
     print("[github] Testing features")
 
@@ -104,7 +104,7 @@ def test_basic_yaml():
 
     for test in tests_to_run:
         with test.ctx() as vs:
-            a = asfyaml.ASFYamlInstance(testrepo, "humbedooh", test.yaml)
+            a = asfyaml.asfyaml.ASFYamlInstance(testrepo, "humbedooh", test.yaml)
             a.environments_enabled.add("noop")
             a.no_cache = True
             a.run_parts()

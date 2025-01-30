@@ -13,8 +13,8 @@ sys.path.extend(
 if "tests" in os.getcwd():
     os.chdir("..")
 import pytest
-import asfyaml
-import dataobjects
+import asfyaml.asfyaml
+import asfyaml.dataobjects
 import contextlib
 import strictyaml
 from helpers import YamlTest
@@ -34,7 +34,7 @@ staging:
 
 # Valid staging section, but invalid subdir directive
 invalid_staging_subdir_slash = YamlTest(
-    Exception,
+    asfyaml.asfyaml.ASFYAMLException,
     "cannot start with a forward slash",
     """
 staging:
@@ -45,7 +45,7 @@ staging:
 
 # Valid staging section, but invalid profile directive
 invalid_staging_bad_profile = YamlTest(
-    Exception,
+    asfyaml.asfyaml.ASFYAMLException,
     "Must only contain permitted DNS characters",
     """
 staging:
@@ -56,7 +56,7 @@ staging:
 
 # Valid staging section, but invalid autostage directive
 invalid_staging_bad_autostage = YamlTest(
-    Exception,
+    asfyaml.asfyaml.ASFYAMLException,
     "autostage parameter must be",
     """
 staging:
@@ -67,7 +67,7 @@ staging:
 
 # Valid staging section, but invalid unknown directive
 invalid_staging_unknown_directive = YamlTest(
-    strictyaml.exceptions.YAMLValidationError,
+    asfyaml.asfyaml.ASFYAMLException,
     "key not in schema",
     """
 staging:
@@ -90,7 +90,7 @@ publish:
 
 # Valid publish, but invalid hostname
 invalid_publish_hostname = YamlTest(
-    Exception,
+    asfyaml.asfyaml.ASFYAMLException,
     "you cannot specify .*?apache.org hostnames, they must be inferred!",
     """
 publish:
@@ -108,7 +108,7 @@ def test_basic_yaml():
     os.environ["GIT_PROJECT_ROOT"] = "./repos/private"
     if not os.path.isdir(repo_path):  # Make test repo dir
         os.makedirs(repo_path, exist_ok=True)
-    testrepo = dataobjects.Repository(repo_path)
+    testrepo = asfyaml.dataobjects.Repository(repo_path)
 
     print("STAGING TESTS")
     tests_to_run = (
@@ -121,7 +121,7 @@ def test_basic_yaml():
 
     for test in tests_to_run:
         with test.ctx() as vs:
-            a = asfyaml.ASFYamlInstance(testrepo, "humbedooh", test.yaml)
+            a = asfyaml.asfyaml.ASFYamlInstance(testrepo, "humbedooh", test.yaml)
             a.environments_enabled.add("noop")
             a.run_parts()
 
@@ -130,6 +130,6 @@ def test_basic_yaml():
 
     for test in tests_to_run:
         with test.ctx() as vs:
-            a = asfyaml.ASFYamlInstance(testrepo, "humbedooh", test.yaml)
+            a = asfyaml.asfyaml.ASFYamlInstance(testrepo, "humbedooh", test.yaml)
             a.environments_enabled.add("noop")
             a.run_parts()

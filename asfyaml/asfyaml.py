@@ -22,6 +22,9 @@ class ASFYAMLException(Exception):
         self.feature = feature
         self.error_message = error_message
 
+    def __str__(self):
+        return self.error_message
+
 
 class FeatureList(dict):
     """Simple dictionary-style object with a default return value of None for non-existent features"""
@@ -143,7 +146,7 @@ class ASFYamlInstance:
                         problem_line = feature_start + e.problem_mark.line
                         problem_column = e.problem_mark.column
                         # TODO: Make this much more reader friendly!
-                        raise e  # Just pass back the original exception for now
+                        raise ASFYAMLException(repository=self.repository, branch=self.branch, feature=feature_name, error_message=str(e))
                 else:
                     yaml_parsed = strictyaml.load(feature_yaml_as_string)
                 # Everything seems in order, spin up an instance of the feature class for future use.

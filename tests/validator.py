@@ -12,18 +12,17 @@ sys.path.extend(
 if "tests" in os.getcwd():
     os.chdir("..")
 import pytest
-import asfyaml
-import dataobjects
+import asfyaml.asfyaml
+import asfyaml.dataobjects
 
 # Rewire the notifications path, so we can test with a mock json file
-import feature.notifications
-feature.notifications.VALID_LISTS_FILE = "tests/mailinglists.json"
+import asfyaml.feature.notifications
+asfyaml.feature.notifications.VALID_LISTS_FILE = "tests/mailinglists.json"
 
 # Set .asf.yaml to debug mode
 asfyaml.DEBUG = True
 
 
-@pytest.mark.validator
 def test_basic_yaml():
     expected_envs = {"production", "quietmode"}  # We expect these two envs enabled
     expected_minimum_features = {"test"}
@@ -33,8 +32,8 @@ def test_basic_yaml():
     if not os.path.isdir(repo_path):  # Make test repo dir
         os.makedirs(repo_path, exist_ok=True)
     basic_yaml = open("tests/basic-dev-env.yaml", "r").read()
-    testrepo = dataobjects.Repository(repo_path)
-    a = asfyaml.ASFYamlInstance(testrepo, "humbedooh", basic_yaml)
+    testrepo = asfyaml.dataobjects.Repository(repo_path)
+    a = asfyaml.asfyaml.ASFYamlInstance(testrepo, "humbedooh", basic_yaml)
     a.run_parts()
 
 
