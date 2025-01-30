@@ -163,7 +163,10 @@ class ASFNotificationsFeature(ASFYamlFeature, name="notifications", priority=0):
         for push in self.repository.changesets:
             for commit in push.commits:
                 if ".asf.yaml" in commit.files:
-                    changesets += f"{commit.sha}: [{commit.committer_uname}] {commit.subject}\n"
+                    perp = commit.committer_email
+                    if commit.committer_email != commit.author_email:
+                        perp = f"{commit.committer_email}/{commit.author_email}"
+                    changesets += f"{commit.sha}: [{perp}] {commit.subject}\n"
         # If in test mode, bail!
         if "quietmode" in self.instance.environments_enabled:
             return
