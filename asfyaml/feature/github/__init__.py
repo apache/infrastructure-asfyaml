@@ -19,6 +19,7 @@
 from asfyaml.asfyaml import ASFYamlFeature, DEBUG
 import strictyaml
 import os
+import sys
 import yaml
 import string
 
@@ -88,6 +89,8 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
         # Check if cached yaml exists, compare if changed
         self.previous_yaml = {}
         yaml_filepath = f"/x1/asfyaml/ghsettings.{self.repository.name}.yml"
+        if "pytest" in sys.modules:  # Pytest mode, no /x1!
+            yaml_filepath = f"/tmp/ghsettings.{self.repository.name}.yml"
         if not self.instance.no_cache:
             try:
                 if os.path.exists(yaml_filepath):
