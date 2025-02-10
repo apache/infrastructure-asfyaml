@@ -23,7 +23,7 @@ import sys
 import yaml
 import string
 import github as pygithub
-import github.Auth as pygithub.Auth
+import github.Auth as pygithubAuth
 
 GH_TOKEN_FILE = "/x1/gitbox/tokens/asfyaml.txt"  # Path to .asf.yaml github token
 _features = []
@@ -112,7 +112,7 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
         # Update items
         print("GitHub meta-data changed, updating...")
         if not self.noop("github"):
-            pgh = pygithub.Github(auth=pygithub.Auth.Token(open(GH_TOKEN_FILE).read().strip()))
+            pgh = pygithub.Github(auth=pygithubAuth.Token(open(GH_TOKEN_FILE).read().strip()))
             self.ghrepo = pgh.get_repo(f"apache/{self.repository.name}")
 
         # For each sub-feature we see (with the @directive decorator on it), run it
