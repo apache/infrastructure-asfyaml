@@ -17,8 +17,6 @@ def config_pages(self: ASFGitHubFeature):
             raise Exception(
                 f".asf.yaml: Invalid GitHub Pages branch '{ghp_branch}' - must be default branch or gh-pages!"
             )
-        GHP_URL = f"https://api.github.com/repos/apache/{self.repository.name}/pages"
-        GHP_TOKEN = open(GH_TOKEN_FILE).read().strip()
 
         # Construct configuration for GitHub's API
         if ghp_path not in ["/docs", "/"]:
@@ -31,6 +29,9 @@ def config_pages(self: ASFGitHubFeature):
             print(f"Would have set GHP to branch '{ghp_branch}' and path '{ghp_path}'.")
             return
 
+        GHP_URL = f"https://api.github.com/repos/apache/{self.repository.name}/pages"
+        GHP_TOKEN = open(GH_TOKEN_FILE).read().strip()
+        
         # Test if GHP is enabled already
         rv = requests.get(
             GHP_URL,
