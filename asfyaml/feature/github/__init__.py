@@ -16,13 +16,16 @@
 # limitations under the License.
 
 """This is the GitHub feature for .asf.yaml."""
-from asfyaml.asfyaml import ASFYamlFeature, DEBUG
+from asfyaml.asfyaml import ASFYamlFeature, ASFYamlInstance, DEBUG
 import strictyaml
 import os
 import sys
 import yaml
 import string
+import github as pygithub
+import github.Auth as pygithub.Auth
 
+GH_TOKEN_FILE = "/x1/gitbox/tokens/asfyaml.txt"  # Path to .asf.yaml github token
 _features = []
 
 
@@ -79,6 +82,10 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
         }
     )
 
+    def __init__(self, parent: ASFYamlInstance, yaml: strictyaml.YAML, **kwargs):
+        self.ghrepo = None
+        super().__init__(parent, yaml)
+
     def run(self):
         """GitHub features"""
         # Test if we need to process this (only works on the default branch)
@@ -104,9 +111,9 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
 
         # Update items
         print("GitHub meta-data changed, updating...")
-
-        self.ghrepo = None  # TODO: Init this!
-        self.ghtoken = None # TODO: Also set this
+        if not self.noop("github"):
+            pgh = pygithub.Github(auth=pygithub.Auth.Token(open(GH_TOKEN_FILE).read().strip()))
+            self.ghrepo = pgh.get_repo(f"apache/{self.repository.name}")
 
         # For each sub-feature we see (with the @directive decorator on it), run it
         for _feat in _features:
