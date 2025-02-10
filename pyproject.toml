@@ -13,6 +13,7 @@ strictyaml = "*"
 pytest = "*"
 easydict = "*"
 asfpy = "*"
+PyGithub = "2.5.0"
 
 [build-system]
 requires = ["poetry-core"]
