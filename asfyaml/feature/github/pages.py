@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """GitHub pages feature"""
-from . import directive, ASFGitHubFeature
+from . import directive, ASFGitHubFeature, GH_TOKEN_FILE
 import requests
 
 
@@ -18,6 +18,7 @@ def config_pages(self: ASFGitHubFeature):
                 f".asf.yaml: Invalid GitHub Pages branch '{ghp_branch}' - must be default branch or gh-pages!"
             )
         GHP_URL = f"https://api.github.com/repos/apache/{self.repository.name}/pages"
+        GHP_TOKEN = open(GH_TOKEN_FILE).read().strip()
 
         # Construct configuration for GitHub's API
         if ghp_path not in ["/docs", "/"]:
@@ -28,12 +29,13 @@ def config_pages(self: ASFGitHubFeature):
         # The processing below only happens in non-test mode. Return otherwise.
         if self.noop("pages"):
             print(f"Would have set GHP to branch '{ghp_branch}' and path '{ghp_path}'.")
+            return
 
         # Test if GHP is enabled already
         rv = requests.get(
             GHP_URL,
             headers={
-                "Authorization": "token %s" % self.ghtoken,
+                "Authorization": "token %s" % GHP_TOKEN,
                 "Accept": "application/vnd.github.switcheroo-preview+json",
             },
         )
@@ -44,7 +46,7 @@ def config_pages(self: ASFGitHubFeature):
                 rv = requests.post(
                     GHP_URL,
                     headers={
-                        "Authorization": "token %s" % self.ghtoken,
+                        "Authorization": "token %s" % GHP_TOKEN,
                         "Accept": "application/vnd.github.switcheroo-preview+json",
                     },
                     json={"source": ghps},
@@ -58,7 +60,7 @@ def config_pages(self: ASFGitHubFeature):
                 rv = requests.put(
                     GHP_URL,
                     headers={
-                        "Authorization": "token %s" % self.ghtoken,
+                        "Authorization": "token %s" % GHP_TOKEN,
                         "Accept": "application/vnd.github.switcheroo-preview+json",
                     },
                     json={
