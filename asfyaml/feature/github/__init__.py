@@ -67,7 +67,9 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             strictyaml.Optional("enabled_merge_buttons"): strictyaml.Map(
                 {
                     strictyaml.Optional("squash"): strictyaml.Bool(),
+                    strictyaml.Optional("squash_commit_message"): strictyaml.Str(),
                     strictyaml.Optional("merge"): strictyaml.Bool(),
+                    strictyaml.Optional("merge_commit_message"): strictyaml.Str(),
                     strictyaml.Optional("rebase"): strictyaml.Bool(),
                 }
             ),
@@ -76,11 +78,6 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                 JiraSpaceString(),
                 strictyaml.Seq(JiraSpaceString()),
             ),
-
-            strictyaml.Optional("merge_commit_message"): strictyaml.Str(),
-            strictyaml.Optional("merge_commit_title"): strictyaml.Str(),
-            strictyaml.Optional("squash_merge_commit_message"): strictyaml.Str(),
-            strictyaml.Optional("squash_merge_commit_title"): strictyaml.Str(),
 
             # GitHub Pages: branch (can be default or gh-pages) and path (can be /docs or /)
             strictyaml.Optional("ghp_branch"): strictyaml.Str(),
@@ -130,4 +127,4 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             f.write(yaml.dump(self.yaml_raw, default_flow_style=False))
 
 # Import our sub-directives (...after we have declared the feature class, to avoid circular imports)
-from . import metadata, autolink, features, merge_buttons, pages, merge_commit_settings, squash_merge_commit_settings
+from . import metadata, autolink, features, merge_buttons, pages
