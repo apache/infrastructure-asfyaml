@@ -34,7 +34,7 @@ def enabled_merge_buttons(self: ASFGitHubFeature):
     allow_rebase_merge = merges.get("rebase", NotSet)
 
     if not allow_squash_merge and not allow_merge_commits and not allow_rebase_merge:
-        raise Exception(f"enabled_merge_buttons: at least one of 'squash', 'merge' or 'rebase' must be enabled")
+        raise Exception("enabled_merge_buttons: at least one of 'squash', 'merge' or 'rebase' must be enabled")
 
     squash_commit_message = merges.get("squash_commit_message")
     if squash_commit_message and not allow_squash_merge:
