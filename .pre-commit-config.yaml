@@ -14,19 +14,23 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-"""GitHub merge buttons"""
-from . import directive, ASFGitHubFeature
-
-
-@directive
-def enabled_merge_buttons(self: ASFGitHubFeature):
-    # Merge buttons
-    merges = self.yaml.get("enabled_merge_buttons")
-    if merges:
-        if not self.noop("enabled_merge_buttons"):
-            self.ghrepo.edit(
-                allow_squash_merge=merges.get("squash", False),
-                allow_merge_commit=merges.get("merge", False),
-                allow_rebase_merge=merges.get("rebase", False),
-            )
+---
+default_stages: [pre-commit]
+default_language_version:
+  python: python3
+minimum_pre_commit_version: '3.2.0'
+exclude: ^.*/.*_vendor/
+repos:
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.5.5
+    hooks:
+      - id: insert-license
+        name: Add license for all Python files
+        exclude: ^\.github/.*$
+        files: \.py$|\.pyi$
+        args:
+          - --comment-style
+          - "|#|"
+          - --license-filepath
+          - LICENSE-template.txt
+          - --fuzzy-match-generates-todo
