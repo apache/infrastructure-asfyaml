@@ -1,42 +1,41 @@
-#!/usr/bin/env python3
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 """Simple unit test for .asf.yaml"""
-import os
-import sys
-sys.path.extend(
-    (
-        "./",
-        "../",
-    )
-)
-# If run locally inside the tests dir, we'll move one dir up for imports
-if "tests" in os.getcwd():
-    os.chdir("..")
-import pytest
+
+from pathlib import Path
+
 import asfyaml.asfyaml
 import asfyaml.dataobjects
 
-# Rewire the notifications path, so we can test with a mock json file
-import asfyaml.feature.notifications
-asfyaml.feature.notifications.VALID_LISTS_FILE = "tests/mailinglists.json"
-
 # Set .asf.yaml to debug mode
-asfyaml.DEBUG = True
+asfyaml.asfyaml.DEBUG = True
 
 
-def test_basic_yaml():
+def test_basic_yaml(base_path: Path, test_repo: asfyaml.dataobjects.Repository):
+    # Rewire the notifications path, so we can test with a mock json file
+    import asfyaml.feature.notifications
+    asfyaml.feature.notifications.VALID_LISTS_FILE = str(base_path.joinpath("data/mailinglists.json"))
+
     expected_envs = {"production", "quietmode"}  # We expect these two envs enabled
     expected_minimum_features = {"test"}
-    repo_path = "./repos/private/whimsy/whimsy-private.git"
-    os.environ["PATH_INFO"] = "whimsy-site.git/git-receive-pack"
-    os.environ["GIT_PROJECT_ROOT"] = "./repos/private"
-    if not os.path.isdir(repo_path):  # Make test repo dir
-        os.makedirs(repo_path, exist_ok=True)
-    basic_yaml = open("tests/basic-dev-env.yaml", "r").read()
-    testrepo = asfyaml.dataobjects.Repository(repo_path)
-    a = asfyaml.asfyaml.ASFYamlInstance(testrepo, "humbedooh", basic_yaml)
+    basic_yaml = open(base_path.joinpath("data/basic-dev-env.yaml"), "r").read()
+    a = asfyaml.asfyaml.ASFYamlInstance(test_repo, "humbedooh", basic_yaml)
     a.run_parts()
-
-
 
     # We should have both prod+dev envs enabled here
     assert a.environments_enabled == expected_envs
@@ -44,9 +43,9 @@ def test_basic_yaml():
     assert expected_minimum_features.issubset(a.enabled_features.keys())
 
     # The repo should be marked as private by asfyaml
-    assert testrepo.is_private is True, "Expected testrepo.private to be True, but wasn't!"
+    assert test_repo.is_private is True, "Expected testrepo.private to be True, but wasn't!"
 
     # Assert that we know the project name and the hostname
-    assert testrepo.project == "whimsy", f"Expected project name whimsy, but got {testrepo.project}"
-    assert testrepo.hostname == "whimsical", f"Expected project hostname whimsical, but got {testrepo.hostname}"
+    assert test_repo.project == "whimsy", f"Expected project name whimsy, but got {test_repo.project}"
+    assert test_repo.hostname == "whimsical", f"Expected project hostname whimsical, but got {test_repo.hostname}"
 

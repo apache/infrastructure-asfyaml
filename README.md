@@ -567,8 +567,14 @@ github:
   enabled_merge_buttons:
     # enable squash button:
     squash:  true
+    # default commit message when merging with a squash commit
+    # can either be: DEFAULT | PR_TITLE | PR_TITLE_AND_COMMIT_DETAILS | PR_TITLE_AND_DESC
+    squash_commit_message: PR_TITLE
     # enable merge button:
     merge:   true
+    # default commit message when merging with a merge commit
+    # can either be: DEFAULT | PR_TITLE | PR_TITLE_AND_DESC
+    merge_commit_message: PR_TITLE_AND_DESC
     # disable rebase button:
     rebase:  false
 ~~~

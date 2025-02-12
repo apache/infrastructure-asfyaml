@@ -15,30 +15,23 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import re
+import os
+import pytest
+from pathlib import Path
 
-# LDAP to hostname mappings for certain projects.
-# We'll get this centralized somewhere...someday.
-LDAP_TO_HOSTNAME = {
-    'whimsy': 'whimsical',
-    'empire': 'empire-db',
-    'webservices': 'ws',
-    'infrastructure': 'infra',
-    'comdev': 'community',
-}
+import asfyaml.dataobjects
 
-# Repository filename syntax for inferring project names.
-REPO_RE = re.compile(r"(?:incubator-)?([^-.]+)")
 
-# Mailing list overrides. Also to be centralized elsewhere.
-ML_OVERRIDES = {
-    "www-site": "site-cvs@apache.org",
-    "apachecon-planning": "private@apachecon.com",
-    "privacy-website": "privacy-commits@apache.org",
-}
+@pytest.fixture
+def base_path() -> Path:
+    """Get the current folder of the test"""
+    return Path(__file__).parent
 
-# Repositories that override hostname for publishing
-WS_HOSTNAME_OVERRIDES = {
-    "comdev-events-site": "events.apache.org",
-    "logging-flume-site": "flume.apache.org",
-}
+@pytest.fixture
+def test_repo(base_path: Path) -> asfyaml.dataobjects.Repository:
+    repo_path = str(base_path.joinpath("../repos/private/whimsy/whimsy-private.git"))
+    os.environ["PATH_INFO"] = "whimsy-site.git/git-receive-pack"
+    os.environ["GIT_PROJECT_ROOT"] = str(base_path.joinpath("../repos/private"))
+    if not os.path.isdir(repo_path):  # Make test repo dir
+        os.makedirs(repo_path, exist_ok=True)
+    return asfyaml.dataobjects.Repository(repo_path)

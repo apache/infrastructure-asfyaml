@@ -14,31 +14,23 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-import re
-
-# LDAP to hostname mappings for certain projects.
-# We'll get this centralized somewhere...someday.
-LDAP_TO_HOSTNAME = {
-    'whimsy': 'whimsical',
-    'empire': 'empire-db',
-    'webservices': 'ws',
-    'infrastructure': 'infra',
-    'comdev': 'community',
-}
-
-# Repository filename syntax for inferring project names.
-REPO_RE = re.compile(r"(?:incubator-)?([^-.]+)")
-
-# Mailing list overrides. Also to be centralized elsewhere.
-ML_OVERRIDES = {
-    "www-site": "site-cvs@apache.org",
-    "apachecon-planning": "private@apachecon.com",
-    "privacy-website": "privacy-commits@apache.org",
-}
-
-# Repositories that override hostname for publishing
-WS_HOSTNAME_OVERRIDES = {
-    "comdev-events-site": "events.apache.org",
-    "logging-flume-site": "flume.apache.org",
-}
+---
+default_stages: [pre-commit]
+default_language_version:
+  python: python3
+minimum_pre_commit_version: '3.2.0'
+exclude: ^.*/.*_vendor/
+repos:
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.5.5
+    hooks:
+      - id: insert-license
+        name: Add license for all Python files
+        exclude: ^\.github/.*$|docs
+        files: \.py$|\.pyi$
+        args:
+          - --comment-style
+          - "|#|"
+          - --license-filepath
+          - LICENSE-template.txt
+          - --fuzzy-match-generates-todo

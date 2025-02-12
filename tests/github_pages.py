@@ -1,24 +1,27 @@
-#!/usr/bin/env python3
-"""Unit tests for .asf.yaml github pages feature"""
-import os
-import sys
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 
-sys.path.extend(
-    (
-        "./",
-        "../",
-    )
-)
-# If run locally inside the tests dir, we'll move one dir up for imports
-if "tests" in os.getcwd():
-    os.chdir("..")
+"""Unit tests for .asf.yaml GitHub pages feature"""
+
 import asfyaml.asfyaml
 import asfyaml.dataobjects
-import strictyaml
 from helpers import YamlTest
 # Set .asf.yaml to debug mode
-asfyaml.DEBUG = True
-
+asfyaml.asfyaml.DEBUG = True
 
 
 valid_github_pages = YamlTest(
@@ -56,15 +59,8 @@ github:
 )
 
 
-def test_basic_yaml():
-    repo_path = "./repos/private/whimsy/whimsy-private.git"
-    os.environ["PATH_INFO"] = "whimsy-site.git/git-receive-pack"
-    os.environ["GIT_PROJECT_ROOT"] = "./repos/private"
-    if not os.path.isdir(repo_path):  # Make test repo dir
-        os.makedirs(repo_path, exist_ok=True)
-    testrepo = asfyaml.dataobjects.Repository(repo_path)
-
-    print("[github] Testing features")
+def test_basic_yaml(test_repo: asfyaml.dataobjects.Repository):
+    print("[github] Testing GitHub Pages features")
 
     tests_to_run = (
         valid_github_pages,
@@ -75,7 +71,7 @@ def test_basic_yaml():
 
     for test in tests_to_run:
         with test.ctx() as vs:
-            a = asfyaml.asfyaml.ASFYamlInstance(testrepo, "humbedooh", test.yaml)
+            a = asfyaml.asfyaml.ASFYamlInstance(test_repo, "humbedooh", test.yaml)
             a.environments_enabled.add("noop")
             a.no_cache = True
             a.run_parts()
