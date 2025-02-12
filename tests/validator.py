@@ -6,14 +6,14 @@ from pathlib import Path
 import asfyaml.asfyaml
 import asfyaml.dataobjects
 
+# Set .asf.yaml to debug mode
+asfyaml.asfyaml.DEBUG = True
+
 
 def test_basic_yaml(base_path: Path, test_repo: asfyaml.dataobjects.Repository):
     # Rewire the notifications path, so we can test with a mock json file
     import asfyaml.feature.notifications
     asfyaml.feature.notifications.VALID_LISTS_FILE = str(base_path.joinpath("data/mailinglists.json"))
-
-    # Set .asf.yaml to debug mode
-    asfyaml.asfyaml.DEBUG = True
 
     expected_envs = {"production", "quietmode"}  # We expect these two envs enabled
     expected_minimum_features = {"test"}

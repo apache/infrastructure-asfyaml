@@ -5,7 +5,7 @@ import asfyaml.asfyaml
 import asfyaml.dataobjects
 from helpers import YamlTest
 # Set .asf.yaml to debug mode
-asfyaml.DEBUG = True
+asfyaml.asfyaml.DEBUG = True
 
 
 valid_github_pages = YamlTest(

@@ -1,16 +1,12 @@
 #!/usr/bin/env python3
 """Unit tests for .asf.yaml website publishing"""
 
-import os
-from pathlib import Path
-
 import asfyaml.asfyaml
 import asfyaml.dataobjects
 from helpers import YamlTest
-from tests.conftest import base_path
 
 # Set .asf.yaml to debug mode
-asfyaml.DEBUG = True
+asfyaml.asfyaml.DEBUG = True
 
 valid_staging = YamlTest(
     None,
