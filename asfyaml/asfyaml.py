@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import strictyaml
 import strictyaml.ruamel.scanner
 import easydict
@@ -6,7 +7,6 @@ import asfyaml.dataobjects as dataobjects
 import asfyaml.envvars as envvars
 DEFAULT_ENVIRONMENT = "production"
 DEBUG = False
-
 
 # Default priority for features. If set to this, they will be executed in the order they appear
 # in the YAML. If a priority other than this (five) is set, the feature will be moved ahead or

@@ -10,10 +10,19 @@ python = ">=3.10"
 requests = "*"
 pyyaml = "*"
 strictyaml = "*"
-pytest = "*"
 easydict = "*"
 asfpy = "*"
-PyGithub = "2.5.0"
+PyGithub = "^2.5.0"
+
+[tool.poetry.group.test.dependencies]
+pytest = ">=8.0"
+pytest-asyncio = ">=0.24"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths  = ["tests"]
+pythonpath = ["."]
+python_files = "*.py"
 
 [build-system]
 requires = ["poetry-core"]

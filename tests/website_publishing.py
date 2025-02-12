@@ -1,23 +1,14 @@
 #!/usr/bin/env python3
 """Unit tests for .asf.yaml website publishing"""
-import os
-import sys
 
-sys.path.extend(
-    (
-        "./",
-        "../",
-    )
-)
-# If run locally inside the tests dir, we'll move one dir up for imports
-if "tests" in os.getcwd():
-    os.chdir("..")
-import pytest
+import os
+from pathlib import Path
+
 import asfyaml.asfyaml
 import asfyaml.dataobjects
-import contextlib
-import strictyaml
 from helpers import YamlTest
+from tests.conftest import base_path
+
 # Set .asf.yaml to debug mode
 asfyaml.DEBUG = True
 
@@ -102,15 +93,9 @@ publish:
 )
 
 
-def test_basic_yaml():
-    repo_path = "./repos/private/whimsy/whimsy-private.git"
-    os.environ["PATH_INFO"] = "whimsy-site.git/git-receive-pack"
-    os.environ["GIT_PROJECT_ROOT"] = "./repos/private"
-    if not os.path.isdir(repo_path):  # Make test repo dir
-        os.makedirs(repo_path, exist_ok=True)
-    testrepo = asfyaml.dataobjects.Repository(repo_path)
-
+def test_basic_yaml(test_repo: asfyaml.dataobjects.Repository):
     print("STAGING TESTS")
+
     tests_to_run = (
         valid_staging,
         invalid_staging_subdir_slash,
@@ -121,7 +106,7 @@ def test_basic_yaml():
 
     for test in tests_to_run:
         with test.ctx() as vs:
-            a = asfyaml.asfyaml.ASFYamlInstance(testrepo, "humbedooh", test.yaml)
+            a = asfyaml.asfyaml.ASFYamlInstance(test_repo, "humbedooh", test.yaml)
             a.environments_enabled.add("noop")
             a.run_parts()
 
@@ -130,6 +115,6 @@ def test_basic_yaml():
 
     for test in tests_to_run:
         with test.ctx() as vs:
-            a = asfyaml.asfyaml.ASFYamlInstance(testrepo, "humbedooh", test.yaml)
+            a = asfyaml.asfyaml.ASFYamlInstance(test_repo, "humbedooh", test.yaml)
             a.environments_enabled.add("noop")
             a.run_parts()
