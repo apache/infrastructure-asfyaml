@@ -26,6 +26,7 @@ import string
 import github as pygithub
 import github.Auth as pygithubAuth
 
+BASE_CACHE_PATH = "/x1/asfyaml" if "pytest" not in sys.modules else "/tmp"
 GH_TOKEN_FILE = "/x1/gitbox/tokens/asfyaml.txt"  # Path to .asf.yaml github token
 _features = []
 
@@ -98,9 +99,7 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
 
         # Check if cached yaml exists, compare if changed
         self.previous_yaml = {}
-        yaml_filepath = f"/x1/asfyaml/ghsettings.{self.repository.name}.yml"
-        if "pytest" in sys.modules:  # Pytest mode, no /x1!
-            yaml_filepath = f"/tmp/ghsettings.{self.repository.name}.yml"
+        yaml_filepath = f"{BASE_CACHE_PATH}/ghsettings.{self.repository.name}.yml"
         if not self.instance.no_cache:
             try:
                 if os.path.exists(yaml_filepath):
@@ -115,16 +114,26 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
         # Update items
         print("GitHub meta-data changed, updating...")
         if not self.noop("github"):
-            pgh = pygithub.Github(auth=pygithubAuth.Token(open(GH_TOKEN_FILE).read().strip()))
-            self.ghrepo = pgh.get_repo(f"apache/{self.repository.name}")
+            # if a GH_TOKEN is set as environment variable, use this, otherwise load it from file
+            gh_token = os.environ.get("GH_TOKEN")
+            if not gh_token:
+                gh_token = open(GH_TOKEN_FILE).read().strip()
+
+            pgh = pygithub.Github(auth=pygithubAuth.Token(gh_token))
+            org_id = os.environ.get("ORG_ID", "apache")
+            self.ghrepo = pgh.get_repo(f"{org_id}/{self.repository.name}")
 
         # For each sub-feature we see (with the @directive decorator on it), run it
         for _feat in _features:
             _feat(self)
 
         # Save cached version of this YAML for next time.
-        with open(yaml_filepath, "w") as f:
-            f.write(yaml.dump(self.yaml_raw, default_flow_style=False))
+        if os.path.exists(BASE_CACHE_PATH):
+            with open(yaml_filepath, "w") as f:
+                f.write(yaml.dump(self.yaml_raw, default_flow_style=False))
+        else:
+            print(f"CACHE Path '{BASE_CACHE_PATH}' does not exist, skip caching")
+
 
 # Import our sub-directives (...after we have declared the feature class, to avoid circular imports)
 from . import metadata, autolink, features, merge_buttons, pages
