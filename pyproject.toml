@@ -24,6 +24,9 @@ testpaths  = ["tests"]
 pythonpath = ["."]
 python_files = "*.py"
 
+[tool.poetry.scripts]
+asfyml-run = "asfyaml.cli:cli"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
