@@ -25,6 +25,7 @@ import yaml
 import string
 import github as pygithub
 import github.Auth as pygithubAuth
+from . import constants
 
 BASE_CACHE_PATH = "/x1/asfyaml" if "pytest" not in sys.modules else "/tmp"
 GH_TOKEN_FILE = "/x1/gitbox/tokens/asfyaml.txt"  # Path to .asf.yaml github token
@@ -55,6 +56,10 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             strictyaml.Optional("homepage"): strictyaml.Str(),
             # labels: a list of labels/tags to describe the repository.
             strictyaml.Optional("labels"): strictyaml.Seq(strictyaml.Str()),
+            # custom_subjects
+            strictyaml.Optional("custom_subjects"): strictyaml.Map(
+                {k: strictyaml.Str() for k in constants.VALID_GITHUB_ACTIONS}
+            ),
             # features: enable/disable specific GitHub features. dict of bools.
             strictyaml.Optional("features"): strictyaml.Map(
                 {
