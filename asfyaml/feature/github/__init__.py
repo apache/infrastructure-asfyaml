@@ -58,7 +58,7 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             strictyaml.Optional("labels"): strictyaml.Seq(strictyaml.Str()),
             # custom_subjects
             strictyaml.Optional("custom_subjects"): strictyaml.Map(
-                {k: strictyaml.Str() for k in constants.VALID_GITHUB_ACTIONS}
+                {strictyaml.Optional(k): strictyaml.Str() for k in constants.VALID_GITHUB_ACTIONS}
             ),
             # features: enable/disable specific GitHub features. dict of bools.
             strictyaml.Optional("features"): strictyaml.Map(
