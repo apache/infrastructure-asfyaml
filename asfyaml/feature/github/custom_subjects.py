@@ -35,7 +35,7 @@ def validate_github_subject(subject):
 
 @directive
 def config_custom_subjects(self: ASFGitHubFeature):
-    # GitHub pages
+    # Custom subjects for events
     custom_subjects = self.yaml.get("custom_subjects")
     if custom_subjects and isinstance(custom_subjects, dict):
         # Validate each template
