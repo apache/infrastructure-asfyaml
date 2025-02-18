@@ -28,7 +28,7 @@ def collaborators(self: ASFGitHubFeature):
 
     old_collabs = set()
     new_collabs = set(collabs)
-    if self.repository.is_private:
+    if collabs and self.repository.is_private:
         raise Exception("You cannot set outside collaborators for private repositories.")
     if len(new_collabs) > constants.MAX_COLLABORATORS:
         raise Exception(
