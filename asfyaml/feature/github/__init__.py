@@ -24,6 +24,7 @@ import sys
 import yaml
 import string
 import github as pygithub
+import github.Repository as pygithubrepo
 import github.Auth as pygithubAuth
 from . import constants
 
@@ -88,11 +89,12 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             # GitHub Pages: branch (can be default or gh-pages) and path (can be /docs or /)
             strictyaml.Optional("ghp_branch"): strictyaml.Str(),
             strictyaml.Optional("ghp_path", default="/docs"): strictyaml.Str(),
+
         }
     )
 
     def __init__(self, parent: ASFYamlInstance, yaml: strictyaml.YAML, **kwargs):
-        self.ghrepo = None
+        self.ghrepo: pygithubrepo.Repository = None
         super().__init__(parent, yaml)
 
     def run(self):
@@ -118,12 +120,16 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
 
         # Update items
         print("GitHub meta-data changed, updating...")
+        gh_token = os.environ.get("GH_TOKEN")
         if not self.noop("github"):
             # if a GH_TOKEN is set as environment variable, use this, otherwise load it from file
-            gh_token = os.environ.get("GH_TOKEN")
             if not gh_token:
                 gh_token = open(GH_TOKEN_FILE).read().strip()
 
+            pgh = pygithub.Github(auth=pygithubAuth.Token(gh_token))
+            org_id = os.environ.get("ORG_ID", "apache")
+            self.ghrepo = pgh.get_repo(f"{org_id}/{self.repository.name}")
+        elif gh_token: # If supplied from OS env, load the ghrepo object anyway
             pgh = pygithub.Github(auth=pygithubAuth.Token(gh_token))
             org_id = os.environ.get("ORG_ID", "apache")
             self.ghrepo = pgh.get_repo(f"{org_id}/{self.repository.name}")
