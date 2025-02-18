@@ -18,11 +18,12 @@
 import strictyaml
 from asfyaml.asfyaml import ASFYamlFeature
 import requests
+import fnmatch
 
-# Jekyll website builds via CI2
+# Pelican website builds via CI2
 
 
-class ASFJekyllFeature(ASFYamlFeature, name="jekyll", env="production", priority=4):
+class ASFJekyllFeature(ASFYamlFeature, name="pelican", env="production", priority=4):
 
     schema = strictyaml.Map(
         {
@@ -30,19 +31,19 @@ class ASFJekyllFeature(ASFYamlFeature, name="jekyll", env="production", priority
             strictyaml.Optional("target"): strictyaml.Str(),
             strictyaml.Optional("theme"): strictyaml.Str(),
             strictyaml.Optional("notify"): strictyaml.Str(),
-            strictyaml.Optional("outputdir"): strictyaml.Str(),
+            strictyaml.Optional("autobuild"): strictyaml.Str(),
         }
     )
 
     def run(self):
         """
-        Jekyll auto-build. Sample entry:
-             jekyll:
-               whoami: applicable branch (optional; 'asf-site' not allowed)
-               target: branch (optional)
-               theme: name (optional, default: 'theme')
-               notify: recipients (optional)
-               outputdir: dirname (optional, default: 'output')
+        Pelican auto-build example:
+          pelican:
+            whoami: applicable branch (optional; 'asf-site' not allowed)
+            autobuild: folder/* (optional)
+            target: branch (optional)
+            theme: name (optional, default: 'theme')
+            notify: recipients (optional)
         """
         # Don't build from asf-site, like...ever
         ref = self.instance.branch
@@ -50,13 +51,23 @@ class ASFJekyllFeature(ASFYamlFeature, name="jekyll", env="production", priority
             print("Not auto-building from asf-site, ever...")
             return
 
+        autobuild = self.yaml.get("autobuild")
+        if autobuild:
+            assert autobuild.endswith("/*"), "autobuild parameter must be $foo/*, e.g. site/* or feature/*"
+        do_autobuild = (
+            autobuild and fnmatch.fnmatch(ref, autobuild) and not ref.endswith("-staging")
+        )  # don't autobuild the autobuilt
+
         # If whoami specified, ignore this payload if branch does not match
         whoami = self.yaml.get("whoami")
-        if whoami and whoami != ref:
+        if whoami and whoami != ref and not do_autobuild:
             return
 
         # Get target branch, if any, default to same branch
         target = self.yaml.get("target", ref)
+        if do_autobuild:
+            ref_bare = ref.replace(autobuild[:-1], "", 1)  # site/foo -> foo
+            target = "%s/%s-staging" % (autobuild[:-2], ref_bare)  # site/foo -> site/foo-staging
 
         # Get optional theme
         theme = self.yaml.get("theme", "theme")
@@ -72,24 +83,23 @@ class ASFJekyllFeature(ASFYamlFeature, name="jekyll", env="production", priority
             "jsonrpc": "2.0",
             "id": 0,
             "params": {
-                "reason": "Triggered jekyll auto-build via .asf.yaml by %s" % self.committer.username,
-                "builderid": "7",
-                "source": "https://gitbox.apache.org/repos/asf/%s.git" % self.repository.name,
+                "reason": "Triggered pelican auto-build via .asf.yaml by %s" % self.committer.username,
+                "builderid": "3",
+                "source": "https://gitbox.apache.org/repos/asf/%s.git" % str(self.repository.name),
                 "sourcebranch": ref,
                 "outputbranch": target,
-                "outputdir": outputdir,
                 "project": self.repository.project,
                 "theme": theme,
                 "notify": pnotify,
             },
         }
-        print("Triggering jekyll build...")
-        if not self.noop("jekyll"):
+        print("Triggering pelican build...")
+        if not self.noop("pelican"):
             # Contact buildbot 2
             bbusr, bbpwd = open("/x1/gitbox/auth/bb2.txt").read().strip().split(":", 1)
             s = requests.Session()
             s.get("https://ci2.apache.org/auth/login", auth=(bbusr, bbpwd))
-            s.post("https://ci2.apache.org/api/v2/forceschedulers/jekyll_websites", json=payload)
+            s.post("https://ci2.apache.org/api/v2/forceschedulers/pelican_websites", json=payload)
         else:
             print(payload)
         print("Done!")
