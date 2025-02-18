@@ -45,7 +45,8 @@ def branch_protection(self: ASFGitHubFeature):
                     raise e
 
             # Required signatures
-            required_signatures = bool(brsettings.get("required_signatures", False))
+            #required_signatures = brsettings.get("required_signatures", False)
+            required_signatures = brsettings.get("required_signatures", "false") == "true"
             if branch_protection_settings.required_signatures != required_signatures:
                 if required_signatures:
                     if not self.noop("github::protected_branches"):
@@ -57,7 +58,8 @@ def branch_protection(self: ASFGitHubFeature):
                     branch_changes.append("Set required signatures to False")
 
             # Required linear history
-            required_linear = bool(brsettings.get("required_linear_history", False))
+            #required_linear = bool(brsettings.get("required_linear_history", False))
+            required_linear = brsettings.get("required_linear_history", "false") == "true"
             if branch_protection_settings.required_linear_history != required_linear:
                 if required_linear:
                     if not self.noop("github::protected_branches"):
@@ -70,7 +72,8 @@ def branch_protection(self: ASFGitHubFeature):
 
             # Required conversation resolution
             # Requires all conversations to be resolved before merging is possible
-            required_conversation_resolution = bool(brsettings.get("required_conversation_resolution", False))
+            #required_conversation_resolution = bool(brsettings.get("required_conversation_resolution", False))
+            required_conversation_resolution = brsettings.get("required_conversation_resolution", "false") == "true"
             if branch_protection_settings.required_conversation_resolution != required_conversation_resolution:
                 if required_conversation_resolution:
                     if not self.noop("github::protected_branches"):
@@ -102,11 +105,10 @@ def branch_protection(self: ASFGitHubFeature):
                     existing_contexts = ghbranch.get_required_status_checks().contexts
                 except pygithub.GithubException as e:
                     if e.status == 404:  # No existing contexts, set to blank dict
-                        print("404!!")
                         existing_contexts = {}
                     else:
                         raise e
-                print(checks_as_dict, existing_contexts)
+                # TODO: existing contexts don't tend to fetch the actual values. pygithub bug?
                 if checks_as_dict != existing_contexts:  # Something changed, update contexts
                     if checks_as_dict:
                         if not self.noop("github::protected_branches"):
@@ -129,7 +131,7 @@ def branch_protection(self: ASFGitHubFeature):
             # Required pull requests reviews
             required_pull_request_reviews = brsettings.get("required_pull_request_reviews", {})
             if required_pull_request_reviews:
-                dismiss_stale_reviews = bool(required_pull_request_reviews.get("dismiss_stale_reviews", False))
+                dismiss_stale_reviews = required_pull_request_reviews.get("dismiss_stale_reviews", "false") == "true"
                 required_approving_review_count = required_pull_request_reviews.get(
                     "required_approving_review_count", 0
                 )
@@ -145,8 +147,9 @@ def branch_protection(self: ASFGitHubFeature):
                         ghbranch.remove_required_pull_request_reviews()
                         ghbranch.edit_required_pull_request_reviews(required_approving_review_count=required_approving_review_count)
                     branch_changes.append(f"Set required approving review count to {required_approving_review_count}")
-                if (not branch_protection_settings.required_pull_request_reviews or
-                        branch_protection_settings.required_pull_request_reviews.dismiss_stale_reviews
+                grp = ghbranch.get_required_pull_request_reviews()
+                if (not grp or
+                        grp.dismiss_stale_reviews
                         != dismiss_stale_reviews
                 ):
                     if not self.noop("github::protected_branches"):
