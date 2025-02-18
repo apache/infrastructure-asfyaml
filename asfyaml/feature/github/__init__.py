@@ -123,6 +123,7 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             try:
                 if os.path.exists(yaml_filepath):
                     self.previous_yaml = yaml.safe_load(open(yaml_filepath).read())
+                    self.previous_yaml.pop("refname", "")
                     if self.previous_yaml == self.yaml:
                         if DEBUG:
                             print("[github] Saw no changes to GitHub settings, skipping this run.")
