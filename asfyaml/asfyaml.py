@@ -20,6 +20,7 @@ import strictyaml.ruamel.scanner
 import easydict
 import asfyaml.dataobjects as dataobjects
 import asfyaml.envvars as envvars
+
 DEFAULT_ENVIRONMENT = "production"
 DEBUG = False
 
@@ -43,6 +44,7 @@ class ASFYAMLException(Exception):
 
 class FeatureList(dict):
     """Simple dictionary-style object with a default return value of None for non-existent features"""
+
     def __init__(self):
         super().__init__()
 
@@ -58,6 +60,7 @@ class ASFYamlInstance:
     """This is the base instance class for a .asf.yaml process. It contains all the enabled features,
     as well as the repository and committer data needed to process events.
     """
+
     def __init__(self, repo: dataobjects.Repository, committer: str, config_data: str, branch: str = "main"):
         self.repository = repo
         self.committer = dataobjects.Committer(committer)
@@ -155,13 +158,19 @@ class ASFYamlInstance:
                 # If the feature has a schema, validate the sub-yaml before running the feature.
                 if hasattr(feature_class, "schema"):
                     try:
-                        yaml_parsed = strictyaml.load(feature_yaml_as_string, feature_class.schema, label=f"{self.repository.name}.git/.asf.yaml::{feature_name}")
+                        yaml_parsed = strictyaml.load(
+                            feature_yaml_as_string,
+                            feature_class.schema,
+                            label=f"{self.repository.name}.git/.asf.yaml::{feature_name}",
+                        )
                     except strictyaml.exceptions.YAMLValidationError as e:
                         feature_start = feature_yaml.start_line
                         problem_line = feature_start + e.problem_mark.line
                         problem_column = e.problem_mark.column
                         # TODO: Make this much more reader friendly!
-                        raise ASFYAMLException(repository=self.repository, branch=self.branch, feature=feature_name, error_message=str(e))
+                        raise ASFYAMLException(
+                            repository=self.repository, branch=self.branch, feature=feature_name, error_message=str(e)
+                        )
                 else:
                     yaml_parsed = strictyaml.load(feature_yaml_as_string)
                 # Everything seems in order, spin up an instance of the feature class for future use.
@@ -169,7 +178,9 @@ class ASFYamlInstance:
                 features_to_run.append(feature)
                 # Log that this feature is enabled, configured, and validated. For cross-feature access.
                 self.features[str(feature_name)] = feature
-            elif feature_name != "meta":  # meta is reserved for asfyaml.py, all else needs a feature or it should break.
+            elif (
+                feature_name != "meta"
+            ):  # meta is reserved for asfyaml.py, all else needs a feature or it should break.
                 raise KeyError(f"No such .asf.yaml feature: {feature_name}")
 
         # If everything validated okay, we will sort the features by priority and then run them
@@ -179,14 +190,18 @@ class ASFYamlInstance:
             try:
                 feature.run()
             except strictyaml.YAMLValidationError as e:
-                raise ASFYAMLException(repository=self.repository, branch=self.branch, feature=feature.name, error_message=str(e))
+                raise ASFYAMLException(
+                    repository=self.repository, branch=self.branch, feature=feature.name, error_message=str(e)
+                )
             except Exception as e:
-                raise ASFYAMLException(repository=self.repository, branch=self.branch, feature=feature.name, error_message=str(e))
-
+                raise ASFYAMLException(
+                    repository=self.repository, branch=self.branch, feature=feature.name, error_message=str(e)
+                )
 
 
 class ClassProperty(object):
     """Simple proxy class for base class objects"""
+
     def __init__(self, fget):
         self.fget = fget
 
@@ -205,6 +220,7 @@ class ASFYamlFeature:
 
     For information on how to create your own feature sub-class, see :func:`asfyaml.ASFYamlFeature.__init_subclass__`
     """
+
     features = []
     """: list: List for tracking all ASFYamlFeature sub-classes we come across in any environment.
     
@@ -277,6 +293,6 @@ class ASFYamlFeature:
             return True
         return False
 
+
 # Import all the feature classes. TODO: move this import elsewhere.
 from asfyaml.feature import *
-
