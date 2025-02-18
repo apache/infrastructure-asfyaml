@@ -90,6 +90,8 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             strictyaml.Optional("ghp_branch"): strictyaml.Str(),
             strictyaml.Optional("ghp_path", default="/docs"): strictyaml.Str(),
 
+            # Branch protection rules - TODO: add actual schema
+            strictyaml.Optional("protected_branches"): strictyaml.Any(),
         }
     )
 
@@ -147,4 +149,4 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
 
 
 # Import our sub-directives (...after we have declared the feature class, to avoid circular imports)
-from . import metadata, autolink, features, merge_buttons, pages, custom_subjects
+from . import metadata, autolink, features, merge_buttons, pages, custom_subjects, branch_protection
