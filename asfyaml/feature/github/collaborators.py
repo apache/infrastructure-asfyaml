@@ -24,7 +24,7 @@ from . import directive, ASFGitHubFeature, constants
 @directive
 def collaborators(self: ASFGitHubFeature):
     # Collaborator list for triage rights
-    collabs = self.yaml.get("collaborators")
+    collabs = self.yaml.get("collaborators", [])
 
     old_collabs = set()
     new_collabs = set(collabs)
