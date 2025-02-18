@@ -57,6 +57,8 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             strictyaml.Optional("homepage"): strictyaml.Str(),
             # labels: a list of labels/tags to describe the repository.
             strictyaml.Optional("labels"): strictyaml.Seq(strictyaml.Str()),
+            # collaborators: non-committers with triage access
+            strictyaml.Optional("collaborators"): strictyaml.Seq(strictyaml.Str()),
             # custom_subjects
             strictyaml.Optional("custom_subjects"): strictyaml.Map(
                 {strictyaml.Optional(k): strictyaml.Str() for k in constants.VALID_GITHUB_ACTIONS}
@@ -149,4 +151,4 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
 
 
 # Import our sub-directives (...after we have declared the feature class, to avoid circular imports)
-from . import metadata, autolink, features, merge_buttons, pages, custom_subjects, branch_protection
+from . import metadata, autolink, features, merge_buttons, pages, custom_subjects, branch_protection, collaborators

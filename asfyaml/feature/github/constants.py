@@ -36,3 +36,6 @@ VALID_GITHUB_ACTIONS = (
     "catchall_discussions",
 )
 
+# Maximum number of non-committer collaborators per repository on GitHub.
+# The only way to increase the limit is by talking to vp infra.
+MAX_COLLABORATORS = 10
