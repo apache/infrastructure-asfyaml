@@ -94,6 +94,14 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
 
             # Branch protection rules - TODO: add actual schema
             strictyaml.Optional("protected_branches"): strictyaml.Any(),
+
+            # Delete branch on merge
+            strictyaml.Optional("del_branch_on_merge"): strictyaml.Bool(),
+
+            # Dependabot
+            strictyaml.Optional("dependabot_alerts"): strictyaml.Bool(),
+            strictyaml.Optional("dependabot_updates"): strictyaml.Bool(),
+
         }
     )
 
@@ -151,4 +159,4 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
 
 
 # Import our sub-directives (...after we have declared the feature class, to avoid circular imports)
-from . import metadata, autolink, features, merge_buttons, pages, custom_subjects, branch_protection, collaborators
+from . import metadata, autolink, features, merge_buttons, pages, custom_subjects, branch_protection, collaborators, housekeeping
