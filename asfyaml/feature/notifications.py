@@ -77,8 +77,9 @@ class ASFNotificationsFeature(ASFYamlFeature, name="notifications", priority=0):
         valid_lists = json.load(open(VALID_LISTS_FILE))
         # For each setting in our YAML, validate and then set.
         for key, value in self.yaml.items():
-            # commits_by_path is handled elsewhere and is a dict, so we disregard that here
-            if key == "commits_by_path":
+            # commits_by_path is handled elsewhere and is a dict, so we disregard that here.
+            # jira_options isn't super necessary to verify yet, so ignore as well.
+            if key == "commits_by_path" or key == "jira_options":
                 continue
             # if there is a '.incubator' bit in the mailing list target, crop it out. We're done with those!
             value = value.replace(".incubator.apache.org", ".apache.org")
