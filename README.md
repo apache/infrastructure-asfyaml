@@ -51,7 +51,6 @@ It operates on a per-branch basis, meaning you can have different settings for d
       <li><a href="#delete_branch">Delete branch on merge</a></li>
       <li><a href="#depend_alerts">Dependabot alerts and updates</a></li>
       <li><a href="#GHA_build_status">GitHub Actions build status emails</a></li>
-      <li><a href="#discussions">GitHub Discussions</a></li>
       <li><a href="#pages">GitHub Pages</a></li>
       <li><a href="#merge">Merge buttons</a></li>
       <li><a href="#repo_features">Repository features</a></li>
@@ -538,10 +537,6 @@ notifications:
 
 This triggers emails when a workflow run fails or if it succeeds after a series of failures. We do not send notifications on normal, successful runs, so as to not spam too much.
 
-<h3 id="discussions">GitHub Discussions</h3>
-
-GitHub Discussions is currently a beta feature and does not have an API endpoint. Until this is addressed, and if your project wants to use this feature, open an Infra Jira ticket with a link to a consensus discussion thread.
-
 <h3 id="pages">GitHub Pages</h3>
 
 Projects that use GitHub for website publishing can enable/update GitHub Pages settings, by specifying which branch (and optional path) to publish:
@@ -594,7 +589,11 @@ github:
     issues: true
     # Enable projects for project management boards
     projects: true
+    # Enable discussions
+    discussions: true
 ~~~
+
+**NOTE**: When enabling discussions, also a valid <a href="#notif">notification target</a> for discussions needs to be specified.
 
 <h3 id="repo_meta">Repository metadata</h3>
 
