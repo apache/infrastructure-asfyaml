@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Unit tests for .asf.yaml GitHub features"""
+"""Unit tests for .asf.yaml GitHub Deployment Environments feature"""
 
 import asfyaml.asfyaml
 import asfyaml.dataobjects
@@ -24,77 +24,69 @@ from helpers import YamlTest
 asfyaml.asfyaml.DEBUG = True
 
 
-valid_github_features = YamlTest(
+valid_github_deployment_environments = YamlTest(
     None,
     None,
     """
 github:
-    features:
-        issues: true
-        wiki: false
-        projects: true
-        discussions: false
-    labels:
-        - a
-        - b
-        - c
-    description: Apache Foo
-    homepage: https://foo.apache.org/
+    environments:
+        test-pypi:
+          required_reviewers:
+            - id: gopidesupavan
+              type: User
+          prevent_self_review: true
+          wait_timer: 60
+          deployment_branch_policy:
+             protected_branches: true
+             custom_branch_policies: false
 """,
 )
 
 # Something isn't a bool
-invalid_github_features_not_bool = YamlTest(
+invalid_github_deployment_environment_prevent_self_review_not_bool = YamlTest(
     asfyaml.asfyaml.ASFYAMLException,
     "expecting a boolean value",
     """
 github:
-    features:
-        issues: maybe
-        wiki: false
-        projects: true
-        discussions: false
+    environments:
+        test-pypi:
+          required_reviewers:
+            - id: gopidesupavan
+              type: User
+          prevent_self_review: dummy
+          wait_timer: 60
+          deployment_branch_policy:
+             protected_branches: true
+             custom_branch_policies: false
 """,
 )
 
 # Something isn't a valid directive
-invalid_github_features_unknown_directive = YamlTest(
+missing_required_section = YamlTest(
     asfyaml.asfyaml.ASFYAMLException,
-    "unexpected key not in schema 'foobar'",
+    "\'protected_branches\' not found",
     """
 github:
-    features:
-        foobar: true
-        wiki: false
-        projects: true
-        discussions: false
-""",
-)
-
-
-# Discussions enabled but no mailing list target set
-invalid_github_features_no_disc_target = YamlTest(
-    asfyaml.asfyaml.ASFYAMLException,
-    "GitHub discussions can only be enabled if a mailing list target exists",
-    """
-github:
-    features:
-        issues: true
-        wiki: false
-        projects: true
-        discussions: true
+    environments:
+        test-pypi:
+          required_reviewers:
+            - id: gopidesupavan
+              type: User
+          prevent_self_review: true
+          wait_timer: 60
+          deployment_branch_policy:
+             custom_branch_policies: false
 """,
 )
 
 
 def test_basic_yaml(test_repo: asfyaml.dataobjects.Repository):
-    print("[github] Testing features")
+    print("[github] Testing deployment environments")
 
     tests_to_run = (
-        valid_github_features,
-        invalid_github_features_not_bool,
-        invalid_github_features_unknown_directive,
-        invalid_github_features_no_disc_target
+        valid_github_deployment_environments,
+        invalid_github_deployment_environment_prevent_self_review_not_bool,
+        missing_required_section
     )
 
     for test in tests_to_run:
