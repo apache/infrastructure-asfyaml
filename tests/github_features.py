@@ -40,6 +40,16 @@ github:
         - c
     description: Apache Foo
     homepage: https://foo.apache.org/
+    environments:
+        test-pypi:
+          required_reviewers:
+            - id: gopidesupavan
+              type: User
+          prevent_self_review: true
+          wait_timer: 60
+          deployment_branch_policy:
+             protected_branches: true
+             custom_branch_policies: false
 """,
 )
 
