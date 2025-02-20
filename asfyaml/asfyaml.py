@@ -71,7 +71,7 @@ class ASFYamlInstance:
 
         # Load YAML and, if any parsing errors happen, bail and raise exception
         try:
-            self.yaml = strictyaml.load(config_data, label=f"{repo.name}.git/.asf.yaml")
+            self.yaml = strictyaml.dirty_load(config_data, label=f"{repo.name}.git/.asf.yaml", allow_flow_style=True)
         except strictyaml.ruamel.scanner.ScannerError as e:
             raise ASFYAMLException(repository=self.repository, branch=self.branch, feature="main", error_message=str(e))
 
@@ -158,10 +158,11 @@ class ASFYamlInstance:
                 # If the feature has a schema, validate the sub-yaml before running the feature.
                 if hasattr(feature_class, "schema"):
                     try:
-                        yaml_parsed = strictyaml.load(
+                        yaml_parsed = strictyaml.dirty_load(
                             feature_yaml_as_string,
                             feature_class.schema,
                             label=f"{self.repository.name}.git/.asf.yaml::{feature_name}",
+                            allow_flow_style=True,
                         )
                     except strictyaml.exceptions.YAMLValidationError as e:
                         feature_start = feature_yaml.start_line
