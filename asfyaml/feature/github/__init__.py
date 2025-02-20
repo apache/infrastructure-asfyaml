@@ -18,6 +18,7 @@
 """This is the GitHub feature for .asf.yaml."""
 
 from asfyaml.asfyaml import ASFYamlFeature, ASFYamlInstance, DEBUG
+import asfyaml.validators
 import strictyaml
 import os
 import sys
@@ -59,6 +60,8 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             strictyaml.Optional("labels"): strictyaml.Seq(strictyaml.Str()),
             # collaborators: non-committers with triage access
             strictyaml.Optional("collaborators"): strictyaml.Seq(strictyaml.Str()),
+            # protected tags
+            strictyaml.Optional("protected_tags"): asfyaml.validators.EmptyValue() | strictyaml.Seq(strictyaml.Str()),
             # custom_subjects
             strictyaml.Optional("custom_subjects"): strictyaml.Map(
                 {strictyaml.Optional(k): strictyaml.Str() for k in constants.VALID_GITHUB_ACTIONS}
@@ -160,4 +163,4 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
 
 
 # Import our sub-directives (...after we have declared the feature class, to avoid circular imports)
-from . import metadata, autolink, features, merge_buttons, pages, custom_subjects, branch_protection, collaborators, housekeeping
+from . import metadata, autolink, features, merge_buttons, pages, custom_subjects, branch_protection, collaborators, housekeeping, protected_tags
