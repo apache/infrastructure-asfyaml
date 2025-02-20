@@ -593,7 +593,7 @@ github:
     discussions: true
 ~~~
 
-**NOTE**: When enabling discussions, a valid <a href="#notif">notification target</a> for discussions must be specified.
+**NOTE**: When enabling discussions, you must specify a valid <a href="#notif">notification target</a> for discussions.
 
 <h3 id="repo_meta">Repository metadata</h3>
 
