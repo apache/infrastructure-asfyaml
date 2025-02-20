@@ -16,6 +16,7 @@
 # under the License.
 
 """GitHub deployment environments"""
+import os
 
 from . import directive, ASFGitHubFeature, GH_TOKEN_FILE
 import requests
@@ -161,7 +162,9 @@ def deployment_environments(self: ASFGitHubFeature):
     if self.noop("environments"):
         return
     repo_name = self.repository.name
-    gh_token = open(GH_TOKEN_FILE).read().strip()
+    gh_token = os.environ.get("GH_TOKEN")
+    if not gh_token:
+        gh_token = open(GH_TOKEN_FILE).read().strip()
     gh_session = pygithub.Github(auth=pygithubAuth.Token(gh_token))
 
     if environments:
