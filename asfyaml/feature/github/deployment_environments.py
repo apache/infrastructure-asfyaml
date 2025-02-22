@@ -17,6 +17,7 @@
 
 """GitHub deployment environments"""
 import os
+from typing import List
 
 from . import directive, ASFGitHubFeature, GH_TOKEN_FILE
 import requests
@@ -68,7 +69,6 @@ def get_deployment_policies(repo_name, token, environment_name):
 def create_deployment_environment(gh_session, repo_name, token, env_name, env_config):
     env_name = urllib.parse.quote(env_name, safe="")
 
-
     url = "https://api.github.com/repos/apache/%s/environments/%s" % (repo_name, env_name)
 
     required_reviewers = env_config.get("required_reviewers")
@@ -92,10 +92,10 @@ def create_deployment_environment(gh_session, repo_name, token, env_name, env_co
     }
 
     response = requests.put(
-                        url=url,
-                        headers={"Authorization": "token %s" % token, "Accept": "application/vnd.github+json"},
-                        json=payload
-                        )
+                url=url,
+                headers={"Authorization": "token %s" % token, "Accept": "application/vnd.github+json"},
+                json=payload
+            )
 
     if not (200 <= response.status_code < 300):
         js = response.json()
@@ -105,6 +105,7 @@ def create_deployment_environment(gh_session, repo_name, token, env_name, env_co
                 response.status_code
             )
         )
+    print("Created/Updated deployment environment: %s with: %s" % (env_name, payload))
 
 def get_user_id(gh_session, username):
     if isinstance(username, int):
@@ -112,9 +113,10 @@ def get_user_id(gh_session, username):
     user = gh_session.get_user(username)
     return user.id
 
-def create_deployment_branch_policy(repo_name, token, env_name, deployment_branch_policies):
+def create_deployment_branch_policy(repo_name: str, token: str, env_name:str, deployment_branch_policies: List[dict]):
     if not deployment_branch_policies:
         return
+    print("Creating/Updating deployment branch policies for environment: %s" % env_name)
 
     env_name = urllib.parse.quote(env_name, safe="")
     url = "https://api.github.com/repos/apache/%s/environments/%s/deployment-branch-policies" % (repo_name, env_name)
@@ -135,25 +137,41 @@ def create_deployment_branch_policy(repo_name, token, env_name, deployment_branc
                 )
             )
 
-def delete_deployment_environment(repo_name, token, env_name):
+        print("Created/Updated deployment branch policy: %s for environment: %s" % (policy, env_name))
+
+def delete_deployment_environment(repo_name: str, token: str, env_name: str):
     env_name = urllib.parse.quote(env_name, safe="")
 
     url = "https://api.github.com/repos/apache/%s/environments/%s" % (repo_name, env_name)
 
-    requests.delete(
+    response = requests.delete(
         url=url,
         headers= {"Authorization": "token %s" % token, "Accept": "application/vnd.github+json"},
     )
+
+    validate_204_response(response)
 
 def delete_deployment_branch_policy(repo_name: str, token: str, env_name: str, policy_id: int):
     env_name = urllib.parse.quote(env_name, safe="")
 
     url = "https://api.github.com/repos/apache/%s/environments/%s/deployment-branch-policies/%s" % (repo_name, env_name, policy_id)
 
-    requests.delete(
+    response = requests.delete(
         url=url,
         headers= {"Authorization": "token %s" % token, "Accept": "application/vnd.github+json"}
     )
+
+    validate_204_response(response)
+
+def validate_204_response(response):
+    if response.status_code != 204:
+        js = response.json()
+        raise Exception(
+            "[GitHub] Request error with message: \"%s\". (status code: %s)" % (
+                js.get("message"),
+                response.status_code
+            )
+        )
 
 @directive
 def deployment_environments(self: ASFGitHubFeature):
@@ -174,6 +192,8 @@ def deployment_environments(self: ASFGitHubFeature):
             raise Exception("Invalid Environment Configurations Found: %s" % config_environment_errors)
 
         for env_name, env_config in environments.items():
+
+            print("Creating/Updating deployment environment: %s" % env_name)
 
             create_deployment_environment(gh_session, repo_name, gh_token, env_name, env_config)
 
@@ -197,6 +217,8 @@ def deployment_environments(self: ASFGitHubFeature):
             environments_to_be_removed = repo_environment_names
 
         for env_to_delete in environments_to_be_removed:
+            print("Deleting deployment environment: %s as configuration is not provided in asf yml file" % env_to_delete)
+
             delete_deployment_environment(repo_name, gh_token, env_to_delete)
 
         # If there are no environments in the asf yml file, we can consider all the environments prior to this step
@@ -234,5 +256,7 @@ def deployment_environments(self: ASFGitHubFeature):
                     repo_deployment_branch_policy_name = repo_deployment_branch_policy.get("name")
 
                     if repo_deployment_branch_policy_name not in asf_config_environment_policy_names:
+                        print("Deleting deployment branch policy: %s for environment: %s as configuration is not provided in asf yml file" % (repo_deployment_branch_policy_name, env_name))
+
                         delete_deployment_branch_policy(repo_name, gh_token, env_name,
                                                         repo_deployment_branch_policy.get("id"))
