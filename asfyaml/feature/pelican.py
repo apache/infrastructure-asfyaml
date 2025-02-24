@@ -67,7 +67,10 @@ class ASFJekyllFeature(ASFYamlFeature, name="pelican", env="production", priorit
         target = self.yaml.get("target", ref)
         if do_autobuild:
             ref_bare = ref.replace(autobuild[:-1], "", 1)  # site/foo -> foo
-            target = "%s/%s-staging" % (autobuild[:-2], ref_bare)  # site/foo -> site/foo-staging
+            target = "%s/%s-staging" % (
+                autobuild[:-2],
+                ref_bare,
+            )  # site/foo -> site/foo-staging
 
         # Get optional theme
         theme = self.yaml.get("theme", "theme")
@@ -99,7 +102,10 @@ class ASFJekyllFeature(ASFYamlFeature, name="pelican", env="production", priorit
             bbusr, bbpwd = open("/x1/gitbox/auth/bb2.txt").read().strip().split(":", 1)
             s = requests.Session()
             s.get("https://ci2.apache.org/auth/login", auth=(bbusr, bbpwd))
-            s.post("https://ci2.apache.org/api/v2/forceschedulers/pelican_websites", json=payload)
+            s.post(
+                "https://ci2.apache.org/api/v2/forceschedulers/pelican_websites",
+                json=payload,
+            )
         else:
             print(payload)
         print("Done!")

@@ -23,6 +23,7 @@ import re
 import requests
 import strictyaml
 
+
 def validate_subdir(subdir):
     """Validates a sub-directory for projects with multiple website repos."""
     if not re.match(r"^[-._a-zA-Z0-9/]+$", subdir):
@@ -42,7 +43,8 @@ class ASFWebsitePublishingFeature(ASFYamlFeature, name="publish", priority=9):
             strictyaml.Optional("subdir", default=None): strictyaml.Str(),
             strictyaml.Optional("type", default="website"): strictyaml.Str(),
             strictyaml.Optional("hostname", default=None): strictyaml.Str(),
-        })
+        }
+    )
 
     def run(self):
         """Publishing for websites. Sample entry .asf.yaml entry:
@@ -76,7 +78,9 @@ class ASFWebsitePublishingFeature(ASFYamlFeature, name="publish", priority=9):
         # Determine deployment type (website or blog?)
         deploy_type = self.yaml.get("type", "website")
         if deploy_type not in ("website", "blog"):
-            raise Exception(f".asf.yaml: Invalid deployment type '{deploy_type}' - must be either 'website' or 'blog'!")
+            raise Exception(
+                f".asf.yaml: Invalid deployment type '{deploy_type}' - must be either 'website' or 'blog'!"
+            )
 
         print(f"Publishing contents at https://{self.repository.hostname}.apache.org/ ...")
 
@@ -97,6 +101,9 @@ class ASFWebsitePublishingFeature(ASFYamlFeature, name="publish", priority=9):
                 }
 
                 # Send to pubsub.a.o
-                requests.post(f"https://pubsub.apache.org:2070/publish/{self.repository.project}", json=payload)
+                requests.post(
+                    f"https://pubsub.apache.org:2070/publish/{self.repository.project}",
+                    json=payload,
+                )
             except Exception as e:
                 print(e)

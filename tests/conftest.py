@@ -27,6 +27,7 @@ def base_path() -> Path:
     """Get the current folder of the test"""
     return Path(__file__).parent
 
+
 @pytest.fixture
 def test_repo(base_path: Path) -> asfyaml.dataobjects.Repository:
     repo_path = str(base_path.joinpath("../repos/private/whimsy/whimsy-private.git"))

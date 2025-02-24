@@ -123,7 +123,10 @@ def test_basic_yaml(test_repo: asfyaml.dataobjects.Repository):
             a.run_parts()
 
     print("PUBLISHING TESTS")
-    tests_to_run = (valid_publish, invalid_publish_hostname,)
+    tests_to_run = (
+        valid_publish,
+        invalid_publish_hostname,
+    )
 
     for test in tests_to_run:
         with test.ctx() as vs:

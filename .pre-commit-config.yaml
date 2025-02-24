@@ -34,3 +34,18 @@ repos:
           - --license-filepath
           - LICENSE-template.txt
           - --fuzzy-match-generates-todo
+  - repo: https://github.com/psf/black
+    rev: 25.1.0
+    hooks:
+      - id: black
+        name: black
+        description: "Black: The uncompromising Python code formatter"
+        args: [--line-length=110]
+        entry: black
+        language: python
+        require_serial: true
+        types_or: [ python, pyi ]
+        files: |
+          (?x)
+          ^asfyaml/.*\.py$|
+          ^tests/.*\.py$

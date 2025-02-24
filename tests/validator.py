@@ -29,6 +29,7 @@ asfyaml.asfyaml.DEBUG = True
 def test_basic_yaml(base_path: Path, test_repo: asfyaml.dataobjects.Repository):
     # Rewire the notifications path, so we can test with a mock json file
     import asfyaml.feature.notifications
+
     asfyaml.feature.notifications.VALID_LISTS_FILE = str(base_path.joinpath("data/mailinglists.json"))
 
     expected_envs = {"production", "quietmode"}  # We expect these two envs enabled
@@ -47,5 +48,6 @@ def test_basic_yaml(base_path: Path, test_repo: asfyaml.dataobjects.Repository):
 
     # Assert that we know the project name and the hostname
     assert test_repo.project == "whimsy", f"Expected project name whimsy, but got {test_repo.project}"
-    assert test_repo.hostname == "whimsical", f"Expected project hostname whimsical, but got {test_repo.hostname}"
-
+    assert (
+        test_repo.hostname == "whimsical"
+    ), f"Expected project hostname whimsical, but got {test_repo.hostname}"

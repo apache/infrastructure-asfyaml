@@ -108,7 +108,7 @@ def test_basic_yaml(test_repo: asfyaml.dataobjects.Repository):
         valid_merge_commit_message,
         invalid_merge_commit_message,
         valid_squash_merge_commit_message,
-        invalid_squash_merge_commit_message
+        invalid_squash_merge_commit_message,
     )
 
     for test in tests_to_run:

@@ -20,8 +20,10 @@
 import contextlib
 import pytest
 
+
 class YamlTest:
     """A validator test that has an expected outcome (exception, errormessage) and a YAML input"""
+
     def __init__(self, exc=None, errstr: str = None, yml=""):
         self.exception = exc
         self.errmsg = errstr

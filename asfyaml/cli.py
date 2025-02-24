@@ -22,6 +22,7 @@ from pathlib import Path
 from asfyaml import dataobjects
 from asfyaml.asfyaml import ASFYamlInstance
 
+
 def dir_path(path):
     if os.path.isdir(path):
         return path
@@ -32,9 +33,24 @@ def dir_path(path):
 def cli():
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", type=dir_path, help="path to the repo to process")
-    parser.add_argument("--org", type=str, default="apache", help="the organization this repo belongs to")
-    parser.add_argument("--token", type=str, required=True, help="token to access the repo via the GH API")
-    parser.add_argument("--noop", action=argparse.BooleanOptionalAction, default=False, help="do not perform changes")
+    parser.add_argument(
+        "--org",
+        type=str,
+        default="apache",
+        help="the organization this repo belongs to",
+    )
+    parser.add_argument(
+        "--token",
+        type=str,
+        required=True,
+        help="token to access the repo via the GH API",
+    )
+    parser.add_argument(
+        "--noop",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="do not perform changes",
+    )
     args = parser.parse_args()
 
     repo_path = Path(os.path.abspath(args.repo))

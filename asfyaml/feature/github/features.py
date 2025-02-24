@@ -27,7 +27,9 @@ def config_features(self: ASFGitHubFeature):
         if features.get("discussions", False):
             notifs = self.instance.features.notifications
             if (not notifs) or "discussions" not in notifs.valid_targets:
-                raise Exception("GitHub discussions can only be enabled if a mailing list target exists for it.")
+                raise Exception(
+                    "GitHub discussions can only be enabled if a mailing list target exists for it."
+                )
 
         # Apply the changes to GitHub, unless we are in no-op (test) mode.
         if not self.noop("features"):

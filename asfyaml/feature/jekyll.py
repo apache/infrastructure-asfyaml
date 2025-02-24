@@ -89,7 +89,10 @@ class ASFJekyllFeature(ASFYamlFeature, name="jekyll", env="production", priority
             bbusr, bbpwd = open("/x1/gitbox/auth/bb2.txt").read().strip().split(":", 1)
             s = requests.Session()
             s.get("https://ci2.apache.org/auth/login", auth=(bbusr, bbpwd))
-            s.post("https://ci2.apache.org/api/v2/forceschedulers/jekyll_websites", json=payload)
+            s.post(
+                "https://ci2.apache.org/api/v2/forceschedulers/jekyll_websites",
+                json=payload,
+            )
         else:
             print(payload)
         print("Done!")

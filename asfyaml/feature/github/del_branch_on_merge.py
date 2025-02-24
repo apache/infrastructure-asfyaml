@@ -25,6 +25,4 @@ def config_delbranch(self: ASFGitHubFeature):
     if del_branch_on_merge is not None:
         # Apply the changes to GitHub, unless we are in no-op (test) mode.
         if not self.noop("delete_branch_on_merge"):
-            self.ghrepo.edit(
-                delete_branch_on_merge=del_branch_on_merge
-            )
+            self.ghrepo.edit(delete_branch_on_merge=del_branch_on_merge)

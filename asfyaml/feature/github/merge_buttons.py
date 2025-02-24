@@ -34,7 +34,9 @@ def enabled_merge_buttons(self: ASFGitHubFeature):
     allow_rebase_merge = merges.get("rebase", NotSet)
 
     if not allow_squash_merge and not allow_merge_commits and not allow_rebase_merge:
-        raise Exception("enabled_merge_buttons: at least one of 'squash', 'merge' or 'rebase' must be enabled")
+        raise Exception(
+            "enabled_merge_buttons: at least one of 'squash', 'merge' or 'rebase' must be enabled"
+        )
 
     squash_commit_message = merges.get("squash_commit_message")
     if squash_commit_message and not allow_squash_merge:
@@ -63,8 +65,10 @@ def enabled_merge_buttons(self: ASFGitHubFeature):
             squash_merge_commit_message = NotSet
 
         case _:
-            raise Exception("enabled_merge_buttons: squash_commit_message must be one of "
-                            "'DEFAULT', 'PR_TITLE', 'PR_TITLE_AND_COMMIT_DETAILS' or 'PR_TITLE_AND_DESC'")
+            raise Exception(
+                "enabled_merge_buttons: squash_commit_message must be one of "
+                "'DEFAULT', 'PR_TITLE', 'PR_TITLE_AND_COMMIT_DETAILS' or 'PR_TITLE_AND_DESC'"
+            )
 
     merge_commit_message = merges.get("merge_commit_message")
     if merge_commit_message and not allow_merge_commits:
@@ -89,8 +93,10 @@ def enabled_merge_buttons(self: ASFGitHubFeature):
             merge_commit_message = NotSet
 
         case _:
-            raise Exception("enabled_merge_buttons: merge_commit_message must be one of "
-                            "'DEFAULT', 'PR_TITLE' or 'PR_TITLE_AND_DESC'")
+            raise Exception(
+                "enabled_merge_buttons: merge_commit_message must be one of "
+                "'DEFAULT', 'PR_TITLE' or 'PR_TITLE_AND_DESC'"
+            )
 
     if not self.noop("enabled_merge_buttons"):
         self.ghrepo.edit(
@@ -100,5 +106,5 @@ def enabled_merge_buttons(self: ASFGitHubFeature):
             merge_commit_title=merge_commit_title,
             merge_commit_message=merge_commit_message,
             squash_merge_commit_title=squash_merge_commit_title,
-            squash_merge_commit_message=squash_merge_commit_message
+            squash_merge_commit_message=squash_merge_commit_message,
         )

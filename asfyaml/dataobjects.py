@@ -37,7 +37,7 @@ COMMIT_FIELDS = [
     ("committed_unix", "%ct"),
     ("ref_names", "%d"),
     ("subject", "%s"),
-    ("body", "%B")
+    ("body", "%B"),
 ]
 
 
@@ -54,7 +54,8 @@ def gitcmd(*args):
 
 
 class Committer:
-    """"Simple info class for committer(pusher) of code"""
+    """ "Simple info class for committer(pusher) of code"""
+
     def __init__(self, username):
         #: str: The ASF user id of the person that pushed this commit, for instance :samp:`humbedooh`
         self.username = username
@@ -62,22 +63,21 @@ class Committer:
         self.email = f"{username}@apache.org"
 
 
-
 class Commit(object):
     def __init__(self, ref, sha):
         self.ref = ref
         self.sha = sha
 
-        fmt = "--format=format:%s%%x00" % r'%x00'.join([s for _, s in COMMIT_FIELDS])
+        fmt = "--format=format:%s%%x00" % r"%x00".join([s for _, s in COMMIT_FIELDS])
         args = ["show", "--stat=75", fmt, self.sha]
         parts = gitcmd(*args).split("\x00")
 
-        self.stats = u"\n".join(filter(None, parts.pop(-1).splitlines()))
+        self.stats = "\n".join(filter(None, parts.pop(-1).splitlines()))
         for pos, (key, _) in enumerate(COMMIT_FIELDS):
             setattr(self, key, parts[pos])
 
         self.committed_unix = int(self.committed_unix)
-        parts = self.committer_email.split(u"@")
+        parts = self.committer_email.split("@")
         self.committer_uname = parts[0]
         if len(parts) > 1:
             self.committer_domain = parts[1]
@@ -170,7 +170,6 @@ class ChangeSet(object):
         return sha.strip()
 
 
-
 class Repository:
     """Simple class that holds information about the repository (and branch) being processed.
 
@@ -184,6 +183,7 @@ class Repository:
         website = f"https://{repo.hostname}.apache.org/"
 
     """
+
     def __init__(self, path, reflog=""):
         #: str|Pathlike: The filesystem path to this repository directory
         self.path = pathlib.Path(path)
@@ -195,7 +195,7 @@ class Repository:
 
     @property
     def is_private(self):
-        """"Set to True if the repository is a private repository, False if it is public"""
+        """ "Set to True if the repository is a private repository, False if it is public"""
         return "private" in self.path.parts
 
     @property
@@ -204,7 +204,7 @@ class Repository:
         match = mappings.REPO_RE.match(self.name)
         if match:
             return match.group(1)
-        return "infrastructure"   # Weird repo name, default to infra owning it.
+        return "infrastructure"  # Weird repo name, default to infra owning it.
 
     @property
     def hostname(self):
@@ -221,7 +221,6 @@ class Repository:
             hb = DEFAULT_BRANCH
         return hb
 
-
     @property
     def changesets(self):
         """Yields a ChangeSet for each ref update seen in this push.
@@ -229,4 +228,3 @@ class Repository:
         for line in self._reflog.splitlines():
             oldsha, newsha, name = line.split(None, 2)
             yield ChangeSet(name.strip(), oldsha, newsha)
-

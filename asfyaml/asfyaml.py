@@ -32,7 +32,13 @@ DEFAULT_PRIORITY = 5
 
 
 class ASFYAMLException(Exception):
-    def __init__(self, repository: dataobjects.Repository, branch: str, feature: str = "", error_message: str = ""):
+    def __init__(
+        self,
+        repository: dataobjects.Repository,
+        branch: str,
+        feature: str = "",
+        error_message: str = "",
+    ):
         self.repository = repository
         self.branch = branch
         self.feature = feature
@@ -61,7 +67,13 @@ class ASFYamlInstance:
     as well as the repository and committer data needed to process events.
     """
 
-    def __init__(self, repo: dataobjects.Repository, committer: str, config_data: str, branch: str = "main"):
+    def __init__(
+        self,
+        repo: dataobjects.Repository,
+        committer: str,
+        config_data: str,
+        branch: str = "main",
+    ):
         self.repository = repo
         self.committer = dataobjects.Committer(committer)
         if branch and branch.startswith("refs/heads/"):
@@ -71,13 +83,22 @@ class ASFYamlInstance:
 
         # Load YAML and, if any parsing errors happen, bail and raise exception
         try:
-            self.yaml = strictyaml.dirty_load(config_data, label=f"{repo.name}.git/.asf.yaml", allow_flow_style=True)
+            self.yaml = strictyaml.dirty_load(
+                config_data, label=f"{repo.name}.git/.asf.yaml", allow_flow_style=True
+            )
         except strictyaml.ruamel.scanner.ScannerError as e:
-            raise ASFYAMLException(repository=self.repository, branch=self.branch, feature="main", error_message=str(e))
+            raise ASFYAMLException(
+                repository=self.repository,
+                branch=self.branch,
+                feature="main",
+                error_message=str(e),
+            )
 
         self.features = FeatureList()  # Placeholder for enabled and verified features during runtime.
         self.environment = envvars.Environment()
-        self.no_cache = False  # Set "cache: false" in the meta section to force a complete parse in all features.
+        self.no_cache = (
+            False  # Set "cache: false" in the meta section to force a complete parse in all features.
+        )
         # TODO: Set up repo details inside this class (repo name, file-path, project, private/public, etc)
 
         # Sort out which environments we are going to be using. This will determine which
@@ -170,7 +191,10 @@ class ASFYamlInstance:
                         problem_column = e.problem_mark.column
                         # TODO: Make this much more reader friendly!
                         raise ASFYAMLException(
-                            repository=self.repository, branch=self.branch, feature=feature_name, error_message=str(e)
+                            repository=self.repository,
+                            branch=self.branch,
+                            feature=feature_name,
+                            error_message=str(e),
                         )
                 else:
                     yaml_parsed = strictyaml.load(feature_yaml_as_string)
@@ -192,11 +216,17 @@ class ASFYamlInstance:
                 feature.run()
             except strictyaml.YAMLValidationError as e:
                 raise ASFYAMLException(
-                    repository=self.repository, branch=self.branch, feature=feature.name, error_message=str(e)
+                    repository=self.repository,
+                    branch=self.branch,
+                    feature=feature.name,
+                    error_message=str(e),
                 )
             except Exception as e:
                 raise ASFYAMLException(
-                    repository=self.repository, branch=self.branch, feature=feature.name, error_message=str(e)
+                    repository=self.repository,
+                    branch=self.branch,
+                    feature=feature.name,
+                    error_message=str(e),
                 )
 
 
@@ -251,7 +281,13 @@ class ASFYamlFeature:
         #: repository.Committer: The committer (userid+email) that pushed this commit.
         self.committer = parent.committer
 
-    def __init_subclass__(cls, name: str, env: str = "production", priority: int = DEFAULT_PRIORITY, **kwargs):
+    def __init_subclass__(
+        cls,
+        name: str,
+        env: str = "production",
+        priority: int = DEFAULT_PRIORITY,
+        **kwargs,
+    ):
         """Instantiates a new sub-class of ASFYamlFeature. The :attr:`name` argument should be the
         top dict keyword for this feature in .asf.yaml, for instance :kbd:`github` or :kbd:`pelican`.
         The :attr:`env` variable can be used to denote which environment this .asf.yaml feature will

@@ -19,19 +19,25 @@
 from . import directive, ASFGitHubFeature, constants
 import re
 
+
 def validate_github_subject(subject):
     """Validates a github subject template:
-     - MUST only contain valid references
-     - MUST be a non-empty string
-     - MUST not contain any reserved chars (newlines etc)
+    - MUST only contain valid references
+    - MUST be a non-empty string
+    - MUST not contain any reserved chars (newlines etc)
     """
     bad_chars = ("\r", "\n")
     assert isinstance(subject, str), "Subject template must be a string"
     assert subject, "Subject template must not be empty"
-    assert not any(bad_char in subject for bad_char in bad_chars), "Subject template must not contain newlines!"
+    assert not any(
+        bad_char in subject for bad_char in bad_chars
+    ), "Subject template must not contain newlines!"
     found_refs = [x.group(1) for x in re.finditer(r"{(.+?)}", subject)]
     for ref in found_refs:
-        assert ref in constants.VALID_GITHUB_SUBJECT_VARIABLES, f"Unknown variable '{ref}' found in subject template."
+        assert (
+            ref in constants.VALID_GITHUB_SUBJECT_VARIABLES
+        ), f"Unknown variable '{ref}' found in subject template."
+
 
 @directive
 def config_custom_subjects(self: ASFGitHubFeature):

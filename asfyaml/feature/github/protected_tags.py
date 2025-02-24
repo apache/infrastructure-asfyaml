@@ -19,6 +19,7 @@
 in favor of rulesets, which has not been implemented in .asf.yaml yet."""
 from . import directive, ASFGitHubFeature
 
+
 @directive
 def configure_protected_tags(self: ASFGitHubFeature):
     # Jira auto-linking

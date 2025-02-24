@@ -20,6 +20,7 @@
 from . import directive, ASFGitHubFeature
 import github as pygithub
 
+
 @directive
 def branch_protection(self: ASFGitHubFeature):
     # Merge buttons
@@ -41,11 +42,11 @@ def branch_protection(self: ASFGitHubFeature):
                 ghbranch.edit_protection()  # Causes protection to be initialized if not already so.
                 branch_protection_settings = ghbranch.get_protection()
             except pygithub.GithubException as e:
-                if e.status != 404: # Not a 404? something is wrong then
+                if e.status != 404:  # Not a 404? something is wrong then
                     raise e
 
             # Required signatures
-            #required_signatures = brsettings.get("required_signatures", False)
+            # required_signatures = brsettings.get("required_signatures", False)
             required_signatures = brsettings.get("required_signatures", "false") == "true"
             if branch_protection_settings.required_signatures != required_signatures:
                 if required_signatures:
@@ -58,7 +59,7 @@ def branch_protection(self: ASFGitHubFeature):
                     branch_changes.append("Set required signatures to False")
 
             # Required linear history
-            #required_linear = bool(brsettings.get("required_linear_history", False))
+            # required_linear = bool(brsettings.get("required_linear_history", False))
             required_linear = brsettings.get("required_linear_history", "false") == "true"
             if branch_protection_settings.required_linear_history != required_linear:
                 if required_linear:
@@ -72,9 +73,14 @@ def branch_protection(self: ASFGitHubFeature):
 
             # Required conversation resolution
             # Requires all conversations to be resolved before merging is possible
-            #required_conversation_resolution = bool(brsettings.get("required_conversation_resolution", False))
-            required_conversation_resolution = brsettings.get("required_conversation_resolution", "false") == "true"
-            if branch_protection_settings.required_conversation_resolution != required_conversation_resolution:
+            # required_conversation_resolution = bool(brsettings.get("required_conversation_resolution", False))
+            required_conversation_resolution = (
+                brsettings.get("required_conversation_resolution", "false") == "true"
+            )
+            if (
+                branch_protection_settings.required_conversation_resolution
+                != required_conversation_resolution
+            ):
                 if required_conversation_resolution:
                     if not self.noop("github::protected_branches"):
                         ghbranch.edit_protection(required_conversation_resolution=True)
@@ -84,7 +90,6 @@ def branch_protection(self: ASFGitHubFeature):
                         ghbranch.edit_protection(required_conversation_resolution=False)
                     branch_changes.append("Set required conversation resolution to False")
 
-
             # Required status checks
             required_status_checks = brsettings.get("required_status_checks", {})
             if required_status_checks:
@@ -92,11 +97,17 @@ def branch_protection(self: ASFGitHubFeature):
                 require_strict = bool(required_status_checks.get("strict", False))
                 contexts = required_status_checks.get("contexts", [])
                 checks = required_status_checks.get("checks", [])
-                checks_as_dict = {**{ctx: -1 for ctx in contexts}, **{c["context"]: int(c["app_id"]) for c in checks}}
-                if (not branch_protection_settings.required_status_checks or branch_protection_settings.required_status_checks.strict != require_strict):
+                checks_as_dict = {
+                    **{ctx: -1 for ctx in contexts},
+                    **{c["context"]: int(c["app_id"]) for c in checks},
+                }
+                if (
+                    not branch_protection_settings.required_status_checks
+                    or branch_protection_settings.required_status_checks.strict != require_strict
+                ):
                     if not checks_as_dict:
                         if not self.noop("github::protected_branches"):
-                            #ghbranch.edit_required_status_checks(strict=require_strict, checks=[])
+                            # ghbranch.edit_required_status_checks(strict=require_strict, checks=[])
                             pass
                         branch_changes.append(
                             f"Set require branches to be up to date before merging (strict) to {require_strict}"
@@ -112,7 +123,10 @@ def branch_protection(self: ASFGitHubFeature):
                 if checks_as_dict != existing_contexts:  # Something changed, update contexts
                     if checks_as_dict:
                         if not self.noop("github::protected_branches"):
-                            ghbranch.edit_protection(strict=require_strict, checks=list(checks_as_dict.items()))
+                            ghbranch.edit_protection(
+                                strict=require_strict,
+                                checks=list(checks_as_dict.items()),
+                            )
                         branch_changes.append(f"Set required status contexts to the following:")
                         for ctx, appid in checks_as_dict.items():
                             branch_changes.append(f"  - {ctx} (app_id: {appid})")
@@ -131,7 +145,9 @@ def branch_protection(self: ASFGitHubFeature):
             # Required pull requests reviews
             required_pull_request_reviews = brsettings.get("required_pull_request_reviews", {})
             if required_pull_request_reviews:
-                dismiss_stale_reviews = required_pull_request_reviews.get("dismiss_stale_reviews", "false") == "true"
+                dismiss_stale_reviews = (
+                    required_pull_request_reviews.get("dismiss_stale_reviews", "false") == "true"
+                )
                 required_approving_review_count = required_pull_request_reviews.get(
                     "required_approving_review_count", 0
                 )
@@ -139,23 +155,27 @@ def branch_protection(self: ASFGitHubFeature):
                 assert isinstance(
                     required_approving_review_count, int
                 ), "required_approving_review_count MUST be an integer value"
-                if (not branch_protection_settings.required_pull_request_reviews or
-                        branch_protection_settings.required_pull_request_reviews.required_approving_review_count
-                        != required_approving_review_count
+                if (
+                    not branch_protection_settings.required_pull_request_reviews
+                    or branch_protection_settings.required_pull_request_reviews.required_approving_review_count
+                    != required_approving_review_count
                 ):
                     if not self.noop("github::protected_branches"):
                         ghbranch.remove_required_pull_request_reviews()
-                        ghbranch.edit_required_pull_request_reviews(required_approving_review_count=required_approving_review_count)
-                    branch_changes.append(f"Set required approving review count to {required_approving_review_count}")
+                        ghbranch.edit_required_pull_request_reviews(
+                            required_approving_review_count=required_approving_review_count
+                        )
+                    branch_changes.append(
+                        f"Set required approving review count to {required_approving_review_count}"
+                    )
                 grp = ghbranch.get_required_pull_request_reviews()
-                if (not grp or
-                        grp.dismiss_stale_reviews
-                        != dismiss_stale_reviews
-                ):
+                if not grp or grp.dismiss_stale_reviews != dismiss_stale_reviews:
                     if not self.noop("github::protected_branches"):
-                        ghbranch.edit_required_pull_request_reviews(dismiss_stale_reviews=dismiss_stale_reviews, required_approving_review_count=required_approving_review_count)
+                        ghbranch.edit_required_pull_request_reviews(
+                            dismiss_stale_reviews=dismiss_stale_reviews,
+                            required_approving_review_count=required_approving_review_count,
+                        )
                     branch_changes.append(f"Set dismiss stale reviews to {dismiss_stale_reviews}")
-
 
             # Log all the changes we made to this branch
             if branch_changes:

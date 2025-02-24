@@ -20,6 +20,7 @@
 import asfyaml.asfyaml
 import asfyaml.dataobjects
 from helpers import YamlTest
+
 # Set .asf.yaml to debug mode
 asfyaml.asfyaml.DEBUG = True
 
@@ -66,7 +67,6 @@ def test_basic_yaml(test_repo: asfyaml.dataobjects.Repository):
         valid_github_pages,
         invalid_github_pages_garbage,
         invalid_github_pages_bad_branch,
-
     )
 
     for test in tests_to_run:

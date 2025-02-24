@@ -18,6 +18,7 @@
 """GitHub housekeeping features: delete branch on merge, dependabot.."""
 from . import directive, ASFGitHubFeature
 
+
 @directive
 def config_features(self: ASFGitHubFeature):
     # Generic features: issues, wiki, projects, discussions

@@ -23,6 +23,7 @@ import fnmatch
 import requests
 import strictyaml
 
+
 def validate_subdir(subdir):
     """Validates a sub-directory for projects with multiple website repos."""
     if not re.match(r"^[-._a-zA-Z0-9/]+$", subdir):
@@ -44,7 +45,8 @@ class ASFWebsiteStagingFeature(ASFYamlFeature, name="staging", priority=9):
             strictyaml.Optional("hostname", default=None): strictyaml.Str(),
             strictyaml.Optional("profile", default=None): strictyaml.Str(),
             strictyaml.Optional("autostage", default=None): strictyaml.Str(),
-        })
+        }
+    )
 
     def run(self):
         """Publishing for websites. Sample entry .asf.yaml entry:
@@ -63,7 +65,9 @@ class ASFWebsiteStagingFeature(ASFYamlFeature, name="staging", priority=9):
             assert isinstance(autostage, str), "autostage parameter must be a string!"
             assert autostage.endswith("/*"), "autostage parameter must be $foo/*, e.g. site/* or feature/*"
         do_autostage = (
-            autostage and fnmatch.fnmatch(self.instance.branch, autostage) and self.instance.branch.endswith("-staging")
+            autostage
+            and fnmatch.fnmatch(self.instance.branch, autostage)
+            and self.instance.branch.endswith("-staging")
         )  # site/foo-staging, matching site/*
 
         # If whoami specified, ignore this payload if branch does not match autostage
@@ -92,7 +96,6 @@ class ASFWebsiteStagingFeature(ASFYamlFeature, name="staging", priority=9):
             wsname = f"https://{self.repository.hostname}-{profile}.staged.apache.org"
         print(f"Staging contents at {wsname} ...")
 
-
         # Try sending publish payload to pubsub
         if not self.noop("staging"):
             try:
@@ -109,7 +112,10 @@ class ASFWebsiteStagingFeature(ASFYamlFeature, name="staging", priority=9):
                 }
 
                 # Send to pubsub.a.o
-                requests.post(f"https://pubsub.apache.org:2070/staging/{self.repository.project}", json=payload)
+                requests.post(
+                    f"https://pubsub.apache.org:2070/staging/{self.repository.project}",
+                    json=payload,
+                )
 
             except Exception as e:
                 print(e)

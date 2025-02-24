@@ -76,7 +76,7 @@ def test_basic_yaml(test_repo: asfyaml.dataobjects.Repository):
         valid_github_autolink,
         valid_github_autolink_single,
         invalid_github_autolink_not_upperalpha,
-        invalid_github_autolink_not_list
+        invalid_github_autolink_not_list,
     )
 
     for test in tests_to_run:

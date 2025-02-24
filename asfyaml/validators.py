@@ -18,17 +18,17 @@
 import strictyaml
 import strictyaml.exceptions
 
+
 class EmptyValue(strictyaml.ScalarValidator):
     """Legacy YAML null type that supports the tilde null marker not considered proper by strictyaml:
     a: null
     a: ~  (also null)
     """
+
     def validate_scalar(self, chunk):
         val = chunk.contents
         if val.lower() not in ("null", "~"):
-            chunk.expecting_but_found(
-                "when expecting a 'null', got '{}' instead.".format(val)
-            )
+            chunk.expecting_but_found("when expecting a 'null', got '{}' instead.".format(val))
         else:
             return self.empty(chunk)
 

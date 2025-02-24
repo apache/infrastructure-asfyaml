@@ -44,7 +44,9 @@ class JiraSpaceString(strictyaml.Str):
 
     def validate_scalar(self, chunk):
         if not all(char in string.ascii_uppercase for char in chunk.contents):
-            raise strictyaml.YAMLValidationError(None, "String must be uppercase only, e.g. INFRA or AIRFLOW.", chunk)
+            raise strictyaml.YAMLValidationError(
+                None, "String must be uppercase only, e.g. INFRA or AIRFLOW.", chunk
+            )
         return chunk.contents
 
 
@@ -62,7 +64,8 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             # collaborators: non-committers with triage access
             strictyaml.Optional("collaborators"): strictyaml.Seq(strictyaml.Str()),
             # protected tags
-            strictyaml.Optional("protected_tags"): asfyaml.validators.EmptyValue() | strictyaml.Seq(strictyaml.Str()),
+            strictyaml.Optional("protected_tags"): asfyaml.validators.EmptyValue()
+            | strictyaml.Seq(strictyaml.Str()),
             # custom_subjects
             strictyaml.Optional("custom_subjects"): strictyaml.Map(
                 {strictyaml.Optional(k): strictyaml.Str() for k in constants.VALID_GITHUB_ACTIONS}
@@ -114,7 +117,9 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
         """GitHub features"""
         # Test if we need to process this (only works on the default branch)
         if self.instance.branch != self.repository.default_branch:
-            print(f"Saw GitHub meta-data in .asf.yaml, but not in default branch of repository, not updating...")
+            print(
+                f"Saw GitHub meta-data in .asf.yaml, but not in default branch of repository, not updating..."
+            )
             return
 
         # Check if cached yaml exists, compare if changed

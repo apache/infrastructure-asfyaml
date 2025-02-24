@@ -65,12 +65,15 @@ RE_VALID_MAILING_LIST = re.compile(r"[-a-z0-9]+@[-a-z0-9]+(\.incubator)?\.apache
 
 class ASFNotificationsFeature(ASFYamlFeature, name="notifications", priority=0):
     """.asf.yaml notifications feature class. Runs before anything else."""
+
     valid_targets = {}  # Placeholder for self.valid_targets. Will be re-initialized on run.
 
     def run(self):
         # Test if we need to process this (only works on the default branch)
         if self.instance.branch != self.repository.default_branch:
-            print(f"Saw notifications meta-data in .asf.yaml, but not in default branch of repository, not updating...")
+            print(
+                f"Saw notifications meta-data in .asf.yaml, but not in default branch of repository, not updating..."
+            )
             return
         self.valid_targets = {}  # Set to a brand-new instance-local dict for valid scheme entries.
         # Read the list of valid mailing list targets from disk
@@ -156,7 +159,11 @@ class ASFNotificationsFeature(ASFYamlFeature, name="notifications", priority=0):
             elif key in old_yml and key not in self.yaml:
                 changes += "- removing old scheme (%s) - was %r\n" % (key, old_yml[key])
             elif key in old_yml and key in self.yaml and old_yml[key] != self.yaml[key]:
-                changes += "- updating scheme %s: %r -> %r\n" % (key, old_yml[key], self.yaml[key])
+                changes += "- updating scheme %s: %r -> %r\n" % (
+                    key,
+                    old_yml[key],
+                    self.yaml[key],
+                )
         # Print the changes to the git client
         print(changes)
 
