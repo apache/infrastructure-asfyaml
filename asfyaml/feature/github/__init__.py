@@ -66,6 +66,8 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             strictyaml.Optional("custom_subjects"): strictyaml.Map(
                 {strictyaml.Optional(k): strictyaml.Str() for k in constants.VALID_GITHUB_ACTIONS}
             ),
+            # Delete branch on merge
+            strictyaml.Optional("del_branch_on_merge"): strictyaml.Bool(),
             # features: enable/disable specific GitHub features. dict of bools.
             strictyaml.Optional("features"): strictyaml.Map(
                 {
@@ -163,4 +165,4 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
 
 
 # Import our sub-directives (...after we have declared the feature class, to avoid circular imports)
-from . import metadata, autolink, features, merge_buttons, pages, custom_subjects, branch_protection, collaborators, housekeeping, protected_tags
+from . import metadata, autolink, features, merge_buttons, pages, custom_subjects, branch_protection, collaborators, housekeeping, protected_tags, del_branch_on_merge
