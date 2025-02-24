@@ -41,6 +41,7 @@ def directive(func):
 
 class JiraSpaceString(strictyaml.Str):
     """YAML validator for Jira spaces, must be uppercase alpha only."""
+
     def validate_scalar(self, chunk):
         if not all(char in string.ascii_uppercase for char in chunk.contents):
             raise strictyaml.YAMLValidationError(None, "String must be uppercase only, e.g. INFRA or AIRFLOW.", chunk)
@@ -92,21 +93,16 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                 JiraSpaceString(),
                 strictyaml.Seq(JiraSpaceString()),
             ),
-
             # GitHub Pages: branch (can be default or gh-pages) and path (can be /docs or /)
             strictyaml.Optional("ghp_branch"): strictyaml.Str(),
             strictyaml.Optional("ghp_path", default="/docs"): strictyaml.Str(),
-
             # Branch protection rules - TODO: add actual schema
             strictyaml.Optional("protected_branches"): strictyaml.Any(),
-
             # Delete branch on merge
             strictyaml.Optional("del_branch_on_merge"): strictyaml.Bool(),
-
             # Dependabot
             strictyaml.Optional("dependabot_alerts"): strictyaml.Bool(),
             strictyaml.Optional("dependabot_updates"): strictyaml.Bool(),
-
         }
     )
 
@@ -147,7 +143,7 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             pgh = pygithub.Github(auth=pygithubAuth.Token(gh_token))
             org_id = os.environ.get("ORG_ID", "apache")
             self.ghrepo = pgh.get_repo(f"{org_id}/{self.repository.name}")
-        elif gh_token: # If supplied from OS env, load the ghrepo object anyway
+        elif gh_token:  # If supplied from OS env, load the ghrepo object anyway
             pgh = pygithub.Github(auth=pygithubAuth.Token(gh_token))
             org_id = os.environ.get("ORG_ID", "apache")
             self.ghrepo = pgh.get_repo(f"{org_id}/{self.repository.name}")
@@ -165,4 +161,16 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
 
 
 # Import our sub-directives (...after we have declared the feature class, to avoid circular imports)
-from . import metadata, autolink, features, merge_buttons, pages, custom_subjects, branch_protection, collaborators, housekeeping, protected_tags, del_branch_on_merge
+from . import (
+    metadata,
+    autolink,
+    features,
+    merge_buttons,
+    pages,
+    custom_subjects,
+    branch_protection,
+    collaborators,
+    housekeeping,
+    protected_tags,
+    del_branch_on_merge,
+)
