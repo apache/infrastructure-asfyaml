@@ -34,3 +34,17 @@ repos:
           - --license-filepath
           - LICENSE-template.txt
           - --fuzzy-match-generates-todo
+  - repo: local
+    hooks:
+      - id: ruff
+        name: Ruff Linter
+        entry: ruff check --fix
+        language: python
+        types_or: [ python, pyi ]
+        additional_dependencies: [ "ruff==0.8.1" ]
+      - id: ruff-format
+        name: Ruff Formatter
+        entry: ruff format --force-exclude
+        language: python
+        types_or: [ python, pyi ]
+        additional_dependencies: [ "ruff==0.8.1" ]
