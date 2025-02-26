@@ -19,6 +19,9 @@
 import os
 from typing import List
 
+from github.EnvironmentDeploymentBranchPolicy import EnvironmentDeploymentBranchPolicyParams
+from github.EnvironmentProtectionRuleReviewer import ReviewerParams
+
 from . import directive, ASFGitHubFeature, GH_TOKEN_FILE
 import requests
 import urllib
@@ -52,60 +55,32 @@ def validate_environment_configs(environments: dict):
                                                 "error": "Policies is missing, when custom_branch_policies is enabled, minimum 1 policy is required"})
     return config_environment_errors
 
-def get_deployment_policies(repo_name, token, environment_name):
-    url = "https://api.github.com/repos/apache/%s/environments/%s/deployment-branch-policies"
-
-    parsed_env_name = urllib.parse.quote(environment_name, safe="")
-
-    parsed_url = url % (repo_name, parsed_env_name)
-    rsp = requests.get(
-        parsed_url,
-        headers={"Authorization": "token %s" % token, "Accept": "application/vnd.github+json"}
-    )
-
-    parsed_response = rsp.json()
-    return parsed_response.get("branch_policies", [])
-
-def create_deployment_environment(gh_session, repo_name, token, env_name, env_config):
-    env_name = urllib.parse.quote(env_name, safe="")
-
-    url = "https://api.github.com/repos/apache/%s/environments/%s" % (repo_name, env_name)
+def create_deployment_environment(gh_session, gh_repo, env_name, env_config):
 
     required_reviewers = env_config.get("required_reviewers")
     prevent_self_review = env_config.get("prevent_self_review", True)
     wait_timer = env_config.get("wait_timer", 5) # default 5 minutes
-    deployment_branch_policy = env_config.get("deployment_branch_policy", None)
+
+    deployment_branch_policy = EnvironmentDeploymentBranchPolicyParams(
+        protected_branches=env_config.get("deployment_branch_policy", {}).get("protected_branches", True),
+        custom_branch_policies=env_config.get("deployment_branch_policy", {}).get("custom_branch_policies", False),
+    )
 
     # Get the user id for the required reviewers, this endpoint only accepts user ids not usernames
     required_reviewers_with_id = [
-        {
-            "type":reviewer.get("type"),
-            "id": get_user_id(gh_session, reviewer.get("id"))
-        } for reviewer in required_reviewers
+    ReviewerParams(type_= reviewer.get("type"), id_=get_user_id(gh_session, reviewer.get("id")))
+        for reviewer in required_reviewers
     ]
 
-    payload = {
-        "wait_timer": wait_timer,
-        "prevent_self_review": prevent_self_review,
-        "reviewers": required_reviewers_with_id,
-        "deployment_branch_policy": deployment_branch_policy
-    }
+    # prevent_self_review is not supported by pygithub yet, https://github.com/PyGithub/PyGithub/pull/3246 is open
+    gh_repo.create_environment(
+        environment_name=env_name,
+        wait_timer=wait_timer,
+        reviewers=required_reviewers_with_id,
+        deployment_branch_policy=deployment_branch_policy
+    )
 
-    response = requests.put(
-                url=url,
-                headers={"Authorization": "token %s" % token, "Accept": "application/vnd.github+json"},
-                json=payload
-            )
-
-    if not (200 <= response.status_code < 300):
-        js = response.json()
-        raise Exception(
-            "[GitHub] Request error with message: \"%s\". (status code: %s)" % (
-                js.get("message"),
-                response.status_code
-            )
-        )
-    print("Created/Updated deployment environment: %s with: %s" % (env_name, payload))
+    print("Created/Updated deployment environment: %s" % env_name)
 
 def get_user_id(gh_session, username):
     if isinstance(username, int):
@@ -139,17 +114,19 @@ def create_deployment_branch_policy(repo_name: str, token: str, env_name:str, de
 
         print("Created/Updated deployment branch policy: %s for environment: %s" % (policy, env_name))
 
-def delete_deployment_environment(repo_name: str, token: str, env_name: str):
-    env_name = urllib.parse.quote(env_name, safe="")
+def get_deployment_policies(repo_name, token, environment_name):
+    url = "https://api.github.com/repos/apache/%s/environments/%s/deployment-branch-policies"
 
-    url = "https://api.github.com/repos/apache/%s/environments/%s" % (repo_name, env_name)
+    parsed_env_name = urllib.parse.quote(environment_name, safe="")
 
-    response = requests.delete(
-        url=url,
-        headers= {"Authorization": "token %s" % token, "Accept": "application/vnd.github+json"},
+    parsed_url = url % (repo_name, parsed_env_name)
+    rsp = requests.get(
+        parsed_url,
+        headers={"Authorization": "token %s" % token, "Accept": "application/vnd.github+json"}
     )
 
-    validate_204_response(response)
+    parsed_response = rsp.json()
+    return parsed_response.get("branch_policies", [])
 
 def delete_deployment_branch_policy(repo_name: str, token: str, env_name: str, policy_id: int):
     env_name = urllib.parse.quote(env_name, safe="")
@@ -195,7 +172,7 @@ def deployment_environments(self: ASFGitHubFeature):
 
             print("Creating/Updating deployment environment: %s" % env_name)
 
-            create_deployment_environment(gh_session, repo_name, gh_token, env_name, env_config)
+            create_deployment_environment(gh_session, self.ghrepo, env_name, env_config)
 
             if env_config.get("deployment_branch_policy", {}).get("custom_branch_policies"):
                 create_deployment_branch_policy(
@@ -218,8 +195,8 @@ def deployment_environments(self: ASFGitHubFeature):
 
         for env_to_delete in environments_to_be_removed:
             print("Deleting deployment environment: %s as configuration is not provided in asf yml file" % env_to_delete)
+            self.ghrepo.delete_environment(env_to_delete)
 
-            delete_deployment_environment(repo_name, gh_token, env_to_delete)
 
         # If there are no environments in the asf yml file, we can consider all the environments prior to this step
         # has deleted already, so we can ignore the branch policies deletion process.
