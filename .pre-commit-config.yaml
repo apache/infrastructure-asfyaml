@@ -34,17 +34,17 @@ repos:
           - --license-filepath
           - LICENSE-template.txt
           - --fuzzy-match-generates-todo
-  - repo: local
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.7
     hooks:
       - id: ruff
         name: Ruff Linter
-        entry: ruff check --fix
+        entry: ruff check --force-exclude
         language: python
         types_or: [ python, pyi ]
-        additional_dependencies: [ "ruff==0.8.1" ]
+        args: [ --fix ]
       - id: ruff-format
         name: Ruff Formatter
         entry: ruff format --force-exclude
         language: python
         types_or: [ python, pyi ]
-        additional_dependencies: [ "ruff==0.8.1" ]
