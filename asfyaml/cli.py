@@ -54,7 +54,7 @@ def cli():
         os.environ["GH_TOKEN"] = args.token
 
     if os.environ.get("GH_TOKEN") is None:
-        raise Exception("no GitHub token has been provided, either set a '--token' argument or 'GH_TOKEN' env variable.")
+        raise Exception("no GitHub token has been provided, either add a '--token' argument or set a 'GH_TOKEN' env variable.")
 
     a = ASFYamlInstance(repo, "anonymous", yml_content)
 
