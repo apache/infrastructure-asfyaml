@@ -184,7 +184,7 @@ class Repository:
         website = f"https://{repo.hostname}.apache.org/"
 
     """
-    def __init__(self, path, reflog=""):
+    def __init__(self, path, reflog="", org_id: str = "apache"):
         #: str|Pathlike: The filesystem path to this repository directory
         self.path = pathlib.Path(path)
         #: str: The name of this repository (sans the .git part), for instance :samp:`whimsy-website`.
@@ -192,6 +192,8 @@ class Repository:
         #: str: Ref update log, if found. Follows standard git syntax, one entry per line
         #  with: "oldsha newsha refname". Used for populating self.changesets
         self._reflog = reflog or ""
+        #: str: The GitHub organization this repository belongs to, by default `apache`.
+        self.org_id = org_id
 
     @property
     def is_private(self):
