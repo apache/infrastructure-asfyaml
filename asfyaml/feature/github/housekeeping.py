@@ -19,20 +19,21 @@
 from . import directive, ASFGitHubFeature
 
 @directive
-def config_features(self: ASFGitHubFeature):
-    # Generic features: issues, wiki, projects, discussions
+def housekeeping_features(self: ASFGitHubFeature):
     del_branch_on_merge = self.yaml.get("del_branch_on_merge", None)
-    if del_branch_on_merge in (True, False):
-        self.ghrepo.edit(delete_branch_on_merge=del_branch_on_merge)
+    if del_branch_on_merge is not None and not self.noop("del_branch_on_merge"):
+            self.ghrepo.edit(delete_branch_on_merge=del_branch_on_merge)
 
     dependabot_alerts = self.yaml.get("dependabot_alerts", None)
-    if dependabot_alerts is True:
-        self.ghrepo.enable_vulnerability_alert()
-    elif dependabot_alerts is False:
-        self.ghrepo.disable_vulnerability_alert()
+    if dependabot_alerts is not None and not self.noop("dependabot_alerts"):
+        if dependabot_alerts is True:
+            self.ghrepo.enable_vulnerability_alert()
+        elif dependabot_alerts is False:
+            self.ghrepo.disable_vulnerability_alert()
 
     dependabot_updates = self.yaml.get("dependabot_updates", None)
-    if dependabot_updates is True:
-        self.ghrepo.enable_automated_security_fixes()
-    elif dependabot_updates is False:
-        self.ghrepo.disable_automated_security_fixes()
+    if dependabot_updates is not None and not self.noop("dependabot_updates"):
+        if dependabot_updates is True:
+            self.ghrepo.enable_automated_security_fixes()
+        elif dependabot_updates is False:
+            self.ghrepo.disable_automated_security_fixes()
