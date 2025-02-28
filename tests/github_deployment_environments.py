@@ -23,10 +23,10 @@ import pytest
 
 import asfyaml.asfyaml
 import asfyaml.dataobjects
-from helpers import YamlTest
 from asfyaml.feature.github.deployment_environments import validate_environment_configs, get_deployment_policies, \
-    create_deployment_environment, get_user_id, create_deployment_branch_policy, delete_deployment_environment, \
-    delete_deployment_branch_policy, deployment_environments
+    create_deployment_environment, get_user_id, create_deployment_branch_policy, \
+    delete_deployment_branch_policy
+from helpers import YamlTest
 
 # Set .asf.yaml to debug mode
 asfyaml.asfyaml.DEBUG = True
@@ -205,19 +205,8 @@ def test_get_deployment_policies_has_no_policies(mock_get):
         headers={"Authorization": "token test-token", "Accept": "application/vnd.github+json"}
     )
 
-@patch('requests.put')
-@patch("asfyaml.feature.github.deployment_environments.get_user_id")
-def test_create_deployment_environment_success(mock_get_user_id, mock_put):
-    mock_get_user_id.return_value = 123456
-    gh_session = Mock()
-    mock_response = Mock()
-    mock_response.json.return_value = {
-        "id": 123456
-    }
-    mock_response.status_code = 200
-    mock_put.return_value = mock_response
-
-    env_config = {
+@pytest.mark.parametrize("env_config", [
+    {
         "required_reviewers": [
             {
                 "id": "gopidesupavan",
@@ -230,68 +219,48 @@ def test_create_deployment_environment_success(mock_get_user_id, mock_put):
             "protected_branches": True,
             "custom_branch_policies": False
         }
+    },
+    {
+        "required_reviewers": [
+            {
+                "id": "anotheruser",
+                "type": "User"
+            }
+        ],
+        "prevent_self_review": False,
+        "wait_timer": 30,
+        "deployment_branch_policy": {
+            "protected_branches": False,
+            "custom_branch_policies": True
+        }
     }
+], ids=["with_protected_branches", "with_custom_branch_policies"])
+@patch("asfyaml.feature.github.deployment_environments.get_user_id")
+@patch('asfyaml.feature.github.deployment_environments.pygithub.Github')
+def test_create_deployment_environment(mock_github, mock_get_user_id, env_config):
+    mock_get_user_id.return_value = 123456
+    mock_gh_repo = Mock()
+
+    mock_github.return_value.get_repo.return_value = mock_gh_repo
+    gh_session = mock_github.return_value
 
     create_deployment_environment(
         gh_session,
-        "test-repo",
-        "test-token",
+        mock_gh_repo,
         "test-environment",
         env_config,
     )
 
-    mock_put.assert_called_once_with(
-        url="https://api.github.com/repos/apache/test-repo/environments/test-environment",
-        headers={"Authorization": "token test-token", "Accept": "application/vnd.github+json"},
-        json={
-            "wait_timer": 60,
-            "prevent_self_review": True,
-            "reviewers": [
-                {
-                    "type": "User",
-                    "id": 123456
-                }
-            ],
-            "deployment_branch_policy": {
-                "protected_branches": True,
-                "custom_branch_policies": False
-            }
-        }
-    )
+    actual_call = mock_gh_repo.create_environment.call_args
 
-@patch('requests.put')
-@patch("asfyaml.feature.github.deployment_environments.get_user_id")
-def test_create_deployment_environment_failed(mock_get_user_id, mock_put):
-    mock_get_user_id.return_value = 123456
-    gh_session = Mock()
-    mock_response = Mock()
-    mock_response.json.return_value = {"message": "Validation error"}
-    mock_response.status_code = 422
-    mock_put.return_value = mock_response
-
-    env_config = {
-        "required_reviewers": [
-            {
-                "id": "gopidesupavan",
-                "type": "User"
-            }
-        ],
-        "prevent_self_review": True,
-        "wait_timer": 60,
-        "deployment_branch_policy": {
-            "protected_branches": True,
-            "custom_branch_policies": True
-        }
-    }
-
-    with pytest.raises(Exception, match=re.escape('[GitHub] Request error with message: "Validation error". (status code: 422)')):
-        create_deployment_environment(
-            gh_session,
-            "test-repo",
-            "test-token",
-            "test-environment",
-            env_config,
-        )
+    assert actual_call[1]['environment_name'] == "test-environment"
+    assert actual_call[1]['wait_timer'] == env_config["wait_timer"]
+    assert actual_call[1]['reviewers'][0].type == env_config["required_reviewers"][0]["type"]
+    assert actual_call[1]['reviewers'][0].id == 123456
+    assert actual_call[1]['deployment_branch_policy'].protected_branches == env_config["deployment_branch_policy"][
+        "protected_branches"]
+    assert actual_call[1]['deployment_branch_policy'].custom_branch_policies == env_config["deployment_branch_policy"][
+        "custom_branch_policies"]
 
 def test_get_user_id_with_user_name():
     mock_gh_session = Mock()
@@ -344,38 +313,6 @@ def test_create_deployment_branch_policy_failed(mock_post):
             "test-token",
             "test-environment",
             [{"type": "branch", "name": "main"}]
-        )
-
-@patch('requests.delete')
-def test_delete_deployment_environment_success(mock_delete):
-    mock_response = Mock()
-    mock_response.status_code = 204
-    mock_delete.return_value = mock_response
-
-    delete_deployment_environment(
-        "test-repo",
-        "test-token",
-        "test-environment"
-    )
-    mock_delete.assert_called_once_with(
-        url="https://api.github.com/repos/apache/test-repo/environments/test-environment",
-        headers = {"Authorization": "token test-token", "Accept": "application/vnd.github+json"}
-    )
-
-@patch('requests.delete')
-def test_delete_deployment_environment_failed(mock_delete):
-    mock_response = Mock()
-    mock_response.status_code = 404
-    mock_response.json.return_value = {
-        "message": "Not Found"
-    }
-    mock_delete.return_value = mock_response
-
-    with pytest.raises(Exception, match=re.escape('[GitHub] Request error with message: "Not Found". (status code: 404)')):
-        delete_deployment_environment(
-            "test-repo",
-            "test-token",
-            "test-environment"
         )
 
 @patch('requests.delete')

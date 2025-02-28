@@ -29,16 +29,16 @@ import github as pygithub
 import github.Auth as pygithubAuth
 
 def validate_environment_configs(environments: dict):
-    config_environment_errors = []
+    environment_config_errors = []
 
     for env, env_config in environments.items():
         if not env_config.get("required_reviewers"):
 
-            config_environment_errors.append(
+            environment_config_errors.append(
                 {"env": env, "error": "required_reviewers is missing, minimum 1 reviewer is required"})
 
         if len(env_config.get("required_reviewers", [])) > 6:
-            config_environment_errors.append(
+            environment_config_errors.append(
                 {"env": env, "error": "required_reviewers cannot be more than 6 reviewers"})
 
 
@@ -46,14 +46,14 @@ def validate_environment_configs(environments: dict):
         is_protected_branches = env_config.get("deployment_branch_policy", {}).get("protected_branches")
 
         if is_custom_branch_policies and is_protected_branches:
-            config_environment_errors.append({"env": env,
+            environment_config_errors.append({"env": env,
                                               "error": "protected_branches and custom_branch_policies cannot be enabled at the same"
                                                        " time, set one of them to false"})
 
         if is_custom_branch_policies and not env_config.get("deployment_branch_policy", {}).get("policies"):
-            config_environment_errors.append({"env": env,
+            environment_config_errors.append({"env": env,
                                                 "error": "Policies is missing, when custom_branch_policies is enabled, minimum 1 policy is required"})
-    return config_environment_errors
+    return environment_config_errors
 
 def create_deployment_environment(gh_session, gh_repo, env_name, env_config):
 
@@ -158,6 +158,7 @@ def deployment_environments(self: ASFGitHubFeature):
         return
     repo_name = self.repository.name
     gh_token = os.environ.get("GH_TOKEN")
+
     if not gh_token:
         gh_token = open(GH_TOKEN_FILE).read().strip()
     gh_session = pygithub.Github(auth=pygithubAuth.Token(gh_token))
