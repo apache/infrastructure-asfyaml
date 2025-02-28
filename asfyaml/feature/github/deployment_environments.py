@@ -88,6 +88,7 @@ def get_user_id(gh_session, username):
     user = gh_session.get_user(username)
     return user.id
 
+# https://github.com/PyGithub/PyGithub/issues/3250 is open to add support for deployment branch policies in pygithub
 def create_deployment_branch_policy(repo_name: str, token: str, env_name:str, deployment_branch_policies: List[dict]):
     if not deployment_branch_policies:
         return
@@ -128,6 +129,7 @@ def get_deployment_policies(repo_name, token, environment_name):
     parsed_response = rsp.json()
     return parsed_response.get("branch_policies", [])
 
+# https://github.com/PyGithub/PyGithub/issues/3250 is open to add support for deployment branch policies in pygithub
 def delete_deployment_branch_policy(repo_name: str, token: str, env_name: str, policy_id: int):
     env_name = urllib.parse.quote(env_name, safe="")
 
