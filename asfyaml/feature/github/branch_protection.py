@@ -89,7 +89,9 @@ def branch_protection(self: ASFGitHubFeature):
             required_status_checks = brsettings.get("required_status_checks", {})
             if required_status_checks:
                 # strict means "Require branches to be up to date before merging".
-                require_strict = bool(required_status_checks.get("strict", False))
+                # While we build a better schema, jury-rig this bool
+                require_strict = required_status_checks.get("strict", "false") == "true"
+                # require_strict = bool(required_status_checks.get("strict", False))
                 contexts = required_status_checks.get("contexts", [])
                 checks = required_status_checks.get("checks", [])
                 checks_as_dict = {**{ctx: -1 for ctx in contexts}, **{c["context"]: int(c["app_id"]) for c in checks}}
