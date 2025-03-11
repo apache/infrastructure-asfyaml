@@ -61,8 +61,7 @@ def branch_protection(self: ASFGitHubFeature):
                     branch_changes.append("Set required signatures to False")
 
             # Required linear history
-            #required_linear = bool(brsettings.get("required_linear_history", False))
-            required_linear = brsettings.get("required_linear_history", "false") == "true"
+            required_linear = bool(brsettings.get("required_linear_history", False))
             if branch_protection_settings.required_linear_history != required_linear:
                 if required_linear:
                     if not self.noop("github::protected_branches"):
@@ -75,8 +74,7 @@ def branch_protection(self: ASFGitHubFeature):
 
             # Required conversation resolution
             # Requires all conversations to be resolved before merging is possible
-            #required_conversation_resolution = bool(brsettings.get("required_conversation_resolution", False))
-            required_conversation_resolution = brsettings.get("required_conversation_resolution", "false") == "true"
+            required_conversation_resolution = bool(brsettings.get("required_conversation_resolution", False))
             if branch_protection_settings.required_conversation_resolution != required_conversation_resolution:
                 if required_conversation_resolution:
                     if not self.noop("github::protected_branches"):
