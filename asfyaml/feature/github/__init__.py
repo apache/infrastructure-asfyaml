@@ -97,30 +97,37 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             strictyaml.Optional("ghp_branch"): strictyaml.Str(),
             strictyaml.Optional("ghp_path", default="/docs"): strictyaml.Str(),
             # Branch protection rules - TODO: add actual schema
-            strictyaml.Optional("protected_branches"):
-            asfyaml.validators.EmptyValue() |
-            strictyaml.MapPattern(strictyaml.Str(), strictyaml.Map({
-                strictyaml.Optional("required_signatures", default=False): strictyaml.Bool(),
-                strictyaml.Optional("required_linear_history", default=True): strictyaml.Bool(),
-                strictyaml.Optional("required_conversation_resolution", default=False): strictyaml.Bool(),
-                strictyaml.Optional("required_pull_request_reviews"): strictyaml.Map(
+            strictyaml.Optional("protected_branches"): asfyaml.validators.EmptyValue()
+            | strictyaml.MapPattern(
+                strictyaml.Str(),
+                strictyaml.Map(
                     {
-                        strictyaml.Optional("dismiss_stale_reviews", default=False): strictyaml.Bool(),
-                        strictyaml.Optional("required_approving_review_count", default=0): strictyaml.Int(),
+                        strictyaml.Optional("required_signatures", default=False): strictyaml.Bool(),
+                        strictyaml.Optional("required_linear_history", default=True): strictyaml.Bool(),
+                        strictyaml.Optional("required_conversation_resolution", default=False): strictyaml.Bool(),
+                        strictyaml.Optional("required_pull_request_reviews"): strictyaml.Map(
+                            {
+                                strictyaml.Optional("dismiss_stale_reviews", default=False): strictyaml.Bool(),
+                                strictyaml.Optional("required_approving_review_count", default=0): strictyaml.Int(),
+                            }
+                        ),
+                        strictyaml.Optional("required_status_checks"): strictyaml.Map(
+                            {
+                                strictyaml.Optional("strict", default=False): strictyaml.Bool(),
+                                strictyaml.Optional("contexts"): strictyaml.Seq(strictyaml.Str()),
+                                strictyaml.Optional("checks"): strictyaml.Seq(
+                                    strictyaml.Map(
+                                        {
+                                            strictyaml.Optional("context"): strictyaml.Str(),
+                                            strictyaml.Optional("app_id", default=-1): strictyaml.Int(),
+                                        }
+                                    )
+                                ),
+                            }
+                        ),
                     }
                 ),
-                strictyaml.Optional("required_status_checks"): strictyaml.Map({
-                    strictyaml.Optional("strict", default=False): strictyaml.Bool(),
-                    strictyaml.Optional("contexts"): strictyaml.Seq(strictyaml.Str()),
-                    strictyaml.Optional("checks"): strictyaml.Seq(
-                        strictyaml.Map({
-                            strictyaml.Optional("context"): strictyaml.Str(),
-                            strictyaml.Optional("app_id", default=-1): strictyaml.Int(),
-                        })
-                    ),
-                })
-            }))
-        ,
+            ),
             # Delete branch on merge
             strictyaml.Optional("del_branch_on_merge"): strictyaml.Bool(),
             # Dependabot
