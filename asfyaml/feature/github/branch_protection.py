@@ -30,6 +30,9 @@ def branch_protection(self: ASFGitHubFeature):
     protection_changes = {}
     for branch, brsettings in branches.items():
         branch_changes = []
+        # Fetch the previous saved settings file for some areas where PyGitHub consistently
+        # reports the wrong things.
+        old_branch_settings = self.previous_yaml.get("protected_branches", {}).get(branch, {})
         try:
             ghbranch = self.ghrepo.get_branch(branch=branch)
         except pygithub.GithubException as e:
@@ -132,6 +135,7 @@ def branch_protection(self: ASFGitHubFeature):
 
             # Required pull requests reviews
             required_pull_request_reviews = brsettings.get("required_pull_request_reviews", {})
+            previous_required_pull_request_reviews = old_branch_settings.get("required_pull_request_reviews", {})
             if required_pull_request_reviews:
                 dismiss_stale_reviews = required_pull_request_reviews.get("dismiss_stale_reviews", "false") == "true"
                 required_approving_review_count = required_pull_request_reviews.get(
@@ -141,8 +145,12 @@ def branch_protection(self: ASFGitHubFeature):
                 assert isinstance(
                     required_approving_review_count, int
                 ), "required_approving_review_count MUST be an integer value"
-                if (not branch_protection_settings.required_pull_request_reviews or
-                        branch_protection_settings.required_pull_request_reviews.required_approving_review_count
+                if (
+                        (
+                                (branch_protection_settings.required_pull_request_reviews and
+                        branch_protection_settings.required_pull_request_reviews.required_approving_review_count)
+                        or previous_required_pull_request_reviews.get("required_approving_review_count", 0)
+                        )
                         != required_approving_review_count
                 ):
                     if not self.noop("github::protected_branches"):
