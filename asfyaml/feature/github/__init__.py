@@ -98,6 +98,7 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             strictyaml.Optional("ghp_path", default="/docs"): strictyaml.Str(),
             # Branch protection rules - TODO: add actual schema
             strictyaml.Optional("protected_branches"):
+            asfyaml.validators.EmptyValue() |
             strictyaml.MapPattern(strictyaml.Str(), strictyaml.Map({
                 strictyaml.Optional("required_signatures", default=False): strictyaml.Bool(),
                 strictyaml.Optional("required_linear_history", default=True): strictyaml.Bool(),
