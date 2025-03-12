@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "asfyaml"
+version = "0.1.0"
+description = ""
+authors = ["Daniel Gruno <humbedooh@apache.org>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.10"
+requests = "*"
+pyyaml = "*"
+strictyaml = "*"
+easydict = "*"
+asfpy = "*"
+PyGithub = "^2.5.0"
+
+[tool.poetry.group.test.dependencies]
+pytest = ">=8.0"
+pytest-asyncio = ">=0.24"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths  = ["tests"]
+pythonpath = ["."]
+python_files = "*.py"
+
+[tool.poetry.scripts]
+asfyml-run = "asfyaml.cli:cli"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

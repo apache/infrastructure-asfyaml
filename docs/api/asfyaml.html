@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>asfyaml module &#8212; .asf.yaml  documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="feature package" href="feature.html" />
+    <link rel="prev" title="infrastructure-asfyaml" href="modules.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-asfyaml">
+<span id="asfyaml-module"></span><h1>asfyaml module<a class="headerlink" href="#module-asfyaml" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="asfyaml.FeatureList">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">asfyaml.</span></span><span class="sig-name descname"><span class="pre">FeatureList</span></span><a class="headerlink" href="#asfyaml.FeatureList" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></p>
+<p>Simple dictionary-style object with a default return value of None for non-existent features</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="asfyaml.ASFYamlInstance">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">asfyaml.</span></span><span class="sig-name descname"><span class="pre">ASFYamlInstance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">repo</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="dataobjects.html#dataobjects.Repository" title="dataobjects.Repository"><span class="pre">Repository</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">committer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#asfyaml.ASFYamlInstance" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>This is the base instance class for a .asf.yaml process. It contains all the enabled features,
+as well as the repository and committer data needed to process events.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="asfyaml.ASFYamlInstance.enabled_features">
+<span class="sig-name descname"><span class="pre">enabled_features</span></span><a class="headerlink" href="#asfyaml.ASFYamlInstance.enabled_features" title="Link to this definition">¶</a></dt>
+<dd><p>This variable contains all features that are enabled for this run, as an object with of all the features that are enabled and their class instances as attributes.
+Each feature is accessible as an attribute with the feature name as key, for instance <code class="code docutils literal notranslate"><span class="pre">self.instance.enabled_features.gitub</span></code>.
+If a feature is not available (not enabled or not configured), a None value will be returned instead,
+allowing you to easily test for whether a feature is enabled or not without running into key errors.</p>
+<p>Example use:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">ASFTestFeature</span><span class="p">(</span><span class="n">ASFYamlFeature</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;test&quot;</span><span class="p">,</span> <span class="n">priority</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Check if we have notification features enabled for this repo or not</span>
+        <span class="n">notifs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">instance</span><span class="o">.</span><span class="n">enabled_features</span><span class="o">.</span><span class="n">notifications</span>
+        <span class="k">if</span> <span class="n">notifs</span><span class="p">:</span>  <span class="c1"># If notifications are in use...</span>
+            <span class="c1"># The notifications feature runs before the rest, so we can</span>
+            <span class="c1"># access its data already.</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;We have these mailing lis targets: </span><span class="si">{</span><span class="n">notifs</span><span class="o">.</span><span class="n">valid_targets</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;You need to enable notifications!&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>As the <a class="reference internal" href="#asfyaml.FeatureList" title="asfyaml.FeatureList"><code class="xref py py-class docutils literal notranslate"><span class="pre">FeatureList</span></code></a> object acts like a dictionary (more precisely, like an EasyDict),
+you can inspect the list as a dictionary and learn which features are currently enabled:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">features_we_have</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">instance</span><span class="o">.</span><span class="n">enabled_features</span><span class="p">)</span>  <span class="c1"># Dicts act like lists of keys in join</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The following is enabled: </span><span class="si">{</span><span class="n">features_we_have</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>  <span class="c1"># Could be &quot;notifications, github, jekyll&quot;</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#asfyaml.FeatureList" title="asfyaml.FeatureList">FeatureList</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="asfyaml.ASFYamlInstance.run_parts">
+<span class="sig-name descname"><span class="pre">run_parts</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#asfyaml.ASFYamlInstance.run_parts" title="Link to this definition">¶</a></dt>
+<dd><p>Runs every enabled and configured feature for the .asf.yaml file.
+If an exception is encountered, the processing will halt at the module that raised
+it, and an email with the error message(s) will be sent to the git client as well as
+<a class="reference external" href="mailto:private&#37;&#52;&#48;$project&#46;apache&#46;org">private<span>&#64;</span>$project<span>&#46;</span>apache<span>&#46;</span>org</a>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="asfyaml.ClassProperty">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">asfyaml.</span></span><span class="sig-name descname"><span class="pre">ClassProperty</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fget</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#asfyaml.ClassProperty" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Simple proxy class for base class objects</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="asfyaml.ASFYamlFeature">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">asfyaml.</span></span><span class="sig-name descname"><span class="pre">ASFYamlFeature</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#asfyaml.ASFYamlInstance" title="asfyaml.ASFYamlInstance"><span class="pre">ASFYamlInstance</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">yaml</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">YAML</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#asfyaml.ASFYamlFeature" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>The base .asf.yaml feature class.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">ASFTestFeature</span><span class="p">(</span><span class="n">ASFYamlFeature</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;test&quot;</span><span class="p">,</span> <span class="n">priority</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+     <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1"># run() is the function that gets called once all YAML is validated for all features.</span>
+         <span class="k">pass</span>
+</pre></div>
+</div>
+<p>For information on how to create your own feature sub-class, see <a class="reference internal" href="#asfyaml.ASFYamlFeature.__init_subclass__" title="asfyaml.ASFYamlFeature.__init_subclass__"><code class="xref py py-func docutils literal notranslate"><span class="pre">asfyaml.ASFYamlFeature.__init_subclass__()</span></code></a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="asfyaml.ASFYamlFeature.features">
+<span class="sig-name descname"><span class="pre">features</span></span><a class="headerlink" href="#asfyaml.ASFYamlFeature.features" title="Link to this definition">¶</a></dt>
+<dd><p>List for tracking all ASFYamlFeature sub-classes we come across in any environment.</p>
+<p>Example use:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">ASFTestFeature</span><span class="p">(</span><span class="n">ASFYamlFeature</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;test&quot;</span><span class="p">,</span> <span class="n">priority</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">ASFYamlFeature</span><span class="o">.</span><span class="n">features</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">feature</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">feature</span><span class="o">.</span><span class="n">env</span><span class="p">)</span>  <span class="c1"># prints all discovered features and their environments</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="asfyaml.ASFYamlFeature.yaml_raw">
+<span class="sig-name descname"><span class="pre">yaml_raw</span></span><a class="headerlink" href="#asfyaml.ASFYamlFeature.yaml_raw" title="Link to this definition">¶</a></dt>
+<dd><p>The YAML configuration for this feature, in raw format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="asfyaml.ASFYamlFeature.yaml">
+<span class="sig-name descname"><span class="pre">yaml</span></span><a class="headerlink" href="#asfyaml.ASFYamlFeature.yaml" title="Link to this definition">¶</a></dt>
+<dd><p>The YAML, but in <cite>EasyDict</cite> format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>easydict.EasyDict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="asfyaml.ASFYamlFeature.instance">
+<span class="sig-name descname"><span class="pre">instance</span></span><a class="headerlink" href="#asfyaml.ASFYamlFeature.instance" title="Link to this definition">¶</a></dt>
+<dd><p>This is the parent .asf.yaml instance class. Useful for accessing other features and their data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#asfyaml.ASFYamlInstance" title="asfyaml.ASFYamlInstance">ASFYamlInstance</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="asfyaml.ASFYamlFeature.repository">
+<span class="sig-name descname"><span class="pre">repository</span></span><a class="headerlink" href="#asfyaml.ASFYamlFeature.repository" title="Link to this definition">¶</a></dt>
+<dd><p>The repository we’re working on, and its push info.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>repository.Repository</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="asfyaml.ASFYamlFeature.committer">
+<span class="sig-name descname"><span class="pre">committer</span></span><a class="headerlink" href="#asfyaml.ASFYamlFeature.committer" title="Link to this definition">¶</a></dt>
+<dd><p>The committer (userid+email) that pushed this commit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>repository.Committer</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="asfyaml.ASFYamlFeature.__init_subclass__">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">__init_subclass__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'production'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#asfyaml.ASFYamlFeature.__init_subclass__" title="Link to this definition">¶</a></dt>
+<dd><p>Instantiates a new sub-class of ASFYamlFeature. The <code class="xref py py-attr docutils literal notranslate"><span class="pre">name</span></code> argument should be the
+top dict keyword for this feature in .asf.yaml, for instance <kbd class="kbd docutils literal notranslate">github</kbd> or <kbd class="kbd docutils literal notranslate">pelican</kbd>.
+The <code class="xref py py-attr docutils literal notranslate"><span class="pre">env</span></code> variable can be used to denote which environment this .asf.yaml feature will
+be available in. The default environment is <kbd class="kbd docutils literal notranslate">production</kbd>, but this can be any name.
+If a priority other than the default (5) is set, the feature will be run based on
+that priority level (0 is highest, 10 lowest)m otherwise it will be run in order of
+appearance in the YAML with the rest of the default priority features.</p>
+<p>Example sub-class definition:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create a new feature that runs after most other features (priority 9)</span>
+<span class="k">class</span> <span class="nc">ASFTestFeature</span><span class="p">(</span><span class="n">ASFYamlFeature</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;test&quot;</span><span class="p">,</span> <span class="n">priority</span><span class="o">=</span><span class="mi">9</span><span class="p">):</span>
+    <span class="n">schema</span> <span class="o">=</span> <span class="o">...</span> <span class="c1"># If you want to supply a YAML schema, you can do so here. Otherwise, leave it out.</span>
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1"># This is where your magic happens</span>
+        <span class="k">pass</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="asfyaml.ASFYamlFeature.noop">
+<span class="sig-name descname"><span class="pre">noop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directivename</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#asfyaml.ASFYamlFeature.noop" title="Link to this definition">¶</a></dt>
+<dd><p>Helper condition that determines whether to apply changes or not. If “no-op” mode is set, this returns true,
+and prints out “[feature::directivename] Not applying changes, noop mode active.</p>
+<p>Example use:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">noop</span><span class="p">(</span><span class="s2">&quot;foodirective&quot;</span><span class="p">):</span>
+        <span class="n">do_thing</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>When production mode is enabled, this would run do_thing(). When testing is enabled, this will
+print out something like <cite>[github::foodirective] Not applying changes, noop mode active.</cite> instead of
+running do_thing().</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">.asf.yaml</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">infrastructure-asfyaml</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">asfyaml module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="feature.html">feature package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mappings.html">mappings module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dataobjects.html">version control classes</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="modules.html">infrastructure-asfyaml</a><ul>
+      <li>Previous: <a href="modules.html" title="previous chapter">infrastructure-asfyaml</a></li>
+      <li>Next: <a href="feature.html" title="next chapter">feature package</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, ASF Infrastructure.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="_sources/asfyaml.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

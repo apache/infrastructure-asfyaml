@@ -1,0 +1,6 @@
+.idea
+__pycache__
+poetry.*
+repos/*
+docs/api/_sources
+docs/api/.*
