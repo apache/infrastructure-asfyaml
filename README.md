@@ -74,6 +74,7 @@ It operates on a per-branch basis, meaning you can have different settings for d
     </ul>
   </li>
   <li><a href="#development">Further development</a></li>
+  <li><a href="#deployment">Deployment</a></li>
 </ul>
 
 <hr/>
@@ -781,5 +782,13 @@ These features have not been implemented in production yet, but are documented h
   None currently
 
 If you would like to add features please open a pull request or propose your changes via (github issue or infra ticket TBD.) The whole logic is defined in the `asfyaml.py` file that you create.
+
+<p align="right"><a href="#top">Return to top</a>
+
+<h2 id="deployment">Deployment</h2>
+
+The code that interprets your `.asf.yaml` and applies the configuration
+to the relevant systems is not public, but if you're an [Apache Committer](https://github.com/orgs/apache/teams/apache-committers)
+you can find it in [asfyaml.py](https://github.com/apache/infrastructure-p6/blob/production/modules/gitbox/files/asfgit/package/asfyaml.py)
 
 <p align="right"><a href="#top">Return to top</a>
