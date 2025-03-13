@@ -35,7 +35,7 @@ jobs:
             python3 -m pip install types-requests
             python3 -m pip install types-PyYAML
             poetry run mypy --cache-dir /tmp/ --install-types
-            poetry run mypy --cache-dir /tmp/ --ignore-missing-imports *.py feature/*.py tests/*.py
+            poetry run mypy --cache-dir /tmp/ --ignore-missing-imports .
       - name: Testing with pylint
         if: always() # even if mypy fails
         run: |
