@@ -144,7 +144,7 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
         """GitHub features"""
         # Test if we need to process this (only works on the default branch)
         if self.instance.branch != self.repository.default_branch:
-            print(f"[github] Saw GitHub meta-data in .asf.yaml, but not in default branch of repository, not updating...")
+            print("[github] Saw GitHub meta-data in .asf.yaml, but not in default branch of repository, not updating...")
             return
 
         # Check if cached yaml exists, compare if changed
@@ -171,12 +171,10 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                 gh_token = open(GH_TOKEN_FILE).read().strip()
 
             pgh = pygithub.Github(auth=pygithubAuth.Token(gh_token))
-            org_id = os.environ.get("ORG_ID", "apache")
-            self.ghrepo = pgh.get_repo(f"{org_id}/{self.repository.name}")
+            self.ghrepo = pgh.get_repo(f"{self.repository.org_id}/{self.repository.name}")
         elif gh_token:  # If supplied from OS env, load the ghrepo object anyway
             pgh = pygithub.Github(auth=pygithubAuth.Token(gh_token))
-            org_id = os.environ.get("ORG_ID", "apache")
-            self.ghrepo = pgh.get_repo(f"{org_id}/{self.repository.name}")
+            self.ghrepo = pgh.get_repo(f"{self.repository.org_id}/{self.repository.name}")
 
         # For each sub-feature we see (with the @directive decorator on it), run it
         for _feat in _features:
@@ -202,5 +200,4 @@ from . import (
     collaborators,
     housekeeping,
     protected_tags,
-    del_branch_on_merge,
 )

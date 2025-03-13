@@ -33,12 +33,12 @@ def cli():
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", type=dir_path, help="path to the repo to process")
     parser.add_argument("--org", type=str, default="apache", help="the organization this repo belongs to")
-    parser.add_argument("--token", type=str, required=True, help="token to access the repo via the GH API")
+    parser.add_argument("--token", type=str, help="token to access the repo via the GH API")
     parser.add_argument("--noop", action=argparse.BooleanOptionalAction, default=False, help="do not perform changes")
     args = parser.parse_args()
 
     repo_path = Path(os.path.abspath(args.repo))
-    repo = dataobjects.Repository(str(repo_path))
+    repo = dataobjects.Repository(str(repo_path), org_id=args.org)
 
     yml_file = os.path.join(repo_path, ".asf.yaml")
     if not os.path.exists(yml_file):
@@ -49,8 +49,12 @@ def cli():
 
     os.environ["PATH_INFO"] = repo_path.name
     os.environ["GIT_PROJECT_ROOT"] = str(repo_path.parent)
-    os.environ["GH_TOKEN"] = args.token
-    os.environ["ORG_ID"] = args.org
+
+    if args.token is not None:
+        os.environ["GH_TOKEN"] = args.token
+
+    if os.environ.get("GH_TOKEN") is None:
+        raise Exception("no GitHub token has been provided, either add a '--token' argument or set a 'GH_TOKEN' env variable.")
 
     a = ASFYamlInstance(repo, "anonymous", yml_content)
 

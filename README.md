@@ -630,6 +630,8 @@ github:
     - "v*.*.*"
 ~~~
 
+**NOTE**: Tag protections have been sunset by GitHub as of 02/12/2024 and will thus not be applied anymore.
+
 <p align="right"><a href="#top">Return to top</a>
 
 <h2 id="static">Generating static website content</h2>
