@@ -64,7 +64,7 @@ def branch_protection(self: ASFGitHubFeature):
 
         # Required conversation resolution
         # Requires all conversations to be resolved before merging is possible
-        required_conversation_resolution = brsettings.get("required_conversation_resolution", NotSet),
+        required_conversation_resolution = brsettings.get("required_conversation_resolution", NotSet)
         if required_conversation_resolution is not NotSet:
             branch_changes.append(f"Set required conversation resolution to {required_conversation_resolution}")
 
