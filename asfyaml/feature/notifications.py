@@ -70,7 +70,7 @@ class ASFNotificationsFeature(ASFYamlFeature, name="notifications", priority=0):
     def run(self):
         # Test if we need to process this (only works on the default branch)
         if self.instance.branch != self.repository.default_branch:
-            print(f"Saw notifications meta-data in .asf.yaml, but not in default branch of repository, not updating...")
+            print("Saw notifications meta-data in .asf.yaml, but not in default branch of repository, not updating...")
             return
         self.valid_targets = {}  # Set to a brand-new instance-local dict for valid scheme entries.
         # Read the list of valid mailing list targets from disk
