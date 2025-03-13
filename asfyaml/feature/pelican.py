@@ -32,6 +32,8 @@ class ASFJekyllFeature(ASFYamlFeature, name="pelican", env="production", priorit
             strictyaml.Optional("theme"): strictyaml.Str(),
             strictyaml.Optional("notify"): strictyaml.Str(),
             strictyaml.Optional("autobuild"): strictyaml.Str(),
+            # INFRA-26629: This isn't used by us, but by the asf pelican builder, so keep it as a thing
+            strictyaml.Optional("minimum_page_count"): strictyaml.Int(),
         }
     )
 
