@@ -113,20 +113,20 @@ def branch_protection(self: ASFGitHubFeature):
                     if checks_as_dict:
                         if not self.noop("github::protected_branches"):
                             ghbranch.edit_protection(strict=require_strict, checks=list(checks_as_dict.items()))
-                        branch_changes.append(f"Set required status contexts to the following:")
+                        branch_changes.append("Set required status contexts to the following:")
                         for ctx, appid in checks_as_dict.items():
                             branch_changes.append(f"  - {ctx} (app_id: {appid})")
                     else:
                         if not self.noop("github::protected_branches"):
                             ghbranch.remove_required_status_checks()
-                        branch_changes.append(f"Removed all required status contexts from branch")
+                        branch_changes.append("Removed all required status contexts from branch")
 
             else:
                 if branch_protection_settings.required_status_checks:  # Set but not defined? remove it then
                     if not self.noop("github::protected_branches"):
                         ghbranch.edit_protection(strict=False, checks=[])
                         ghbranch.remove_required_status_checks()
-                    branch_changes.append(f"Removed required status checks")
+                    branch_changes.append("Removed required status checks")
 
             # Required pull requests reviews
             required_pull_request_reviews = brsettings.get("required_pull_request_reviews", {})
