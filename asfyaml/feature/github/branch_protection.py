@@ -48,8 +48,7 @@ def branch_protection(self: ASFGitHubFeature):
                     raise e
 
             # Required signatures
-            #required_signatures = brsettings.get("required_signatures", False)
-            required_signatures = brsettings.get("required_signatures", "false") == "true"
+            required_signatures = brsettings.get("required_signatures", False)
             if branch_protection_settings.required_signatures != required_signatures:
                 if required_signatures:
                     if not self.noop("github::protected_branches"):
@@ -90,9 +89,7 @@ def branch_protection(self: ASFGitHubFeature):
             required_status_checks = brsettings.get("required_status_checks", {})
             if required_status_checks:
                 # strict means "Require branches to be up to date before merging".
-                # While we build a better schema, jury-rig this bool
-                require_strict = required_status_checks.get("strict", "false") == "true"
-                # require_strict = bool(required_status_checks.get("strict", False))
+                require_strict = bool(required_status_checks.get("strict", False))
                 contexts = required_status_checks.get("contexts", [])
                 checks = required_status_checks.get("checks", [])
                 checks_as_dict = {**{ctx: -1 for ctx in contexts}, **{c["context"]: int(c["app_id"]) for c in checks}}
@@ -135,7 +132,7 @@ def branch_protection(self: ASFGitHubFeature):
             required_pull_request_reviews = brsettings.get("required_pull_request_reviews", {})
             previous_required_pull_request_reviews = old_branch_settings.get("required_pull_request_reviews", {})
             if required_pull_request_reviews:
-                dismiss_stale_reviews = required_pull_request_reviews.get("dismiss_stale_reviews", "false") == "true"
+                dismiss_stale_reviews = required_pull_request_reviews.get("dismiss_stale_reviews", False)
                 required_approving_review_count = required_pull_request_reviews.get(
                     "required_approving_review_count", 0
                 )

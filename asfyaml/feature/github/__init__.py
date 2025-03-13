@@ -144,7 +144,7 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
         """GitHub features"""
         # Test if we need to process this (only works on the default branch)
         if self.instance.branch != self.repository.default_branch:
-            print(f"Saw GitHub meta-data in .asf.yaml, but not in default branch of repository, not updating...")
+            print(f"[github] Saw GitHub meta-data in .asf.yaml, but not in default branch of repository, not updating...")
             return
 
         # Check if cached yaml exists, compare if changed
@@ -160,10 +160,10 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                             print("[github] Saw no changes to GitHub settings, skipping this run.")
                         return
             except yaml.YAMLError as _e:  # Failed to parse old yaml? bah.
-                print("Failed to parse previous GitHub settings, please notify users@infra.apache.org")
+                print("[github] Failed to parse previous GitHub settings, please notify users@infra.apache.org")
 
         # Update items
-        print("GitHub meta-data changed, updating...")
+        print(f"[github] GitHub meta-data changed for {self.repository.name}, updating...")
         gh_token = os.environ.get("GH_TOKEN")
         if not self.noop("github"):
             # if a GH_TOKEN is set as environment variable, use this, otherwise load it from file
