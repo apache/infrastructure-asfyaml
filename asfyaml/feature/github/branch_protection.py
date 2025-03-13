@@ -16,41 +16,12 @@
 # under the License.
 
 """GitHub branch protections"""
-from typing import Any
 
 import github as pygithub
-from github.GithubObject import NotSet, Opt
-import strictyaml
-import strictyaml.constants
+from github.GithubObject import NotSet
 
 from . import directive, ASFGitHubFeature
 
-
-def to_bool(val: Any, key: str) -> Opt[bool]:
-    if val is None:
-        return NotSet
-    elif isinstance(val, bool):
-        return val
-    elif str(val).lower() not in strictyaml.constants.BOOL_VALUES:
-        raise Exception(f"'{key}' requires a boolean value, encountered this instead '{val}'")
-    else:
-        if val.lower() in strictyaml.constants.TRUE_VALUES:
-            return True
-        else:
-            return False
-
-
-def to_int(val: Any, key: str) -> Opt[int, NotSet]:
-    if val is None:
-        return NotSet
-    elif isinstance(val, int):
-        return val
-
-    int_value = int(val)
-    if not isinstance(int_value, int):
-        raise Exception(f"'{key}' requires an integer value, encountered this instead '{val}'")
-
-    return int_value
 
 @directive
 def branch_protection(self: ASFGitHubFeature):
@@ -82,19 +53,18 @@ def branch_protection(self: ASFGitHubFeature):
         allow_force_push = False
 
         # Required signatures
-        required_signatures = to_bool(brsettings.get("required_signatures"), "required_signatures")
+        required_signatures = brsettings.get("required_signatures", NotSet), "required_signatures"
         if required_signatures is not NotSet:
             branch_changes.append(f"Set required signatures to {required_signatures}")
 
         # Required linear history
-        required_linear = to_bool(brsettings.get("required_linear_history"), "required_linear_history")
+        required_linear = brsettings.get("required_linear_history", NotSet)
         if required_linear is not NotSet:
             branch_changes.append(f"Set required linear history to {required_linear}")
 
         # Required conversation resolution
         # Requires all conversations to be resolved before merging is possible
-        required_conversation_resolution = to_bool(brsettings.get("required_conversation_resolution"),
-                                                   "required_conversation_resolution")
+        required_conversation_resolution = brsettings.get("required_conversation_resolution", NotSet),
         if required_conversation_resolution is not NotSet:
             branch_changes.append(f"Set required conversation resolution to {required_conversation_resolution}")
 
@@ -104,14 +74,11 @@ def branch_protection(self: ASFGitHubFeature):
         if "required_pull_request_reviews" in brsettings:
             required_pull_request_reviews = brsettings.get("required_pull_request_reviews", {})
 
-            required_approving_review_count = (
-                to_int(required_pull_request_reviews.get("required_approving_review_count", 0),
-                       "required_approving_review_count"))
+            required_approving_review_count = required_pull_request_reviews.get("required_approving_review_count", 0)
             if required_approving_review_count is not NotSet:
                 branch_changes.append(f"Set required approving review count to {required_approving_review_count}")
 
-            dismiss_stale_reviews = to_bool(required_pull_request_reviews.get("dismiss_stale_reviews"),
-                                            "dismiss_stale_reviews")
+            dismiss_stale_reviews = required_pull_request_reviews.get("dismiss_stale_reviews", NotSet)
             if dismiss_stale_reviews is not NotSet:
                 branch_changes.append(f"Set dismiss stale reviews to {dismiss_stale_reviews}")
         else:
@@ -124,7 +91,7 @@ def branch_protection(self: ASFGitHubFeature):
             required_status_checks = brsettings.get("required_status_checks", {})
 
             # strict means "Require branches to be up to date before merging".
-            require_strict = to_bool(required_status_checks.get("strict"), "strict")
+            require_strict = required_status_checks.get("strict", NotSet)
 
             contexts = required_status_checks.get("contexts", [])
             checks = required_status_checks.get("checks", [])
