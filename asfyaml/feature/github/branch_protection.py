@@ -16,17 +16,17 @@
 # under the License.
 
 """GitHub branch protections"""
-from typing import Any, Union
+from typing import Any
 
 import github as pygithub
-from github.GithubObject import NotSet
+from github.GithubObject import NotSet, Opt
 import strictyaml
 import strictyaml.constants
 
 from . import directive, ASFGitHubFeature
 
 
-def to_bool(val: Any, key: str) -> Union[bool, NotSet]:
+def to_bool(val: Any, key: str) -> Opt[bool]:
     if val is None:
         return NotSet
     elif isinstance(val, bool):
@@ -40,7 +40,7 @@ def to_bool(val: Any, key: str) -> Union[bool, NotSet]:
             return False
 
 
-def to_int(val: Any, key: str) -> Union[int, NotSet]:
+def to_int(val: Any, key: str) -> Opt[int, NotSet]:
     if val is None:
         return NotSet
     elif isinstance(val, int):
