@@ -397,6 +397,41 @@ github:
       required_signatures: true
 ~~~
 
+The following settings are supported:
+
+```yanl
+required_signatures: <boolean>
+required_linear_history: <boolean>
+required_conversation_resolution: <boolean>
+required_pull_request_reviews:
+  dismiss_stale_reviews: <boolean>
+  require_code_owner_reviews: <boolean>
+  required_approving_review_count: <integer>
+required_status_checks:
+  strict: <boolean>
+  contexts:
+    - <string>
+  checks:
+    - context: <string>
+      app_id: <integer>
+```
+
+If not explicitly specified, these values will be used by default:
+
+```yaml
+required_signatures: false
+required_linear_history: false
+required_conversation_resolution: false
+required_pull_request_reviews:
+  dismiss_stale_reviews: false
+  require_code_owner_reviews: false
+  required_approving_review_count: 0
+required_status_checks:
+  strict: false
+  contexts: ~
+  checks: ~
+```
+
 **Notes**
   1. Enabling any of the above checks overrides what you may have set previously, so you'll need to add all the existing checks to your `.asf.yaml` file to reproduce any that Infra set manually for you.
   2. If you need to remove a required check in order to push a change to `.asf.yaml`, create an Infra Jira ticket with a request to have the check manually removed.
@@ -427,7 +462,7 @@ github:
     master: {}
 ~~~
 
-Branches that are not in your `.asf.yaml` file or are not dictionary entries are not protected.
+Branches that are not in your `.asf.yaml` file or are not dictionary entries are not protected and existing branch protections rules will be removed from them.
 
 To completely remove all branch protection rules, set the protected_branches section to null:
 
