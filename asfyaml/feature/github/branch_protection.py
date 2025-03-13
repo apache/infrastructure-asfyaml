@@ -53,7 +53,7 @@ def branch_protection(self: ASFGitHubFeature):
         allow_force_push = False
 
         # Required signatures
-        required_signatures = brsettings.get("required_signatures", NotSet), "required_signatures"
+        required_signatures = brsettings.get("required_signatures", NotSet)
         if required_signatures is not NotSet:
             branch_changes.append(f"Set required signatures to {required_signatures}")
 
