@@ -108,6 +108,7 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                         strictyaml.Optional("required_pull_request_reviews"): strictyaml.Map(
                             {
                                 strictyaml.Optional("dismiss_stale_reviews", default=False): strictyaml.Bool(),
+                                strictyaml.Optional("require_code_owner_reviews", default=False): strictyaml.Bool(),
                                 strictyaml.Optional("required_approving_review_count", default=0): strictyaml.Int(),
                             }
                         ),
