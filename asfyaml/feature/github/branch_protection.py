@@ -143,18 +143,10 @@ def branch_protection(self: ASFGitHubFeature):
                 assert isinstance(
                     required_approving_review_count, int
                 ), "required_approving_review_count MUST be an integer value"
-                if (
-                        (
-                                (branch_protection_settings.required_pull_request_reviews and
-                        branch_protection_settings.required_pull_request_reviews.required_approving_review_count)
-                        or previous_required_pull_request_reviews.get("required_approving_review_count", 0)
-                        )
-                        != required_approving_review_count
-                ):
-                    if not self.noop("github::protected_branches"):
-                        ghbranch.remove_required_pull_request_reviews()
-                        ghbranch.edit_required_pull_request_reviews(required_approving_review_count=required_approving_review_count)
-                    branch_changes.append(f"Set required approving review count to {required_approving_review_count}")
+                if not self.noop("github::protected_branches"):
+                    ghbranch.remove_required_pull_request_reviews()
+                    ghbranch.edit_required_pull_request_reviews(required_approving_review_count=required_approving_review_count)
+                branch_changes.append(f"Set required approving review count to {required_approving_review_count}")
                 grp = ghbranch.get_required_pull_request_reviews()
                 if (not grp or
                         grp.dismiss_stale_reviews
