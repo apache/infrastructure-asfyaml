@@ -103,7 +103,7 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                 strictyaml.Map(
                     {
                         strictyaml.Optional("required_signatures", default=False): strictyaml.Bool(),
-                        strictyaml.Optional("required_linear_history", default=True): strictyaml.Bool(),
+                        strictyaml.Optional("required_linear_history", default=False): strictyaml.Bool(),
                         strictyaml.Optional("required_conversation_resolution", default=False): strictyaml.Bool(),
                         strictyaml.Optional("required_pull_request_reviews"): strictyaml.Map(
                             {
