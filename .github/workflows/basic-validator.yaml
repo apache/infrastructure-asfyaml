@@ -28,3 +28,16 @@ jobs:
       - name: Test with pytest
         run: |
           poetry run pytest
+      - name: Type testing with mypy
+        if: always() # even if pytest fails
+        run: |
+            python3 -m pip install mypy
+            python3 -m pip install types-requests
+            python3 -m pip install types-PyYAML
+            poetry run mypy --cache-dir /tmp/ --install-types
+            poetry run mypy --cache-dir /tmp/ --ignore-missing-imports *.py feature/*.py tests/*.py
+      - name: Testing with pylint
+        if: always() # even if mypy fails
+        run: |
+            python3 -m pip install pylint
+            poetry run pylint --recursive y .
