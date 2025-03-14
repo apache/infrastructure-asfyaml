@@ -43,8 +43,8 @@ class JiraSpaceString(strictyaml.Str):
     """YAML validator for Jira spaces, must be uppercase alpha only."""
 
     def validate_scalar(self, chunk):
-        if not all(char in string.ascii_uppercase for char in chunk.contents):
-            raise strictyaml.YAMLValidationError(None, "String must be uppercase only, e.g. INFRA or AIRFLOW.", chunk)
+        if not all(char in string.ascii_uppercase + string.digits for char in chunk.contents):
+            raise strictyaml.YAMLValidationError(None, "String must be uppercase or digits only, e.g. INFRA or LOG4J2.", chunk)
         return chunk.contents
 
 
