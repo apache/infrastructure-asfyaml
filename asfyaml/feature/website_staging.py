@@ -18,6 +18,7 @@
 """This is the notifications feature for .asf.yaml. It validates and sets up mailing list targets for repository events."""
 
 from asfyaml.asfyaml import ASFYamlFeature
+import asfyaml.validators
 import re
 import fnmatch
 import requests
@@ -42,7 +43,7 @@ class ASFWebsiteStagingFeature(ASFYamlFeature, name="staging", priority=9):
             strictyaml.Optional("subdir", default=None): strictyaml.Str(),
             strictyaml.Optional("type", default="website"): strictyaml.Str(),
             strictyaml.Optional("hostname", default=None): strictyaml.Str(),
-            strictyaml.Optional("profile", default=None): strictyaml.Str(),
+            strictyaml.Optional("profile", default=None): asfyaml.validators.EmptyValue() | strictyaml.Str(),
             strictyaml.Optional("autostage", default=None): strictyaml.Str(),
         })
 
@@ -75,7 +76,7 @@ class ASFWebsiteStagingFeature(ASFYamlFeature, name="staging", priority=9):
         if subdir:
             validate_subdir(subdir)
 
-            # Get profile from .asf.yaml, if present, or autostage derivation
+        # Get profile from .asf.yaml, if present, or autostage derivation
         profile = self.yaml.get("profile", "")
         if do_autostage:
             profile = self.instance.branch.replace(autostage[:-1], "", 1)[
