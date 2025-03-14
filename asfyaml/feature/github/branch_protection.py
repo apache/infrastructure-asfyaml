@@ -29,11 +29,12 @@ def branch_protection(self: ASFGitHubFeature):
     if "protected_branches" not in self.yaml:
         return
 
-    # a map to keep track of all branches to determine from which we should remove protections
+    # A map to keep track of all branches to determine from which we should remove protections
     all_branches = {branch.name: branch for branch in self.ghrepo.get_branches()}
 
     branches = self.yaml.get("protected_branches", {})
-    # if protected_branches is set to ~ (None), reset it to an empy map
+    # If protected_branches is set to ~ (None), reset it to an empty map
+    # We still need to remove existing branch protection rules from all existing branches later on
     if branches is None:
         branches = {}
 
