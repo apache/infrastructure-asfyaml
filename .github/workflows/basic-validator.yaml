@@ -39,5 +39,5 @@ jobs:
       - name: Testing with pylint
         if: always() # even if mypy fails
         run: |
-            python3 -m pip install pylint
+            poetry run pip install pylint
             poetry run pylint --recursive y .
