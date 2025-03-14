@@ -74,9 +74,6 @@ class ASFJekyllFeature(ASFYamlFeature, name="pelican", env="production", priorit
         # Get optional theme
         theme = self.yaml.get("theme", "theme")
 
-        # Get optional outputdirectory name, Default 'output'
-        outputdir = self.yaml.get("outputdir", "output")
-
         # Get notification list - TODO: fix to reuse the old default git recipients
         pnotify = self.yaml.get("notify", f"commits@{self.repository.hostname}.apache.org")
 
