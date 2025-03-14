@@ -33,6 +33,10 @@ def branch_protection(self: ASFGitHubFeature):
     all_branches = {branch.name: branch for branch in self.ghrepo.get_branches()}
 
     branches = self.yaml.get("protected_branches", {})
+    # if protected_branches is set to ~ (None), reset it to an empy map
+    if branches is None:
+        branches = {}
+
     protection_changes = {}
     for branch, brsettings in branches.items():
         if branch in all_branches:
