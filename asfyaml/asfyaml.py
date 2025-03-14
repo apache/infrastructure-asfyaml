@@ -61,7 +61,7 @@ class ASFYamlInstance:
     as well as the repository and committer data needed to process events.
     """
 
-    def __init__(self, repo: dataobjects.Repository, committer: str, config_data: str, branch: str = "main"):
+    def __init__(self, repo: dataobjects.Repository, committer: str, config_data: str, branch: str | None = None):
         self.repository = repo
         self.committer = dataobjects.Committer(committer)
         if branch and branch.startswith("refs/heads/"):
