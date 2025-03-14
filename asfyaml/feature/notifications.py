@@ -16,6 +16,7 @@
 # under the License.
 
 """This is the notifications feature for .asf.yaml. It validates and sets up mailing list targets for repository events."""
+from typing import Mapping
 
 import asfyaml.mappings as mappings
 from asfyaml.asfyaml import ASFYamlFeature
@@ -65,7 +66,7 @@ RE_VALID_MAILING_LIST = re.compile(r"[-a-z0-9]+@[-a-z0-9]+(\.incubator)?\.apache
 
 class ASFNotificationsFeature(ASFYamlFeature, name="notifications", priority=0):
     """.asf.yaml notifications feature class. Runs before anything else."""
-    valid_targets = {}  # Placeholder for self.valid_targets. Will be re-initialized on run.
+    valid_targets: Mapping[str, str] = {}  # Placeholder for self.valid_targets. Will be re-initialized on run.
 
     def run(self):
         # Test if we need to process this (only works on the default branch)

@@ -138,8 +138,15 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
     )
 
     def __init__(self, parent: ASFYamlInstance, yaml: strictyaml.YAML, **kwargs):
-        self.ghrepo: pygithubrepo.Repository = None
         super().__init__(parent, yaml)
+        self._ghrepo: pygithubrepo.Repository | None = None
+
+    @property
+    def ghrepo(self) -> pygithubrepo.Repository:
+        if self._ghrepo is None:
+            raise RuntimeError("something went wrong, ghrepo is not set")
+        else:
+            return self._ghrepo
 
     def run(self):
         """GitHub features"""
@@ -172,10 +179,10 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                 gh_token = open(GH_TOKEN_FILE).read().strip()
 
             pgh = pygithub.Github(auth=pygithubAuth.Token(gh_token))
-            self.ghrepo = pgh.get_repo(f"{self.repository.org_id}/{self.repository.name}")
+            self._ghrepo = pgh.get_repo(f"{self.repository.org_id}/{self.repository.name}")
         elif gh_token:  # If supplied from OS env, load the ghrepo object anyway
             pgh = pygithub.Github(auth=pygithubAuth.Token(gh_token))
-            self.ghrepo = pgh.get_repo(f"{self.repository.org_id}/{self.repository.name}")
+            self._ghrepo = pgh.get_repo(f"{self.repository.org_id}/{self.repository.name}")
 
         # For each sub-feature we see (with the @directive decorator on it), run it
         for _feat in _features:

@@ -17,7 +17,7 @@
 
 """GitHub merge buttons"""
 
-from github.GithubObject import NotSet
+from github.GithubObject import NotSet, Opt
 
 from . import directive, ASFGitHubFeature
 
@@ -40,6 +40,9 @@ def enabled_merge_buttons(self: ASFGitHubFeature):
     if squash_commit_message and not allow_squash_merge:
         print("ignoring squash_commit_message as squash_merges are disallowed")
         squash_commit_message = None
+
+    squash_merge_commit_title: Opt[str]
+    squash_merge_commit_message: Opt[str]
 
     match squash_commit_message:
         case "DEFAULT":
@@ -66,12 +69,15 @@ def enabled_merge_buttons(self: ASFGitHubFeature):
             raise Exception("enabled_merge_buttons: squash_commit_message must be one of "
                             "'DEFAULT', 'PR_TITLE', 'PR_TITLE_AND_COMMIT_DETAILS' or 'PR_TITLE_AND_DESC'")
 
-    merge_commit_message = merges.get("merge_commit_message")
-    if merge_commit_message and not allow_merge_commits:
+    raw_merge_commit_message = merges.get("merge_commit_message")
+    if raw_merge_commit_message and not allow_merge_commits:
         print("ignoring merge_commit_message as merge commits are disallowed")
-        merge_commit_message = None
+        raw_merge_commit_message = None
 
-    match merge_commit_message:
+    merge_commit_title: Opt[str]
+    merge_commit_message: Opt[str]
+
+    match raw_merge_commit_message:
         case "DEFAULT":
             merge_commit_title = "MERGE_MESSAGE"
             merge_commit_message = "PR_TITLE"

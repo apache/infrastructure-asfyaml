@@ -41,7 +41,7 @@ def _repo_name():
     return plist[0].removesuffix(".git")
 
 
-def getvar(key, default: str = None):
+def getvar(key, default: str | None = None):
     """Gets an OS env var, with a fallback value of None (or whatever)"""
     return os.environ.get(key, default)
 
@@ -59,4 +59,3 @@ class Environment:
         self.write_locks = [getvar("WRITE_LOCK"), self.archived_lock]  # Global maintenance lock, plus archived locks
         self.auth_file = getvar("AUTH_FILE")
         self.ip = os.environ.get("REMOTE_ADDR", "127.0.0.1")
-

@@ -18,6 +18,13 @@ PyGithub = "^2.5.0"
 pytest = ">=8.0"
 pytest-asyncio = ">=0.24"
 
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.15.0"
+pre-commit = ">=2.20.0"
+ruff = ">=0.9.4"
+types-requests = ">=2.32.0.20250306"
+types-PyYAML = ">=6.0.12.20241230"
+
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths  = ["tests"]
@@ -30,3 +37,35 @@ asfyml-run = "asfyaml.cli:cli"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+exclude = ["docs"]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+ignore = []
+select = [
+  "I",   # isort
+  "E",
+  "W",
+  "F",
+  "N",   # pep8-naming
+  "RUF", # ruff-checks
+  "C90",
+  "TID", # flake8-tidy-imports
+  "TC",  # flake8-type-checking
+  "UP"   # pyupgrade
+]
+
+[tool.mypy]
+python_version = "3.10"
+exclude = ["tests"]
+
+[[tool.mypy.overrides]]
+module = ["strictyaml.*", "easydict.*", "asfpy.*"]
+follow_untyped_imports = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_errors = true
