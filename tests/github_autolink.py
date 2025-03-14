@@ -48,7 +48,7 @@ github:
 # Something isn't uppercase alphabetical chars
 invalid_github_autolink_not_upperalpha = YamlTest(
     asfyaml.asfyaml.ASFYAMLException,
-    "String must be uppercase only",
+    "String must be uppercase or digits only, e.g. INFRA or LOG4J2.",
     """
 github:
     autolink_jira:
