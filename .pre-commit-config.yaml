@@ -19,7 +19,7 @@ default_stages: [pre-commit]
 default_language_version:
   python: python3
 minimum_pre_commit_version: '3.2.0'
-exclude: ^.*/.*_vendor/
+exclude: ^(.*/.*_vendor/|docs)
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
@@ -60,7 +60,7 @@ repos:
         language: system
         require_serial: true
         types: [python]
-        exclude: "tests" # see https://github.com/pre-commit/pre-commit/issues/2967
+        exclude: "tests|docs" # see https://github.com/pre-commit/pre-commit/issues/2967
         args:
           - --config-file=pyproject.toml
           - --scripts-are-modules

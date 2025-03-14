@@ -47,7 +47,7 @@ def config_pages(self: ASFGitHubFeature):
 
         GHP_URL = f"https://api.github.com/repos/{self.repository.org_id}/{self.repository.name}/pages"
         GHP_TOKEN = open(GH_TOKEN_FILE).read().strip()
-        
+
         # Test if GHP is enabled already
         rv = requests.get(
             GHP_URL,

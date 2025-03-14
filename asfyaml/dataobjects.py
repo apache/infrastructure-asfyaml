@@ -231,4 +231,3 @@ class Repository:
         for line in self._reflog.splitlines():
             oldsha, newsha, name = line.split(None, 2)
             yield ChangeSet(name.strip(), oldsha, newsha)
-

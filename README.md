@@ -18,7 +18,7 @@ It operates on a per-branch basis, meaning you can have different settings for d
   - The configuration file is specific to the branch in which it resides and only code blocks with a `whoami` matching the branch name will run.
   - The configuration file holds a great deal of power, as it controls a host of automated systems.
   - Before using a feature in `.asf.yaml`, make sure that you have discussed what you propose with the entire project team, and understand what the configuration changes will do to the team's workflow and project resources.
-  - You can add configuration blocks to an `.asf.yaml` file in any order; they do not depend on each other or flow from one to the next. 
+  - You can add configuration blocks to an `.asf.yaml` file in any order; they do not depend on each other or flow from one to the next.
 
 ## Contents
 <ul>
@@ -55,7 +55,7 @@ It operates on a per-branch basis, meaning you can have different settings for d
       <li><a href="#merge">Merge buttons</a></li>
       <li><a href="#repo_features">Repository features</a></li>
       <li><a href="#repo_meta">Repository metadata</a></li>
-      <li><a href="#tag_protect">Tag protection</a></li>      
+      <li><a href="#tag_protect">Tag protection</a></li>
     </ul>
   </li>
   <li><a href="#static">Generating static website content</a>
@@ -70,7 +70,7 @@ It operates on a per-branch basis, meaning you can have different settings for d
   </li>
   <li>Deprecated features
     <ul>
-      <li><a href="#whitelisting">Jenkins PR whitelisting</a></li>  
+      <li><a href="#whitelisting">Jenkins PR whitelisting</a></li>
     </ul>
   </li>
   <li><a href="#development">Further development</a></li>
@@ -113,7 +113,7 @@ For instance, if a project wants new PRs to send an email to `dev@foo`, but want
 | issues | `issues@foo.apache.org` | Send all issue emails (new, closed, comments) to `issues@` |
 | pullrequests_status | `dev@foo.apache.org` | Send new/closed PR notifications to `dev@` |
 | pullrequests_comment | `issues@foo.apache.org` | Send individual PR comments/reviews to `issues@`. You can split `issues` into `issues_status` and `issues_comment` for sending issue emails to the appropriate targets. |
-|   |   |   |            
+|   |   |   |
 
 The hierarchy for determining the email target for an action is:
 
@@ -140,7 +140,7 @@ notifications:
 
 <h3 id="botschemes">Special schemes for bots</h3>
 
-Projects may create special rules for bots such as dependabot on GitHub to have PR and issue activity from these directed to a distinct mailing list. These special schemes are currently only available for pull requests and issues. 
+Projects may create special rules for bots such as dependabot on GitHub to have PR and issue activity from these directed to a distinct mailing list. These special schemes are currently only available for pull requests and issues.
 
 The general syntax for this is to append `_bot_$botname` to the scheme, for instance:
 
@@ -162,7 +162,7 @@ You can set one or more of these options:
   - `comment`: Add the PR/issue event as a comment in the referenced Jira ticket.
   - `worklog`: Add the event as a worklog entry instead of a comment in the Jira ticket you reference.
   - `label`: Add a 'pull-request-available' label to referenced tickets. **NOTE**: Some Jira projects have set limitations on who can add labels to tickets. If labels are not being added, you can address this by granting the Jira user `githubbot` access to your Jira space as a committer.
-  - `link`: When you create a GitHub PR/issue, embed a link to the PR or issue in the Jira ticket you reference. 
+  - `link`: When you create a GitHub PR/issue, embed a link to the PR or issue in the Jira ticket you reference.
 
 You can concatenate the options you want to use as a string list, like this:
 
@@ -190,7 +190,7 @@ A basic staging and publishing profile could be:
 staging:
   profile: ~
   whoami:  asf-staging
- 
+
 publish:
   whoami:  asf-site
 ~~~
@@ -207,11 +207,11 @@ staging:
   profile: beta
 ~~~
 
-This would stage the current branch at `yourproject-beta.staged.apache.org`. 
+This would stage the current branch at `yourproject-beta.staged.apache.org`.
 
 You can add multiple staging profiles and thus stage multiple branches for preview. This can be helpful when doing A/B evaluations of website contents and features.
 
-You can also omit the profile value, and stage directly at `yourproject.staged.apache.org`: 
+You can also omit the profile value, and stage directly at `yourproject.staged.apache.org`:
 
 ~~~yaml
 staging:
@@ -387,12 +387,12 @@ github:
 
       # squash or rebase must be allowed in the repo for this setting to be set to true.
       required_linear_history: false
-  
+
       required_signatures: true
- 
+
       # requires all conversations to be resolved before merging is possible
       required_conversation_resolution: true
- 
+
     branch_b:
       required_signatures: true
 ~~~
@@ -435,7 +435,7 @@ required_status_checks:
 **Notes**
   1. Enabling any of the above checks overrides what you may have set previously, so you'll need to add all the existing checks to your `.asf.yaml` file to reproduce any that Infra set manually for you.
   2. If you need to remove a required check in order to push a change to `.asf.yaml`, create an Infra Jira ticket with a request to have the check manually removed.
-  
+
 Using the 'contexts' list will automatically set an app ID of `-1` (any source) for checks. If you wish to specify a specific source app ID, you can make use of the expanded `checks` list instead:
 
 ~~~yaml
@@ -554,7 +554,7 @@ You can revert this by setting the variable back to false. (Merely removing the 
 
 <h3 id="depend_alerts">Dependabot alerts and updates</h3>
 
-Projects can enable and disable Dependabot alerts and automatic security update pull requests: 
+Projects can enable and disable Dependabot alerts and automatic security update pull requests:
 
 ~~~yaml
 github:
@@ -583,7 +583,7 @@ github:
   ghp_path:    /docs
 ~~~
 
-The `ghp_branch` setting can **only** be your default branch (e.g. master, main, ...) or `gh-pages`. 
+The `ghp_branch` setting can **only** be your default branch (e.g. master, main, ...) or `gh-pages`.
 
 **Note**: This is subject to change as GitHub is relaxing the rules.
 
@@ -696,7 +696,7 @@ You can build and publish your website at the same time by employing both the `p
 pelican:
   whoami: master
   target: asf-site
- 
+
 publish:
   whoami: asf-site
 ~~~
@@ -709,7 +709,7 @@ Likewise, you can employ auto-build-and-stage:
 pelican:
   whoami: master
   target: asf-site
- 
+
 staging:
   whoami: asf-site
   profile: ~
