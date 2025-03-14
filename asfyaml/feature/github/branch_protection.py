@@ -16,6 +16,7 @@
 # under the License.
 
 """GitHub branch protections"""
+
 import github as pygithub
 from github.GithubObject import NotSet, Opt, is_defined
 
@@ -109,23 +110,28 @@ def branch_protection(self: ASFGitHubFeature):
         except pygithub.GithubException:
             live_branch_protection_settings = None
 
-        if (live_branch_protection_settings is None or
-                allow_force_push != live_branch_protection_settings.allow_force_pushes):
+        if (
+            live_branch_protection_settings is None
+            or allow_force_push != live_branch_protection_settings.allow_force_pushes
+        ):
             branch_changes.append(f"Set allow force push to {allow_force_push}")
 
-        if (is_defined(required_signatures) and
-                (live_branch_protection_settings is None or
-                 required_signatures != live_branch_protection_settings.required_signatures)):
+        if is_defined(required_signatures) and (
+            live_branch_protection_settings is None
+            or required_signatures != live_branch_protection_settings.required_signatures
+        ):
             branch_changes.append(f"Set required signatures to {required_signatures}")
 
-        if (is_defined(required_linear) and
-                (live_branch_protection_settings is None or
-                 required_linear != live_branch_protection_settings.required_linear_history)):
+        if is_defined(required_linear) and (
+            live_branch_protection_settings is None
+            or required_linear != live_branch_protection_settings.required_linear_history
+        ):
             branch_changes.append(f"Set required linear history to {required_linear}")
 
-        if (is_defined(required_conversation_resolution) and
-                (live_branch_protection_settings is None or
-                 required_conversation_resolution != live_branch_protection_settings.required_conversation_resolution)):
+        if is_defined(required_conversation_resolution) and (
+            live_branch_protection_settings is None
+            or required_conversation_resolution != live_branch_protection_settings.required_conversation_resolution
+        ):
             branch_changes.append(f"Set required conversation resolution to {required_conversation_resolution}")
 
         if is_defined(required_pull_request_reviews):
@@ -134,19 +140,19 @@ def branch_protection(self: ASFGitHubFeature):
             else:
                 live_reviews = live_branch_protection_settings.required_pull_request_reviews
 
-            if (is_defined(required_approving_review_count) and
-                    (live_reviews is None or
-                     required_approving_review_count != live_reviews.required_approving_review_count)):
+            if is_defined(required_approving_review_count) and (
+                live_reviews is None or required_approving_review_count != live_reviews.required_approving_review_count
+            ):
                 branch_changes.append(f"Set required approving review count to {required_approving_review_count}")
 
-            if (is_defined(require_code_owner_reviews) and
-                    (live_reviews is None or
-                     require_code_owner_reviews != live_reviews.require_code_owner_reviews)):
+            if is_defined(require_code_owner_reviews) and (
+                live_reviews is None or require_code_owner_reviews != live_reviews.require_code_owner_reviews
+            ):
                 branch_changes.append(f"Set required code owner reviews to {require_code_owner_reviews}")
 
-            if (is_defined(dismiss_stale_reviews) and
-                    (live_reviews is None or
-                     dismiss_stale_reviews != live_reviews.dismiss_stale_reviews)):
+            if is_defined(dismiss_stale_reviews) and (
+                live_reviews is None or dismiss_stale_reviews != live_reviews.dismiss_stale_reviews
+            ):
                 branch_changes.append(f"Set dismiss stale reviews to {dismiss_stale_reviews}")
 
         if is_defined(required_status_checks):
@@ -155,8 +161,9 @@ def branch_protection(self: ASFGitHubFeature):
             else:
                 live_status_checks = live_branch_protection_settings.required_status_checks
 
-            if (is_defined(require_strict) and
-                    (live_status_checks is None or require_strict != live_status_checks.strict)):
+            if is_defined(require_strict) and (
+                live_status_checks is None or require_strict != live_status_checks.strict
+            ):
                 branch_changes.append(
                     f"Set require branches to be up to date before merging (strict) to {require_strict}"
                 )
@@ -178,7 +185,8 @@ def branch_protection(self: ASFGitHubFeature):
                 dismiss_stale_reviews=dismiss_stale_reviews,
                 require_code_owner_reviews=require_code_owner_reviews,
                 strict=require_strict,
-                checks=required_checks,)  # type: ignore
+                checks=required_checks,  # type: ignore
+            )
 
             if is_defined(required_signatures):
                 if required_signatures and branch_protection_settings.required_signatures is False:
@@ -187,14 +195,15 @@ def branch_protection(self: ASFGitHubFeature):
                     ghbranch.remove_required_signatures()
 
             # if required pull requests are not enabled but present live, we need to explicitly remove them
-            if (is_defined(required_pull_request_reviews) and
-                    branch_protection_settings.required_pull_request_reviews is not None):
+            if (
+                is_defined(required_pull_request_reviews)
+                and branch_protection_settings.required_pull_request_reviews is not None
+            ):
                 branch_changes.append("Remove required pull request reviews")
                 ghbranch.remove_required_pull_request_reviews()
 
             # if required status checks are not enabled but present live, we need to explicitly remove them
-            if (is_defined(required_status_checks) and
-                    branch_protection_settings.required_status_checks is not None):
+            if is_defined(required_status_checks) and branch_protection_settings.required_status_checks is not None:
                 branch_changes.append("Remove required status checks")
                 ghbranch.remove_required_status_checks()
 

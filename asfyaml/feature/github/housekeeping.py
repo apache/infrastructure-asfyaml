@@ -16,7 +16,9 @@
 # under the License.
 
 """GitHub housekeeping features: delete branch on merge, dependabot.."""
+
 from . import directive, ASFGitHubFeature
+
 
 @directive
 def housekeeping_features(self: ASFGitHubFeature):

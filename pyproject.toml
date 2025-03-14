@@ -39,23 +39,31 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
-exclude = ["docs"]
+extend-exclude = ["docs", "tests"]
 line-length = 120
 target-version = "py310"
 
 [tool.ruff.lint]
-ignore = []
+ignore = [
+  "E402",  # not top level import
+  "E501",  # line too long
+  "F401",  # unused imports
+  "F403",  # star import
+  "N806",  # uppercase variables
+  "N813",  # lowercase imports
+  "N818"   # exception name
+]
 select = [
-  "I",   # isort
+  # "I",   # isort, disable for now
   "E",
   "W",
   "F",
   "N",   # pep8-naming
   "RUF", # ruff-checks
-  "C90",
+  # "C90", # compexity checks, disable for now
   "TID", # flake8-tidy-imports
   "TC",  # flake8-type-checking
-  "UP"   # pyupgrade
+  # "UP"   # pyupgrade, disable for now
 ]
 
 [tool.mypy]

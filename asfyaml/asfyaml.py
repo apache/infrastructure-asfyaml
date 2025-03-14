@@ -166,9 +166,9 @@ class ASFYamlInstance:
                             allow_flow_style=True,
                         )
                     except strictyaml.exceptions.YAMLValidationError as e:
-                        feature_start = feature_yaml.start_line
-                        problem_line = feature_start + e.problem_mark.line
-                        problem_column = e.problem_mark.column
+                        # feature_start = feature_yaml.start_line
+                        # problem_line = feature_start + e.problem_mark.line
+                        # problem_column = e.problem_mark.column
                         # TODO: Make this much more reader friendly!
                         raise ASFYAMLException(
                             repository=self.repository, branch=self.branch, feature=feature_name, error_message=str(e)
@@ -201,7 +201,7 @@ class ASFYamlInstance:
                 )
 
 
-class ClassProperty(object):
+class ClassProperty:
     """Simple proxy class for base class objects"""
 
     def __init__(self, fget):

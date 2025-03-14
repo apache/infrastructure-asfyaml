@@ -24,7 +24,6 @@ import fnmatch
 
 
 class ASFJekyllFeature(ASFYamlFeature, name="pelican", env="production", priority=4):
-
     schema = strictyaml.Map(
         {
             strictyaml.Optional("whoami"): strictyaml.Str(),
@@ -69,7 +68,7 @@ class ASFJekyllFeature(ASFYamlFeature, name="pelican", env="production", priorit
         target = self.yaml.get("target", ref)
         if do_autobuild:
             ref_bare = ref.replace(autobuild[:-1], "", 1)  # site/foo -> foo
-            target = "%s/%s-staging" % (autobuild[:-2], ref_bare)  # site/foo -> site/foo-staging
+            target = f"{autobuild[:-2]}/{ref_bare}-staging"  # site/foo -> site/foo-staging
 
         # Get optional theme
         theme = self.yaml.get("theme", "theme")
@@ -82,9 +81,9 @@ class ASFJekyllFeature(ASFYamlFeature, name="pelican", env="production", priorit
             "jsonrpc": "2.0",
             "id": 0,
             "params": {
-                "reason": "Triggered pelican auto-build via .asf.yaml by %s" % self.committer.username,
+                "reason": f"Triggered pelican auto-build via .asf.yaml by {self.committer.username}",
                 "builderid": "3",
-                "source": "https://gitbox.apache.org/repos/asf/%s.git" % str(self.repository.name),
+                "source": f"https://gitbox.apache.org/repos/asf/{self.repository.name!s}.git",
                 "sourcebranch": ref,
                 "outputbranch": target,
                 "project": self.repository.project,

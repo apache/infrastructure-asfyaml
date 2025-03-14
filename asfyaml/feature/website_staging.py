@@ -24,6 +24,7 @@ import fnmatch
 import requests
 import strictyaml
 
+
 def validate_subdir(subdir):
     """Validates a sub-directory for projects with multiple website repos."""
     if not re.match(r"^[-._a-zA-Z0-9/]+$", subdir):
@@ -45,7 +46,8 @@ class ASFWebsiteStagingFeature(ASFYamlFeature, name="staging", priority=9):
             strictyaml.Optional("hostname", default=None): strictyaml.Str(),
             strictyaml.Optional("profile", default=None): asfyaml.validators.EmptyValue() | strictyaml.Str(),
             strictyaml.Optional("autostage", default=None): strictyaml.Str(),
-        })
+        }
+    )
 
     def run(self):
         """Publishing for websites. Sample entry .asf.yaml entry:
@@ -92,7 +94,6 @@ class ASFWebsiteStagingFeature(ASFYamlFeature, name="staging", priority=9):
         if profile:
             wsname = f"https://{self.repository.hostname}-{profile}.staged.apache.org"
         print(f"Staging contents at {wsname} ...")
-
 
         # Try sending publish payload to pubsub
         if not self.noop("staging"):

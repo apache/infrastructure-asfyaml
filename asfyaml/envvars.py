@@ -22,18 +22,18 @@ import os
 DEBUG = False
 
 if DEBUG:
-    os.environ['PATH_INFO'] = 'debug'
-    os.environ['GIT_PROJECT_ROOT'] = 'debug'
-    os.environ['GIT_COMMITTER_NAME'] = 'debug'
-    os.environ['GIT_COMMITTER_EMAIL'] = 'debug'
-    os.environ['SCRIPT_NAME'] = 'debug'
-    os.environ['WEB_HOST'] = 'debug'
-    os.environ['WRITE_LOCK'] = 'debug'
-    os.environ['AUTH_FILE'] = 'debug'
+    os.environ["PATH_INFO"] = "debug"
+    os.environ["GIT_PROJECT_ROOT"] = "debug"
+    os.environ["GIT_COMMITTER_NAME"] = "debug"
+    os.environ["GIT_COMMITTER_EMAIL"] = "debug"
+    os.environ["SCRIPT_NAME"] = "debug"
+    os.environ["WEB_HOST"] = "debug"
+    os.environ["WRITE_LOCK"] = "debug"
+    os.environ["AUTH_FILE"] = "debug"
 
 
 def _repo_name():
-    path = filter(None, os.environ.get("PATH_INFO", '').split("/"))
+    path = filter(None, os.environ.get("PATH_INFO", "").split("/"))
     path = filter(lambda p: p != "git-receive-pack", list(path))
     plist = list(path)
     if len(plist) != 1:
@@ -47,10 +47,9 @@ def getvar(key, default: str | None = None):
 
 
 class Environment:
-
     def __init__(self):
         self.repo_name = _repo_name()
-        self.repo_dir = os.path.join(getvar("GIT_PROJECT_ROOT"), u"%s.git" % self.repo_name)
+        self.repo_dir = os.path.join(getvar("GIT_PROJECT_ROOT"), "%s.git" % self.repo_name)
         self.committer = getvar("GIT_COMMITTER_NAME")
         self.remote_user = getvar("GIT_COMMITTER_EMAIL")
         self.script_name = getvar("SCRIPT_NAME")

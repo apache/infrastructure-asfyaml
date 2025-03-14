@@ -16,14 +16,16 @@
 # under the License.
 
 """GitHub custom subjects for prs/issues/discussions etc"""
+
 from . import directive, ASFGitHubFeature, constants
 import re
 
+
 def validate_github_subject(subject):
     """Validates a github subject template:
-     - MUST only contain valid references
-     - MUST be a non-empty string
-     - MUST not contain any reserved chars (newlines etc)
+    - MUST only contain valid references
+    - MUST be a non-empty string
+    - MUST not contain any reserved chars (newlines etc)
     """
     bad_chars = ("\r", "\n")
     assert isinstance(subject, str), "Subject template must be a string"
@@ -32,6 +34,7 @@ def validate_github_subject(subject):
     found_refs = [x.group(1) for x in re.finditer(r"{(.+?)}", subject)]
     for ref in found_refs:
         assert ref in constants.VALID_GITHUB_SUBJECT_VARIABLES, f"Unknown variable '{ref}' found in subject template."
+
 
 @directive
 def config_custom_subjects(self: ASFGitHubFeature):

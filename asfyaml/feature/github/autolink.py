@@ -16,6 +16,7 @@
 # under the License.
 
 """GitHub auto-link feature"""
+
 from . import directive, ASFGitHubFeature
 
 

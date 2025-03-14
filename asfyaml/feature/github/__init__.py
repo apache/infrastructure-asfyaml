@@ -44,7 +44,9 @@ class JiraSpaceString(strictyaml.Str):
 
     def validate_scalar(self, chunk):
         if not all(char in string.ascii_uppercase + string.digits for char in chunk.contents):
-            raise strictyaml.YAMLValidationError(None, "String must be uppercase or digits only, e.g. INFRA or LOG4J2.", chunk)
+            raise strictyaml.YAMLValidationError(
+                None, "String must be uppercase or digits only, e.g. INFRA or LOG4J2.", chunk
+            )
         return chunk.contents
 
 
@@ -152,7 +154,9 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
         """GitHub features"""
         # Test if we need to process this (only works on the default branch)
         if self.instance.branch != self.repository.default_branch:
-            print(f"[github] Saw GitHub meta-data in .asf.yaml, but not in default branch of repository, not updating...")
+            print(
+                "[github] Saw GitHub meta-data in .asf.yaml, but not in default branch of repository, not updating..."
+            )
             return
 
         # Check if cached yaml exists, compare if changed

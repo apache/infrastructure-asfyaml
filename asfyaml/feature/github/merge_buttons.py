@@ -66,8 +66,10 @@ def enabled_merge_buttons(self: ASFGitHubFeature):
             squash_merge_commit_message = NotSet
 
         case _:
-            raise Exception("enabled_merge_buttons: squash_commit_message must be one of "
-                            "'DEFAULT', 'PR_TITLE', 'PR_TITLE_AND_COMMIT_DETAILS' or 'PR_TITLE_AND_DESC'")
+            raise Exception(
+                "enabled_merge_buttons: squash_commit_message must be one of "
+                "'DEFAULT', 'PR_TITLE', 'PR_TITLE_AND_COMMIT_DETAILS' or 'PR_TITLE_AND_DESC'"
+            )
 
     raw_merge_commit_message = merges.get("merge_commit_message")
     if raw_merge_commit_message and not allow_merge_commits:
@@ -95,8 +97,10 @@ def enabled_merge_buttons(self: ASFGitHubFeature):
             merge_commit_message = NotSet
 
         case _:
-            raise Exception("enabled_merge_buttons: merge_commit_message must be one of "
-                            "'DEFAULT', 'PR_TITLE' or 'PR_TITLE_AND_DESC'")
+            raise Exception(
+                "enabled_merge_buttons: merge_commit_message must be one of "
+                "'DEFAULT', 'PR_TITLE' or 'PR_TITLE_AND_DESC'"
+            )
 
     if not self.noop("enabled_merge_buttons"):
         self.ghrepo.edit(
@@ -106,5 +110,5 @@ def enabled_merge_buttons(self: ASFGitHubFeature):
             merge_commit_title=merge_commit_title,
             merge_commit_message=merge_commit_message,
             squash_merge_commit_title=squash_merge_commit_title,
-            squash_merge_commit_message=squash_merge_commit_message
+            squash_merge_commit_message=squash_merge_commit_message,
         )

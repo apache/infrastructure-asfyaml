@@ -16,6 +16,7 @@
 # under the License.
 
 """GitHub pages feature"""
+
 from . import directive, ASFGitHubFeature, GH_TOKEN_FILE
 import requests
 
