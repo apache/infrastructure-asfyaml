@@ -61,8 +61,8 @@ class ASFWebsitePublishingFeature(ASFYamlFeature, name="publish", priority=9):
                 raise Exception(
                     f".asf.yaml: Invalid hostname '{hostname}' - you cannot specify *.apache.org hostnames, they must be inferred!"
                 )
-        else:
-            hostname = f"{self.repository.hostname}.apache.org"  # Infer hostname if not supplied.
+        elif not hostname:  # Infer hostname if not supplied.
+            hostname = f"{self.repository.hostname}.apache.org"
 
         # If whoami specified, ignore this payload if branch does not match
         whoami = self.yaml.get("whoami")
