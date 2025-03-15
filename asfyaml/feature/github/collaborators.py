@@ -16,6 +16,7 @@
 # under the License.
 
 """GitHub collaborator features"""
+
 import re
 import os
 from . import directive, ASFGitHubFeature, constants

@@ -17,7 +17,9 @@
 
 """GitHub protected tags feature. Doesn't work atm, GitHub has EOL'ed tag protections
 in favor of rulesets, which has not been implemented in .asf.yaml yet."""
+
 from . import directive, ASFGitHubFeature
+
 
 @directive
 def configure_protected_tags(self: ASFGitHubFeature):

@@ -20,7 +20,11 @@ import strictyaml
 
 
 class ASFTestFeature(ASFYamlFeature, name="test"):
-    schema = strictyaml.Map({"foo": strictyaml.Str(), })
+    schema = strictyaml.Map(
+        {
+            "foo": strictyaml.Str(),
+        }
+    )
 
     def run(self):
         pass

@@ -17,6 +17,8 @@
 
 """This is the notifications feature for .asf.yaml. It validates and sets up mailing list targets for repository events."""
 
+from collections.abc import Mapping
+
 import asfyaml.mappings as mappings
 from asfyaml.asfyaml import ASFYamlFeature
 import re
@@ -65,12 +67,13 @@ RE_VALID_MAILING_LIST = re.compile(r"[-a-z0-9]+@[-a-z0-9]+(\.incubator)?\.apache
 
 class ASFNotificationsFeature(ASFYamlFeature, name="notifications", priority=0):
     """.asf.yaml notifications feature class. Runs before anything else."""
-    valid_targets = {}  # Placeholder for self.valid_targets. Will be re-initialized on run.
+
+    valid_targets: Mapping[str, str] = {}  # Placeholder for self.valid_targets. Will be re-initialized on run.
 
     def run(self):
         # Test if we need to process this (only works on the default branch)
         if self.instance.branch != self.repository.default_branch:
-            print(f"Saw notifications meta-data in .asf.yaml, but not in default branch of repository, not updating...")
+            print("Saw notifications meta-data in .asf.yaml, but not in default branch of repository, not updating...")
             return
         self.valid_targets = {}  # Set to a brand-new instance-local dict for valid scheme entries.
         # Read the list of valid mailing list targets from disk
@@ -121,7 +124,7 @@ class ASFNotificationsFeature(ASFYamlFeature, name="notifications", priority=0):
                 )
             for pattern, target in self.yaml.commits_by_path.items():
                 # All mail targets must be strings. Either a single target or a list of targets.
-                email_targets = isinstance(target, list) and target or [target]
+                email_targets = (isinstance(target, list) and target) or [target]
                 if not all(isinstance(x, str) for x in email_targets):
                     raise Exception(
                         f"[ERROR] Notification target for notifications::commits_by_path::{pattern} must be either a single email address or a list of email addresses."

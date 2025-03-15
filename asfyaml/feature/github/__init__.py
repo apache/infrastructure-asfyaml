@@ -44,7 +44,9 @@ class JiraSpaceString(strictyaml.Str):
 
     def validate_scalar(self, chunk):
         if not all(char in string.ascii_uppercase + string.digits for char in chunk.contents):
-            raise strictyaml.YAMLValidationError(None, "String must be uppercase or digits only, e.g. INFRA or LOG4J2.", chunk)
+            raise strictyaml.YAMLValidationError(
+                None, "String must be uppercase or digits only, e.g. INFRA or LOG4J2.", chunk
+            )
         return chunk.contents
 
 
@@ -138,14 +140,23 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
     )
 
     def __init__(self, parent: ASFYamlInstance, yaml: strictyaml.YAML, **kwargs):
-        self.ghrepo: pygithubrepo.Repository = None
         super().__init__(parent, yaml)
+        self._ghrepo: pygithubrepo.Repository | None = None
+
+    @property
+    def ghrepo(self) -> pygithubrepo.Repository:
+        if self._ghrepo is None:
+            raise RuntimeError("something went wrong, ghrepo is not set")
+        else:
+            return self._ghrepo
 
     def run(self):
         """GitHub features"""
         # Test if we need to process this (only works on the default branch)
         if self.instance.branch != self.repository.default_branch:
-            print(f"[github] Saw GitHub meta-data in .asf.yaml, but not in default branch of repository, not updating...")
+            print(
+                "[github] Saw GitHub meta-data in .asf.yaml, but not in default branch of repository, not updating..."
+            )
             return
 
         # Check if cached yaml exists, compare if changed
@@ -172,10 +183,10 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                 gh_token = open(GH_TOKEN_FILE).read().strip()
 
             pgh = pygithub.Github(auth=pygithubAuth.Token(gh_token))
-            self.ghrepo = pgh.get_repo(f"{self.repository.org_id}/{self.repository.name}")
+            self._ghrepo = pgh.get_repo(f"{self.repository.org_id}/{self.repository.name}")
         elif gh_token:  # If supplied from OS env, load the ghrepo object anyway
             pgh = pygithub.Github(auth=pygithubAuth.Token(gh_token))
-            self.ghrepo = pgh.get_repo(f"{self.repository.org_id}/{self.repository.name}")
+            self._ghrepo = pgh.get_repo(f"{self.repository.org_id}/{self.repository.name}")
 
         # For each sub-feature we see (with the @directive decorator on it), run it
         for _feat in _features:

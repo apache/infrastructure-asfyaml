@@ -23,7 +23,6 @@ import requests
 
 
 class ASFJekyllFeature(ASFYamlFeature, name="jekyll", env="production", priority=4):
-
     schema = strictyaml.Map(
         {
             strictyaml.Optional("whoami"): strictyaml.Str(),

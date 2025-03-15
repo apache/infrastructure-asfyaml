@@ -48,4 +48,3 @@ def test_basic_yaml(base_path: Path, test_repo: asfyaml.dataobjects.Repository):
     # Assert that we know the project name and the hostname
     assert test_repo.project == "whimsy", f"Expected project name whimsy, but got {test_repo.project}"
     assert test_repo.hostname == "whimsical", f"Expected project hostname whimsical, but got {test_repo.hostname}"
-
