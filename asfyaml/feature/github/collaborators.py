@@ -46,10 +46,12 @@ def collaborators(self: ASFGitHubFeature):
         to_add = new_collabs - old_collabs
         for user in to_remove:
             print("Removing GitHub triage access for %s" % user)
-            self.ghrepo.remove_from_collaborators(user)
+            if not self.noop("collaborators"):
+                self.ghrepo.remove_from_collaborators(user)
         for user in to_add:
             print("Adding GitHub triage access for %s" % user)
-            self.ghrepo.add_to_collaborators(user)
+            if not self.noop("collaborators"):
+                self.ghrepo.add_to_collaborators(user)
         with open(collab_file, "w") as f:
             f.write("\n".join(collabs))
             f.close()
