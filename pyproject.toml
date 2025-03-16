@@ -25,7 +25,7 @@ pythonpath = ["."]
 python_files = "*.py"
 
 [tool.poetry.scripts]
-asfyml-run = "asfyaml.cli:cli"
+asfyaml-run = "asfyaml.cli:cli"
 asfyaml-validate = "asfyaml.cli:validate"
 
 [build-system]
