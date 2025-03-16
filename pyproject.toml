@@ -26,6 +26,7 @@ python_files = "*.py"
 
 [tool.poetry.scripts]
 asfyml-run = "asfyaml.cli:cli"
+asfyaml-validate = "asfyaml.cli:validate"
 
 [build-system]
 requires = ["poetry-core"]

@@ -143,11 +143,12 @@ class ASFYamlInstance:
             print(f"Enabled features for this run: {', '.join(self.enabled_features.keys())}")
             print(f"Features seen inside .asf.yaml: {', '.join([str(x) for x in self.yaml.keys()])}")
 
-    def run_parts(self):
+    def run_parts(self, validate_only: bool = False):
         """Runs every enabled and configured feature for the .asf.yaml file.
         If an exception is encountered, the processing will halt at the module that raised
         it, and an email with the error message(s) will be sent to the git client as well as
-        private@$project.apache.org."""
+        private@$project.apache.org. The validate_only flag will cause run_parts to only run
+        the validation part and then exit immediately afterwards"""
         # For each enabled feature, spin up validation and runtime processing if directives are found
         # for the feature inside our .asf.yaml file.
         features_to_run = []
@@ -183,6 +184,9 @@ class ASFYamlInstance:
                 feature_name != "meta"
             ):  # meta is reserved for asfyaml.py, all else needs a feature or it should break.
                 raise KeyError(f"No such .asf.yaml feature: {feature_name}")
+        # If validate_only, exit now
+        if validate_only:
+            return
 
         # If everything validated okay, we will sort the features by priority and then run them
         for feature in sorted(features_to_run, key=lambda x: x.priority):
