@@ -168,7 +168,7 @@ def branch_protection(self: ASFGitHubFeature):
                     branch_changes.append(f"  - {ctx} (app_id: {appid})")
 
         # Apply all the changes
-        if not self.noop("github::protected_branches"):
+        if not self.noop("protected_branches"):
             branch_protection_settings = ghbranch.edit_protection(
                 allow_force_pushes=allow_force_push,
                 required_linear_history=required_linear,
