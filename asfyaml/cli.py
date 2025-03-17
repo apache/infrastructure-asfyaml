@@ -22,6 +22,7 @@ from pathlib import Path
 from asfyaml import dataobjects
 from asfyaml.asfyaml import ASFYamlInstance, ASFYAMLException
 
+
 def dir_path(path):
     if os.path.isdir(path):
         return path
@@ -44,7 +45,7 @@ def cli():
     if not os.path.exists(yml_file):
         raise Exception(f".asf.yaml does not exist at location '{yml_file}'")
 
-    with open(yml_file, mode="r") as f:
+    with open(yml_file) as f:
         yml_content = f.read()
 
     os.environ["PATH_INFO"] = repo_path.name
@@ -54,7 +55,9 @@ def cli():
         os.environ["GH_TOKEN"] = args.token
 
     if os.environ.get("GH_TOKEN") is None:
-        raise Exception("no GitHub token has been provided, either add a '--token' argument or set a 'GH_TOKEN' env variable.")
+        raise Exception(
+            "no GitHub token has been provided, either add a '--token' argument or set a 'GH_TOKEN' env variable."
+        )
 
     a = ASFYamlInstance(repo, "anonymous", yml_content)
 

@@ -16,6 +16,7 @@
 # under the License.
 
 """GitHub general features: wiki, issues, projects, discussions"""
+
 from . import directive, ASFGitHubFeature
 
 

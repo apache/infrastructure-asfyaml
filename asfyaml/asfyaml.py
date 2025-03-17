@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import ClassVar
 
 import strictyaml
 import strictyaml.ruamel.scanner
@@ -107,11 +108,11 @@ class ASFYamlInstance:
         self.enabled_features = {}
         """: FeatureList: This variable contains all features that are enabled for this run, as an object with of all the features that are enabled and their class instances as attributes.
         Each feature is accessible as an attribute with the feature name as key, for instance :code:`self.instance.enabled_features.gitub`.
-        If a feature is not available (not enabled or not configured), a None value will be returned instead, 
+        If a feature is not available (not enabled or not configured), a None value will be returned instead,
         allowing you to easily test for whether a feature is enabled or not without running into key errors.
-         
+
         Example use::
-        
+
             class ASFTestFeature(ASFYamlFeature, name="test", priority=4):
                 def run(self):
                     # Check if we have notification features enabled for this repo or not
@@ -122,10 +123,10 @@ class ASFYamlInstance:
                         print(f"We have these mailing lis targets: {notifs.valid_targets}")
                     else:
                         raise Exception("You need to enable notifications!")
-        
-        As the :class:`FeatureList` object acts like a dictionary (more precisely, like an EasyDict), 
+
+        As the :class:`FeatureList` object acts like a dictionary (more precisely, like an EasyDict),
         you can inspect the list as a dictionary and learn which features are currently enabled::
-        
+
             def run(self):
                 features_we_have = ", ".join(self.instance.enabled_features)  # Dicts act like lists of keys in join
                 print(f"The following is enabled: {features_we_have}")  # Could be "notifications, github, jekyll"
@@ -166,9 +167,9 @@ class ASFYamlInstance:
                             allow_flow_style=True,
                         )
                     except strictyaml.exceptions.YAMLValidationError as e:
-                        feature_start = feature_yaml.start_line
-                        problem_line = feature_start + e.problem_mark.line
-                        problem_column = e.problem_mark.column
+                        # feature_start = feature_yaml.start_line
+                        # problem_line = feature_start + e.problem_mark.line
+                        # problem_column = e.problem_mark.column
                         # TODO: Make this much more reader friendly!
                         raise ASFYAMLException(
                             repository=self.repository, branch=self.branch, feature=feature_name, error_message=str(e)
@@ -204,7 +205,7 @@ class ASFYamlInstance:
                 )
 
 
-class ClassProperty(object):
+class ClassProperty:
     """Simple proxy class for base class objects"""
 
     def __init__(self, fget):
@@ -226,11 +227,15 @@ class ASFYamlFeature:
     For information on how to create your own feature sub-class, see :func:`asfyaml.ASFYamlFeature.__init_subclass__`
     """
 
-    features = []
+    name: str
+    env: str
+    priority: int
+
+    features: ClassVar[list[type["ASFYamlFeature"]]] = []
     """: list: List for tracking all ASFYamlFeature sub-classes we come across in any environment.
-    
+
         Example use::
-        
+
             class ASFTestFeature(ASFYamlFeature, name="test", priority=4):
                 def run(self):
                     for feature in ASFYamlFeature.features:
