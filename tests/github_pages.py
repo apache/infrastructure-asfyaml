@@ -70,7 +70,7 @@ def test_basic_yaml(test_repo: asfyaml.dataobjects.Repository):
     )
 
     for test in tests_to_run:
-        with test.ctx() as _vs:
+        with test.ctx() as _:
             a = asfyaml.asfyaml.ASFYamlInstance(test_repo, "humbedooh", test.yaml)
             a.environments_enabled.add("noop")
             a.no_cache = True
