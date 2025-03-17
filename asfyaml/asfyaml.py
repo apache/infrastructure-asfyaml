@@ -14,7 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import ClassVar
+
+import abc
+import typing
 
 import strictyaml
 import strictyaml.ruamel.scanner
@@ -231,7 +233,7 @@ class ASFYamlFeature:
     env: str
     priority: int
 
-    features: ClassVar[list[type["ASFYamlFeature"]]] = []
+    features: typing.ClassVar[list[type["ASFYamlFeature"]]] = []
     """: list: List for tracking all ASFYamlFeature sub-classes we come across in any environment.
 
         Example use::
@@ -302,6 +304,9 @@ class ASFYamlFeature:
             print(f"[{self.name}::{directivename}] Not applying changes, noop mode active.")
             return True
         return False
+
+    @abc.abstractmethod
+    def run(self): ...
 
 
 # Import all the feature classes. TODO: move this import elsewhere.
