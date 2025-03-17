@@ -1,3 +1,6 @@
+<a href="https://github.com/apache/infrastructure-asfyaml/actions/workflows/basic-validator.yaml?query=branch%3Amain"><img alt="Unit Tests / Linting / Type checks" src="https://github.com/apache/infrastructure-asfyaml/actions/workflows/basic-validator.yaml/badge.svg?branch=main" /></a>
+<a href="https://github.com/apache/infrastructure-asfyaml/blob/main/LICENSE"><img alt="Apache License" src="https://img.shields.io/github/license/apache/infrastructure-asfyaml" /></a>
+
 **Note: This is a work in progress. There will be omissions, factually incorrect items, and placeholders while we work to fully migrate the .asf.yaml specifications to this repository. Issues can be reported in this repository, and Pull Requests are also welcome. We ask that you do not create Jira tickets for suggestions or other remarks concerning this repository.**
 
 # Working with .asf.yaml
