@@ -5,10 +5,11 @@ on:
   workflow_dispatch:
 
 env:
-  PYTHON_VERSION: '3.11'
+  PYTHON_VERSION: '3.11'  # the python version for running the analyze job with
   POETRY_VERSION: '2.1.1'
 
 jobs:
+  # Build and run tests with a range of python versions.
   build:
     runs-on: ubuntu-latest
     strategy:
@@ -33,7 +34,7 @@ jobs:
         run: |
           poetry run pytest
 
-  # Run lint and type checks
+  # Run mypy and ruff checks.
   analyze:
     runs-on: ubuntu-latest
     steps:
