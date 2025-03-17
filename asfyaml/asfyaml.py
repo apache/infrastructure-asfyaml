@@ -15,6 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import abc
+import typing
+
 import strictyaml
 import strictyaml.ruamel.scanner
 import easydict
@@ -61,7 +64,7 @@ class ASFYamlInstance:
     as well as the repository and committer data needed to process events.
     """
 
-    def __init__(self, repo: dataobjects.Repository, committer: str, config_data: str, branch: str = "main"):
+    def __init__(self, repo: dataobjects.Repository, committer: str, config_data: str, branch: str | None = None):
         self.repository = repo
         self.committer = dataobjects.Committer(committer)
         if branch and branch.startswith("refs/heads/"):
@@ -107,11 +110,11 @@ class ASFYamlInstance:
         self.enabled_features = {}
         """: FeatureList: This variable contains all features that are enabled for this run, as an object with of all the features that are enabled and their class instances as attributes.
         Each feature is accessible as an attribute with the feature name as key, for instance :code:`self.instance.enabled_features.gitub`.
-        If a feature is not available (not enabled or not configured), a None value will be returned instead, 
+        If a feature is not available (not enabled or not configured), a None value will be returned instead,
         allowing you to easily test for whether a feature is enabled or not without running into key errors.
-         
+
         Example use::
-        
+
             class ASFTestFeature(ASFYamlFeature, name="test", priority=4):
                 def run(self):
                     # Check if we have notification features enabled for this repo or not
@@ -122,10 +125,10 @@ class ASFYamlInstance:
                         print(f"We have these mailing lis targets: {notifs.valid_targets}")
                     else:
                         raise Exception("You need to enable notifications!")
-        
-        As the :class:`FeatureList` object acts like a dictionary (more precisely, like an EasyDict), 
+
+        As the :class:`FeatureList` object acts like a dictionary (more precisely, like an EasyDict),
         you can inspect the list as a dictionary and learn which features are currently enabled::
-        
+
             def run(self):
                 features_we_have = ", ".join(self.instance.enabled_features)  # Dicts act like lists of keys in join
                 print(f"The following is enabled: {features_we_have}")  # Could be "notifications, github, jekyll"
@@ -143,11 +146,12 @@ class ASFYamlInstance:
             print(f"Enabled features for this run: {', '.join(self.enabled_features.keys())}")
             print(f"Features seen inside .asf.yaml: {', '.join([str(x) for x in self.yaml.keys()])}")
 
-    def run_parts(self):
+    def run_parts(self, validate_only: bool = False):
         """Runs every enabled and configured feature for the .asf.yaml file.
         If an exception is encountered, the processing will halt at the module that raised
         it, and an email with the error message(s) will be sent to the git client as well as
-        private@$project.apache.org."""
+        private@$project.apache.org. The validate_only flag will cause run_parts to only run
+        the validation part and then exit immediately afterwards"""
         # For each enabled feature, spin up validation and runtime processing if directives are found
         # for the feature inside our .asf.yaml file.
         features_to_run = []
@@ -165,10 +169,10 @@ class ASFYamlInstance:
                             allow_flow_style=True,
                         )
                     except strictyaml.exceptions.YAMLValidationError as e:
-                        _feature_start = feature_yaml.start_line
-                        _problem_line = feature_start + e.problem_mark.line
-                        _problem_column = e.problem_mark.column
-                        # TODO: Make this much more reader friendly! (and drop the _ prefixes above)
+                        # feature_start = feature_yaml.start_line
+                        # problem_line = feature_start + e.problem_mark.line
+                        # problem_column = e.problem_mark.column
+                        # TODO: Make this much more reader friendly!
                         raise ASFYAMLException(
                             repository=self.repository, branch=self.branch, feature=feature_name, error_message=str(e)
                         )
@@ -183,6 +187,9 @@ class ASFYamlInstance:
                 feature_name != "meta"
             ):  # meta is reserved for asfyaml.py, all else needs a feature or it should break.
                 raise KeyError(f"No such .asf.yaml feature: {feature_name}")
+        # If validate_only, exit now
+        if validate_only:
+            return
 
         # If everything validated okay, we will sort the features by priority and then run them
         for feature in sorted(features_to_run, key=lambda x: x.priority):
@@ -200,7 +207,7 @@ class ASFYamlInstance:
                 )
 
 
-class ClassProperty(object):
+class ClassProperty:
     """Simple proxy class for base class objects"""
 
     def __init__(self, fget):
@@ -222,11 +229,15 @@ class ASFYamlFeature:
     For information on how to create your own feature sub-class, see :func:`asfyaml.ASFYamlFeature.__init_subclass__`
     """
 
-    features = []
+    name: str
+    env: str
+    priority: int
+
+    features: typing.ClassVar[list[type["ASFYamlFeature"]]] = []
     """: list: List for tracking all ASFYamlFeature sub-classes we come across in any environment.
-    
+
         Example use::
-        
+
             class ASFTestFeature(ASFYamlFeature, name="test", priority=4):
                 def run(self):
                     for feature in ASFYamlFeature.features:
@@ -293,6 +304,9 @@ class ASFYamlFeature:
             print(f"[{self.name}::{directivename}] Not applying changes, noop mode active.")
             return True
         return False
+
+    @abc.abstractmethod
+    def run(self): ...
 
 
 # Import all the feature classes. TODO: move this import elsewhere.

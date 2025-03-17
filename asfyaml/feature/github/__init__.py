@@ -43,8 +43,10 @@ class JiraSpaceString(strictyaml.Str):
     """YAML validator for Jira spaces, must be uppercase alpha only."""
 
     def validate_scalar(self, chunk):
-        if not all(char in string.ascii_uppercase for char in chunk.contents):
-            raise strictyaml.YAMLValidationError(None, "String must be uppercase only, e.g. INFRA or AIRFLOW.", chunk)
+        if not all(char in string.ascii_uppercase + string.digits for char in chunk.contents):
+            raise strictyaml.YAMLValidationError(
+                None, "String must be uppercase or digits only, e.g. INFRA or LOG4J2.", chunk
+            )
         return chunk.contents
 
 
@@ -103,11 +105,12 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                 strictyaml.Map(
                     {
                         strictyaml.Optional("required_signatures", default=False): strictyaml.Bool(),
-                        strictyaml.Optional("required_linear_history", default=True): strictyaml.Bool(),
+                        strictyaml.Optional("required_linear_history", default=False): strictyaml.Bool(),
                         strictyaml.Optional("required_conversation_resolution", default=False): strictyaml.Bool(),
                         strictyaml.Optional("required_pull_request_reviews"): strictyaml.Map(
                             {
                                 strictyaml.Optional("dismiss_stale_reviews", default=False): strictyaml.Bool(),
+                                strictyaml.Optional("require_code_owner_reviews", default=False): strictyaml.Bool(),
                                 strictyaml.Optional("required_approving_review_count", default=0): strictyaml.Int(),
                             }
                         ),
@@ -137,14 +140,23 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
     )
 
     def __init__(self, parent: ASFYamlInstance, yaml: strictyaml.YAML, **kwargs):
-        self.ghrepo: pygithubrepo.Repository = None
         super().__init__(parent, yaml)
+        self._ghrepo: pygithubrepo.Repository | None = None
+
+    @property
+    def ghrepo(self) -> pygithubrepo.Repository:
+        if self._ghrepo is None:
+            raise RuntimeError("something went wrong, ghrepo is not set")
+        else:
+            return self._ghrepo
 
     def run(self):
         """GitHub features"""
         # Test if we need to process this (only works on the default branch)
         if self.instance.branch != self.repository.default_branch:
-            print(f"[github] Saw GitHub meta-data in .asf.yaml, but not in default branch of repository, not updating...")
+            print(
+                "[github] Saw GitHub meta-data in .asf.yaml, but not in default branch of repository, not updating..."
+            )
             return
 
         # Check if cached yaml exists, compare if changed
@@ -171,12 +183,10 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                 gh_token = open(GH_TOKEN_FILE).read().strip()
 
             pgh = pygithub.Github(auth=pygithubAuth.Token(gh_token))
-            org_id = os.environ.get("ORG_ID", "apache")
-            self.ghrepo = pgh.get_repo(f"{org_id}/{self.repository.name}")
+            self._ghrepo = pgh.get_repo(f"{self.repository.org_id}/{self.repository.name}")
         elif gh_token:  # If supplied from OS env, load the ghrepo object anyway
             pgh = pygithub.Github(auth=pygithubAuth.Token(gh_token))
-            org_id = os.environ.get("ORG_ID", "apache")
-            self.ghrepo = pgh.get_repo(f"{org_id}/{self.repository.name}")
+            self._ghrepo = pgh.get_repo(f"{self.repository.org_id}/{self.repository.name}")
 
         # For each sub-feature we see (with the @directive decorator on it), run it
         for _feat in _features:
@@ -195,12 +205,11 @@ from . import (
     metadata,
     autolink,
     features,
+    branch_protection,
     merge_buttons,
     pages,
     custom_subjects,
-    branch_protection,
     collaborators,
     housekeeping,
     protected_tags,
-    del_branch_on_merge,
 )

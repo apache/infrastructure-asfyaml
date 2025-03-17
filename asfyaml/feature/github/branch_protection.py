@@ -17,154 +17,215 @@
 
 """GitHub branch protections"""
 
-from . import directive, ASFGitHubFeature
 import github as pygithub
+from github.GithubObject import NotSet, Opt, is_defined
+
+from . import directive, ASFGitHubFeature
+
 
 @directive
 def branch_protection(self: ASFGitHubFeature):
-    # Merge buttons
-    branches = self.yaml.get("protected_branches")
-    if not branches:
+    # Branch protections
+    if "protected_branches" not in self.yaml:
         return
+
+    # A map to keep track of all branches to determine from which we should remove protections
+    all_branches = {branch.name: branch for branch in self.ghrepo.get_branches()}
+
+    branches = self.yaml.get("protected_branches", {})
+    # If protected_branches is set to ~ (None), reset it to an empty map
+    # We still need to remove existing branch protection rules from all existing branches later on
+    if branches is None:
+        branches = {}
 
     protection_changes = {}
     for branch, brsettings in branches.items():
+        if branch in all_branches:
+            all_branches.pop(branch)
+
         branch_changes = []
-        # Fetch the previous saved settings file for some areas where PyGitHub consistently
-        # reports the wrong things.
-        old_branch_settings = self.previous_yaml.get("protected_branches", {}).get(branch, {})
         try:
             ghbranch = self.ghrepo.get_branch(branch=branch)
         except pygithub.GithubException as e:
             if e.status == 404:  # No such branch, skip to next rule
-                protection_changes[branch] = ["Branch does not exist, protection could not be configured"]
+                protection_changes[branch] = [f"Branch {branch} does not exist, protection could not be configured"]
                 continue
-        if ghbranch:
-            try:
-                ghbranch.edit_protection()  # Causes protection to be initialized if not already so.
-                branch_protection_settings = ghbranch.get_protection()
-            except pygithub.GithubException as e:
-                if e.status != 404: # Not a 404? something is wrong then
-                    raise e
-
-            # Required signatures
-            required_signatures = brsettings.get("required_signatures", False)
-            if branch_protection_settings.required_signatures != required_signatures:
-                if required_signatures:
-                    if not self.noop("github::protected_branches"):
-                        ghbranch.add_required_signatures()
-                    branch_changes.append("Set required signatures to True")
-                else:
-                    if not self.noop("github::protected_branches"):
-                        ghbranch.remove_required_signatures()
-                    branch_changes.append("Set required signatures to False")
-
-            # Required linear history
-            required_linear = bool(brsettings.get("required_linear_history", False))
-            if branch_protection_settings.required_linear_history != required_linear:
-                if required_linear:
-                    if not self.noop("github::protected_branches"):
-                        ghbranch.edit_protection(required_linear_history=True)
-                    branch_changes.append("Set required linear history to True")
-                else:
-                    if not self.noop("github::protected_branches"):
-                        ghbranch.edit_protection(required_linear_history=False)
-                    branch_changes.append("Set required linear history to False")
-
-            # Required conversation resolution
-            # Requires all conversations to be resolved before merging is possible
-            required_conversation_resolution = bool(brsettings.get("required_conversation_resolution", False))
-            if branch_protection_settings.required_conversation_resolution != required_conversation_resolution:
-                if required_conversation_resolution:
-                    if not self.noop("github::protected_branches"):
-                        ghbranch.edit_protection(required_conversation_resolution=True)
-                    branch_changes.append("Set required conversation resolution to True")
-                else:
-                    if not self.noop("github::protected_branches"):
-                        ghbranch.edit_protection(required_conversation_resolution=False)
-                    branch_changes.append("Set required conversation resolution to False")
-
-
-            # Required status checks
-            required_status_checks = brsettings.get("required_status_checks", {})
-            if required_status_checks:
-                # strict means "Require branches to be up to date before merging".
-                require_strict = bool(required_status_checks.get("strict", False))
-                contexts = required_status_checks.get("contexts", [])
-                checks = required_status_checks.get("checks", [])
-                checks_as_dict = {**{ctx: -1 for ctx in contexts}, **{c["context"]: int(c["app_id"]) for c in checks}}
-                if (not branch_protection_settings.required_status_checks or branch_protection_settings.required_status_checks.strict != require_strict):
-                    if not checks_as_dict:
-                        if not self.noop("github::protected_branches"):
-                            #ghbranch.edit_required_status_checks(strict=require_strict, checks=[])
-                            pass
-                        branch_changes.append(
-                            f"Set require branches to be up to date before merging (strict) to {require_strict}"
-                        )
-                try:
-                    existing_contexts = ghbranch.get_required_status_checks().contexts
-                except pygithub.GithubException as e:
-                    if e.status == 404:  # No existing contexts, set to blank dict
-                        existing_contexts = {}
-                    else:
-                        raise e
-                # TODO: existing contexts don't tend to fetch the actual values. pygithub bug?
-                if checks_as_dict != existing_contexts:  # Something changed, update contexts
-                    if checks_as_dict:
-                        if not self.noop("github::protected_branches"):
-                            ghbranch.edit_protection(strict=require_strict, checks=list(checks_as_dict.items()))
-                        branch_changes.append(f"Set required status contexts to the following:")
-                        for ctx, appid in checks_as_dict.items():
-                            branch_changes.append(f"  - {ctx} (app_id: {appid})")
-                    else:
-                        if not self.noop("github::protected_branches"):
-                            ghbranch.remove_required_status_checks()
-                        branch_changes.append(f"Removed all required status contexts from branch")
-
             else:
-                if branch_protection_settings.required_status_checks:  # Set but not defined? remove it then
-                    if not self.noop("github::protected_branches"):
-                        ghbranch.edit_protection(strict=False, checks=[])
-                        ghbranch.remove_required_status_checks()
-                    branch_changes.append(f"Removed required status checks")
+                # propagate other errors, GitHub API might have an outage
+                raise e
 
-            # Required pull requests reviews
+        # We explicitly disable force pushes when branch protections are enabled
+        allow_force_push = False
+
+        # Required signatures
+        required_signatures = brsettings.get("required_signatures", NotSet)
+
+        # Required linear history
+        required_linear = brsettings.get("required_linear_history", NotSet)
+
+        # Required conversation resolution
+        # Requires all conversations to be resolved before merging is possible
+        required_conversation_resolution = brsettings.get("required_conversation_resolution", NotSet)
+
+        # Required pull requests reviews
+        # As this is a nested object, we check for existence of the key to check if we should enable it
+        if "required_pull_request_reviews" in brsettings:
             required_pull_request_reviews = brsettings.get("required_pull_request_reviews", {})
-            previous_required_pull_request_reviews = old_branch_settings.get("required_pull_request_reviews", {})
-            if required_pull_request_reviews:
-                dismiss_stale_reviews = required_pull_request_reviews.get("dismiss_stale_reviews", False)
-                required_approving_review_count = required_pull_request_reviews.get(
-                    "required_approving_review_count", 0
+
+            required_approving_review_count = required_pull_request_reviews.get("required_approving_review_count", 0)
+            require_code_owner_reviews = required_pull_request_reviews.get("require_code_owner_reviews")
+            dismiss_stale_reviews = required_pull_request_reviews.get("dismiss_stale_reviews", NotSet)
+        else:
+            required_pull_request_reviews = NotSet
+            required_approving_review_count = NotSet
+            dismiss_stale_reviews = NotSet
+            require_code_owner_reviews = NotSet
+
+        required_checks: Opt[list[tuple[str, int]]]
+
+        # Required status checks
+        if "required_status_checks" in brsettings:
+            required_status_checks = brsettings.get("required_status_checks", {})
+
+            # strict means "Require branches to be up to date before merging".
+            require_strict = required_status_checks.get("strict", NotSet)
+
+            contexts = required_status_checks.get("contexts", [])
+            checks = required_status_checks.get("checks", [])
+            checks_as_dict = {**{ctx: -1 for ctx in contexts}, **{c["context"]: int(c["app_id"]) for c in checks}}
+
+            required_checks = list(checks_as_dict.items())
+
+            # if no checks are defined, we remove the status checks completely
+            if len(required_checks) == 0:
+                required_status_checks = NotSet
+        else:
+            required_status_checks = NotSet
+            require_strict = NotSet
+            required_checks = NotSet
+
+        # Log changes that will be applied
+        try:
+            live_branch_protection_settings = ghbranch.get_protection()
+        except pygithub.GithubException:
+            live_branch_protection_settings = None
+
+        if (
+            live_branch_protection_settings is None
+            or allow_force_push != live_branch_protection_settings.allow_force_pushes
+        ):
+            branch_changes.append(f"Set allow force push to {allow_force_push}")
+
+        if is_defined(required_signatures) and (
+            live_branch_protection_settings is None
+            or required_signatures != live_branch_protection_settings.required_signatures
+        ):
+            branch_changes.append(f"Set required signatures to {required_signatures}")
+
+        if is_defined(required_linear) and (
+            live_branch_protection_settings is None
+            or required_linear != live_branch_protection_settings.required_linear_history
+        ):
+            branch_changes.append(f"Set required linear history to {required_linear}")
+
+        if is_defined(required_conversation_resolution) and (
+            live_branch_protection_settings is None
+            or required_conversation_resolution != live_branch_protection_settings.required_conversation_resolution
+        ):
+            branch_changes.append(f"Set required conversation resolution to {required_conversation_resolution}")
+
+        if is_defined(required_pull_request_reviews):
+            if live_branch_protection_settings is None:
+                live_reviews = None
+            else:
+                live_reviews = live_branch_protection_settings.required_pull_request_reviews
+
+            if is_defined(required_approving_review_count) and (
+                live_reviews is None or required_approving_review_count != live_reviews.required_approving_review_count
+            ):
+                branch_changes.append(f"Set required approving review count to {required_approving_review_count}")
+
+            if is_defined(require_code_owner_reviews) and (
+                live_reviews is None or require_code_owner_reviews != live_reviews.require_code_owner_reviews
+            ):
+                branch_changes.append(f"Set required code owner reviews to {require_code_owner_reviews}")
+
+            if is_defined(dismiss_stale_reviews) and (
+                live_reviews is None or dismiss_stale_reviews != live_reviews.dismiss_stale_reviews
+            ):
+                branch_changes.append(f"Set dismiss stale reviews to {dismiss_stale_reviews}")
+
+        if is_defined(required_status_checks):
+            if live_branch_protection_settings is None:
+                live_status_checks = None
+            else:
+                live_status_checks = live_branch_protection_settings.required_status_checks
+
+            if is_defined(require_strict) and (
+                live_status_checks is None or require_strict != live_status_checks.strict
+            ):
+                branch_changes.append(
+                    f"Set require branches to be up to date before merging (strict) to {require_strict}"
                 )
-                required_approving_review_count = int(required_approving_review_count)
-                assert isinstance(
-                    required_approving_review_count, int
-                ), "required_approving_review_count MUST be an integer value"
-                if (
-                        (
-                                (branch_protection_settings.required_pull_request_reviews and
-                        branch_protection_settings.required_pull_request_reviews.required_approving_review_count)
-                        or previous_required_pull_request_reviews.get("required_approving_review_count", 0)
-                        )
-                        != required_approving_review_count
-                ):
-                    if not self.noop("github::protected_branches"):
-                        ghbranch.remove_required_pull_request_reviews()
-                        ghbranch.edit_required_pull_request_reviews(required_approving_review_count=required_approving_review_count)
-                    branch_changes.append(f"Set required approving review count to {required_approving_review_count}")
-                grp = ghbranch.get_required_pull_request_reviews()
-                if (not grp or
-                        grp.dismiss_stale_reviews
-                        != dismiss_stale_reviews
-                ):
-                    if not self.noop("github::protected_branches"):
-                        ghbranch.edit_required_pull_request_reviews(dismiss_stale_reviews=dismiss_stale_reviews, required_approving_review_count=required_approving_review_count)
-                    branch_changes.append(f"Set dismiss stale reviews to {dismiss_stale_reviews}")
 
+            # Always log the required checks that will be set for now. We will need to parse
+            # the context field in a RequiredStatusChecks object.
+            if is_defined(required_checks):
+                branch_changes.append("Set required status contexts to the following:")
+                for ctx, appid in required_checks:
+                    branch_changes.append(f"  - {ctx} (app_id: {appid})")
 
-            # Log all the changes we made to this branch
-            if branch_changes:
-                protection_changes[branch] = branch_changes
+        # Apply all the changes
+        if not self.noop("protected_branches"):
+            branch_protection_settings = ghbranch.edit_protection(
+                allow_force_pushes=allow_force_push,
+                required_linear_history=required_linear,
+                required_conversation_resolution=required_conversation_resolution,
+                required_approving_review_count=required_approving_review_count,
+                dismiss_stale_reviews=dismiss_stale_reviews,
+                require_code_owner_reviews=require_code_owner_reviews,
+                strict=require_strict,
+                checks=required_checks,  # type: ignore
+            )
+
+            if is_defined(required_signatures):
+                if required_signatures and branch_protection_settings.required_signatures is False:
+                    ghbranch.add_required_signatures()
+                elif not required_signatures and branch_protection_settings.required_signatures is True:
+                    ghbranch.remove_required_signatures()
+
+            # if required pull requests are not enabled but present live, we need to explicitly remove them
+            if (
+                is_defined(required_pull_request_reviews)
+                and branch_protection_settings.required_pull_request_reviews is not None
+            ):
+                branch_changes.append("Remove required pull request reviews")
+                ghbranch.remove_required_pull_request_reviews()
+
+            # if required status checks are not enabled but present live, we need to explicitly remove them
+            if is_defined(required_status_checks) and branch_protection_settings.required_status_checks is not None:
+                branch_changes.append("Remove required status checks")
+                ghbranch.remove_required_status_checks()
+
+        # Log all the changes we made to this branch
+        if branch_changes:
+            protection_changes[branch] = branch_changes
+
+    # remove branch protection from all remaining branches
+    for branch_name, branch in all_branches.items():
+        try:
+            branch.get_protection()
+        except pygithub.GithubException as e:
+            if e.status == 404:  # No existing branch protection, skip
+                continue
+            else:
+                # propagate other errors, GitHub API might have an outage
+                raise e
+
+        protection_changes[branch] = [f"Remove branch protection from branch '{branch_name}'"]
+
+        if not self.noop("github::protected_branches"):
+            branch.remove_protection()
 
     if protection_changes:
         summary = ""

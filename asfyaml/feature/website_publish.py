@@ -23,6 +23,7 @@ import re
 import requests
 import strictyaml
 
+
 def validate_subdir(subdir):
     """Validates a sub-directory for projects with multiple website repos."""
     if not re.match(r"^[-._a-zA-Z0-9/]+$", subdir):
@@ -42,7 +43,8 @@ class ASFWebsitePublishingFeature(ASFYamlFeature, name="publish", priority=9):
             strictyaml.Optional("subdir", default=None): strictyaml.Str(),
             strictyaml.Optional("type", default="website"): strictyaml.Str(),
             strictyaml.Optional("hostname", default=None): strictyaml.Str(),
-        })
+        }
+    )
 
     def run(self):
         """Publishing for websites. Sample entry .asf.yaml entry:
@@ -61,8 +63,8 @@ class ASFWebsitePublishingFeature(ASFYamlFeature, name="publish", priority=9):
                 raise Exception(
                     f".asf.yaml: Invalid hostname '{hostname}' - you cannot specify *.apache.org hostnames, they must be inferred!"
                 )
-        else:
-            hostname = f"{self.repository.hostname}.apache.org"  # Infer hostname if not supplied.
+        elif not hostname:  # Infer hostname if not supplied.
+            hostname = f"{self.repository.hostname}.apache.org"
 
         # If whoami specified, ignore this payload if branch does not match
         whoami = self.yaml.get("whoami")

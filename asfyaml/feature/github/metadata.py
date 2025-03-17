@@ -16,6 +16,7 @@
 # under the License.
 
 """GitHub metadata features"""
+
 import re
 import os
 from . import directive, ASFGitHubFeature
@@ -42,12 +43,11 @@ def set_labels(self: ASFGitHubFeature):
 def set_homepage_desc(self: ASFGitHubFeature):
     desc = self.yaml.get("description")
     homepage = self.yaml.get("homepage")
-    if desc:
-        if not self.noop("description"):
-            self.ghrepo.edit(description=desc)
-            # Update on gitbox as well
-            desc_path = os.path.join(self.repository.path, "description")
-            with open(desc_path, "w", encoding="utf8") as f:
-                f.write(desc)
+    if desc and not self.noop("description"):
+        self.ghrepo.edit(description=desc)
+        # Update on gitbox as well
+        desc_path = os.path.join(self.repository.path, "description")
+        with open(desc_path, "w", encoding="utf8") as f:
+            f.write(desc)
     if homepage and not self.noop("homepage"):
         self.ghrepo.edit(homepage=homepage)

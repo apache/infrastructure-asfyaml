@@ -16,6 +16,7 @@
 # under the License.
 
 """GitHub pages feature"""
+
 from . import directive, ASFGitHubFeature, GH_TOKEN_FILE
 import requests
 
@@ -45,9 +46,9 @@ def config_pages(self: ASFGitHubFeature):
             print(f"Would have set GHP to branch '{ghp_branch}' and path '{ghp_path}'.")
             return
 
-        GHP_URL = f"https://api.github.com/repos/apache/{self.repository.name}/pages"
+        GHP_URL = f"https://api.github.com/repos/{self.repository.org_id}/{self.repository.name}/pages"
         GHP_TOKEN = open(GH_TOKEN_FILE).read().strip()
-        
+
         # Test if GHP is enabled already
         rv = requests.get(
             GHP_URL,
