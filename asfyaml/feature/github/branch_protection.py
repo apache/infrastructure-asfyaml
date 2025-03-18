@@ -17,10 +17,69 @@
 
 """GitHub branch protections"""
 
+from typing import Mapping, Any
 import github as pygithub
 from github.GithubObject import NotSet, Opt, is_defined
-
 from . import directive, ASFGitHubFeature
+
+
+def run_paged_graphql_query(
+    self: ASFGitHubFeature,
+    input_variables: Mapping[str, Any],
+    query: str,
+) -> list[Mapping[str, Any]]:
+    finished = False
+    end_cursor = None
+    total_result = []
+
+    while not finished:
+        variables = {"endCursor": end_cursor}
+        variables.update(input_variables)
+
+        headers, data = self.ghrepo._requester.graphql_query(query, variables)
+        result = data["data"]["repository"]["branchProtectionRules"]["nodes"]
+
+        for rule in result:
+            total_result.append(rule)
+
+        page_info = data["data"]["repository"]["branchProtectionRules"]["pageInfo"]
+        if page_info["hasNextPage"]:
+            end_cursor = page_info["endCursor"]
+        else:
+            finished = True
+
+    return result
+
+
+def get_protected_branches(self: ASFGitHubFeature) -> list[str]:
+    variables = {"organization": self.repository.org_id, "repository": self.repository.name}
+
+    try:
+        result = run_paged_graphql_query(
+            self,
+            variables,
+            """
+query($endCursor: String, $organization: String!, $repository: String!) {
+  repository(owner: $organization, name: $repository) {
+    branchProtectionRules(first: 100, after: $endCursor) {
+      nodes {
+        id
+        pattern
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+}
+""",
+        )
+    except KeyError as ex:
+        print(f"Error: failed to retrieve current protected branches: {ex!s}")
+        return []
+
+    return list(map(lambda x: x["pattern"], result))
 
 
 @directive
@@ -32,6 +91,20 @@ def branch_protection(self: ASFGitHubFeature):
     # A map to keep track of all branches to determine from which we should remove protections
     all_branches = {branch.name: branch for branch in self.ghrepo.get_branches()}
 
+    # Collect all branches that have active branch protection rules
+    try:
+        bpr_patterns = get_protected_branches(self)
+    except Exception as ex:
+        print(f"Error: failed to retrieve current protected branches: {ex!s}")
+        bpr_patterns = []
+
+    # TODO: this does not take the fnmatch pattern into account yet
+    #       but only maps patterns directly to branch names.
+    protected_branches = {}
+    for pattern in bpr_patterns:
+        if pattern in all_branches:
+            protected_branches[pattern] = all_branches[pattern]
+
     branches = self.yaml.get("protected_branches", {})
     # If protected_branches is set to ~ (None), reset it to an empty map
     # We still need to remove existing branch protection rules from all existing branches later on
@@ -40,8 +113,8 @@ def branch_protection(self: ASFGitHubFeature):
 
     protection_changes = {}
     for branch, brsettings in branches.items():
-        if branch in all_branches:
-            all_branches.pop(branch)
+        if branch in protected_branches:
+            protected_branches.pop(branch)
 
         branch_changes = []
         try:
@@ -211,25 +284,12 @@ def branch_protection(self: ASFGitHubFeature):
         if branch_changes:
             protection_changes[branch] = branch_changes
 
-    # TODO: disabled for now as this leads to quite some performance degradation
-    #       in repos with lots of branches
-    #       consider doing a graphql query to get protected branches and then
-    #       only disable branch protection for them
-    # remove branch protection from all remaining branches
-    # for branch_name, branch in all_branches.items():
-    #     try:
-    #         branch.get_protection()
-    #     except pygithub.GithubException as e:
-    #         if e.status == 404:  # No existing branch protection, skip
-    #             continue
-    #         else:
-    #             # propagate other errors, GitHub API might have an outage
-    #             raise e
-    #
-    #     protection_changes[branch] = [f"Remove branch protection from branch '{branch_name}'"]
-    #
-    #     if not self.noop("github::protected_branches"):
-    #         branch.remove_protection()
+    # remove branch protection from all remaining protected branches
+    for branch_name, branch in protected_branches.items():
+        protection_changes[branch] = [f"Remove branch protection from branch '{branch_name}'"]
+
+        if not self.noop("github::protected_branches"):
+            branch.remove_protection()
 
     if protection_changes:
         summary = ""
