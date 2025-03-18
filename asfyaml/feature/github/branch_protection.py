@@ -284,10 +284,10 @@ def branch_protection(self: ASFGitHubFeature):
 
     # remove branch protection from all remaining protected branches
     for branch_name in protected_branches:
+        branch = self.ghrepo.get_branch(branch_name)
         protection_changes[branch] = [f"Remove branch protection from branch '{branch_name}'"]
 
         if not self.noop("github::protected_branches"):
-            branch = self.ghrepo.get_branch(branch_name)
             branch.remove_protection()
 
     if protection_changes:
