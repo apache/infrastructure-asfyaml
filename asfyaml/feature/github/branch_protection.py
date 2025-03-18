@@ -48,7 +48,7 @@ def run_paged_graphql_query(
         else:
             finished = True
 
-    return result
+    return total_result
 
 
 def get_protected_branches(self: ASFGitHubFeature) -> list[str]:
