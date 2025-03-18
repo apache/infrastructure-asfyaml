@@ -196,14 +196,14 @@ def branch_protection(self: ASFGitHubFeature):
 
             # if required pull requests are not enabled but present live, we need to explicitly remove them
             if (
-                is_defined(required_pull_request_reviews)
+                not is_defined(required_pull_request_reviews)
                 and branch_protection_settings.required_pull_request_reviews is not None
             ):
                 branch_changes.append("Remove required pull request reviews")
                 ghbranch.remove_required_pull_request_reviews()
 
             # if required status checks are not enabled but present live, we need to explicitly remove them
-            if is_defined(required_status_checks) and branch_protection_settings.required_status_checks is not None:
+            if not is_defined(required_status_checks) and branch_protection_settings.required_status_checks is not None:
                 branch_changes.append("Remove required status checks")
                 ghbranch.remove_required_status_checks()
 
