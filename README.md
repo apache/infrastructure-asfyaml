@@ -474,6 +474,9 @@ github:
   protected_branches: ~
 ~~~
 
+***Note***
+Removal of branch protection rules as described above is currently not supported due to performance degradations because of that.
+
 <h3 id="customsubject">Custom subject lines for GitHub events</h3>
 
 You can customize the subject lines for GitHub events (issues and pull requests being opened, closed, and commented on) on a per-repository basis.

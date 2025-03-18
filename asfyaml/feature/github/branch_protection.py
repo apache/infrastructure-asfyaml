@@ -211,21 +211,25 @@ def branch_protection(self: ASFGitHubFeature):
         if branch_changes:
             protection_changes[branch] = branch_changes
 
+    # TODO: disabled for now as this leads to quite some performance degradation
+    #       in repos with lots of branches
+    #       consider doing a graphql query to get protected branches and then
+    #       only disable branch protection for them
     # remove branch protection from all remaining branches
-    for branch_name, branch in all_branches.items():
-        try:
-            branch.get_protection()
-        except pygithub.GithubException as e:
-            if e.status == 404:  # No existing branch protection, skip
-                continue
-            else:
-                # propagate other errors, GitHub API might have an outage
-                raise e
-
-        protection_changes[branch] = [f"Remove branch protection from branch '{branch_name}'"]
-
-        if not self.noop("github::protected_branches"):
-            branch.remove_protection()
+    # for branch_name, branch in all_branches.items():
+    #     try:
+    #         branch.get_protection()
+    #     except pygithub.GithubException as e:
+    #         if e.status == 404:  # No existing branch protection, skip
+    #             continue
+    #         else:
+    #             # propagate other errors, GitHub API might have an outage
+    #             raise e
+    #
+    #     protection_changes[branch] = [f"Remove branch protection from branch '{branch_name}'"]
+    #
+    #     if not self.noop("github::protected_branches"):
+    #         branch.remove_protection()
 
     if protection_changes:
         summary = ""
