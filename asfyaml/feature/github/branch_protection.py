@@ -23,7 +23,7 @@ from github.GithubObject import NotSet, Opt, is_defined
 from . import directive, ASFGitHubFeature
 
 
-def run_paged_graphql_query(
+def _run_paged_graphql_query(
     self: ASFGitHubFeature,
     input_variables: Mapping[str, Any],
     query: str,
@@ -37,12 +37,12 @@ def run_paged_graphql_query(
         variables.update(input_variables)
 
         headers, data = self.ghrepo._requester.graphql_query(query, variables)
-        result = data["data"]["repository"]["branchProtectionRules"]["nodes"]
+        result = data["data"]["repository"]["refs"]["nodes"]
 
         for rule in result:
             total_result.append(rule)
 
-        page_info = data["data"]["repository"]["branchProtectionRules"]["pageInfo"]
+        page_info = data["data"]["repository"]["refs"]["pageInfo"]
         if page_info["hasNextPage"]:
             end_cursor = page_info["endCursor"]
         else:
@@ -51,20 +51,22 @@ def run_paged_graphql_query(
     return total_result
 
 
-def get_protected_branches(self: ASFGitHubFeature) -> list[str]:
-    variables = {"organization": self.repository.org_id, "repository": self.repository.name}
+def get_head_refs(self: ASFGitHubFeature) -> list[Mapping[str, Any]]:
+    variables = {"organization": self.repository.org_id, "repository": self.repository.name, "refPrefix": "refs/heads/"}
 
     try:
-        result = run_paged_graphql_query(
+        result = _run_paged_graphql_query(
             self,
             variables,
             """
-query($endCursor: String, $organization: String!, $repository: String!) {
+query($endCursor: String, $organization: String!, $repository: String!, $refPrefix: String!) {
   repository(owner: $organization, name: $repository) {
-    branchProtectionRules(first: 100, after: $endCursor) {
+    refs(first: 100, refPrefix: $refPrefix, after: $endCursor) {
       nodes {
-        id
-        pattern
+        name
+        branchProtectionRule {
+          pattern
+        }
       }
       pageInfo {
         hasNextPage
@@ -75,11 +77,10 @@ query($endCursor: String, $organization: String!, $repository: String!) {
 }
 """,
         )
+        return result
     except KeyError as ex:
-        print(f"Error: failed to retrieve current protected branches: {ex!s}")
+        print(f"Error: failed to retrieve current refs: {ex!s}")
         return []
-
-    return list(map(lambda x: x["pattern"], result))
 
 
 @directive
@@ -88,22 +89,19 @@ def branch_protection(self: ASFGitHubFeature):
     if "protected_branches" not in self.yaml:
         return
 
-    # A map to keep track of all branches to determine from which we should remove protections
-    all_branches = {branch.name: branch for branch in self.ghrepo.get_branches()}
-
-    # Collect all branches that have active branch protection rules
+    # Collect all branches and whether they have active branch protection rules
     try:
-        bpr_patterns = get_protected_branches(self)
+        refs = get_head_refs(self)
     except Exception as ex:
-        print(f"Error: failed to retrieve current protected branches: {ex!s}")
-        bpr_patterns = []
+        print(f"Error: failed to retrieve current refs: {ex!s}")
+        refs = []
 
-    # TODO: this does not take the fnmatch pattern into account yet
-    #       but only maps patterns directly to branch names.
-    protected_branches = {}
-    for pattern in bpr_patterns:
-        if pattern in all_branches:
-            protected_branches[pattern] = all_branches[pattern]
+    protected_branches = set()
+    for ref in refs:
+        name = ref["name"]
+        branch_protection = ref.get("branchProtectionRule")
+        if branch_protection is not None:
+            protected_branches.add(name)
 
     branches = self.yaml.get("protected_branches", {})
     # If protected_branches is set to ~ (None), reset it to an empty map
@@ -114,7 +112,7 @@ def branch_protection(self: ASFGitHubFeature):
     protection_changes = {}
     for branch, brsettings in branches.items():
         if branch in protected_branches:
-            protected_branches.pop(branch)
+            protected_branches.remove(branch)
 
         branch_changes = []
         try:
@@ -285,7 +283,8 @@ def branch_protection(self: ASFGitHubFeature):
             protection_changes[branch] = branch_changes
 
     # remove branch protection from all remaining protected branches
-    for branch_name, branch in protected_branches.items():
+    for branch_name in protected_branches:
+        branch = self.ghrepo.get_branch(branch_name)
         protection_changes[branch] = [f"Remove branch protection from branch '{branch_name}'"]
 
         if not self.noop("github::protected_branches"):
