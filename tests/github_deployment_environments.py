@@ -16,6 +16,7 @@
 # under the License.
 
 """Unit tests for .asf.yaml GitHub Deployment Environments feature"""
+import re
 
 import asfyaml.asfyaml
 import asfyaml.dataobjects
@@ -41,7 +42,7 @@ github:
 
 invalid_wait_timer = YamlTest(
     asfyaml.asfyaml.ASFYAMLException,
-    "Deployment Environment validation failed: \n{\n  \"test-pypi\": [\n    \"wait_timer must be between 0 and 43200\"\n  ]\n}",
+    re.escape("Deployment Environment validation failed: \n{\n  \"test-pypi\": [\n    \"wait_timer must be between 0 and 43200\"\n  ]\n}"),
     """
 github:
     environments:
@@ -54,7 +55,7 @@ github:
 
 invalid_deployment_branch_policy = YamlTest(
     asfyaml.asfyaml.ASFYAMLException,
-    "Deployment Environment validation failed: \n{\n  \"test-pypi\": [\n    \"protected_branches and policies cannot be enabled at the same time\"\n  ]\n}",
+    re.escape("Deployment Environment validation failed: \n{\n  \"test-pypi\": [\n    \"protected_branches and policies cannot be enabled at the same time\"\n  ]\n}"),
     """
 github:
     environments:

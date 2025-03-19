@@ -19,7 +19,6 @@
 
 import contextlib
 import pytest
-import re
 
 class YamlTest:
     """A validator test that has an expected outcome (exception, errormessage) and a YAML input"""
@@ -32,7 +31,7 @@ class YamlTest:
     def ctx(self):
         if self.exception:
             if self.errmsg:
-                my_ctx = pytest.raises(self.exception, match=re.escape(self.errmsg))
+                my_ctx = pytest.raises(self.exception, match=self.errmsg)
             else:
                 my_ctx = pytest.raises(self.exception)
         else:
