@@ -19,7 +19,6 @@
 
 from asfyaml.asfyaml import ASFYamlFeature, ASFYamlInstance, DEBUG
 import asfyaml.validators
-from strictyaml import Seq, Map
 import strictyaml
 import os
 import sys
@@ -137,24 +136,31 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             # Dependabot
             strictyaml.Optional("dependabot_alerts"): strictyaml.Bool(),
             strictyaml.Optional("dependabot_updates"): strictyaml.Bool(),
-
             # Deployment environments
-            strictyaml.Optional("environments"):  strictyaml.MapPattern(strictyaml.Str(), Map({
-                "required_reviewers": Seq(Map({
-                    "id": strictyaml.Str(),
-                    "type":strictyaml.Str()
-                })),
-                strictyaml.Optional("prevent_self_review"): strictyaml.Bool(),
-                strictyaml.Optional("wait_timer"): strictyaml.Int(),
-                "deployment_branch_policy": Map({
-                    "protected_branches": strictyaml.Bool(),
-                    "custom_branch_policies": strictyaml.Bool(),
-                    strictyaml.Optional("policies"): Seq(Map({
-                        "name": strictyaml.Str(),
-                        strictyaml.Optional("type"): strictyaml.Str()
-                    }))
-                })
-            })),
+            strictyaml.Optional("environments"): strictyaml.MapPattern(strictyaml.Str(), strictyaml.Map(
+                {
+                    "required_reviewers": strictyaml.Seq(strictyaml.Map(
+                        {
+                            "id": strictyaml.Str(),
+                            "type":strictyaml.Str()
+                        }
+                    )),
+                    strictyaml.Optional("prevent_self_review"): strictyaml.Bool(),
+                    strictyaml.Optional("wait_timer"): strictyaml.Int(),
+                    "deployment_branch_policy": strictyaml.Map(
+                        {
+                            "protected_branches": strictyaml.Bool(),
+                            "custom_branch_policies": strictyaml.Bool(),
+                            strictyaml.Optional("policies"): strictyaml.Seq(strictyaml.Map(
+                                {
+                                    "name": strictyaml.Str(),
+                                    strictyaml.Optional("type"): strictyaml.Str()
+                                }
+                            ))
+                        }
+                    )
+                }
+            )),
         }
     )
 
