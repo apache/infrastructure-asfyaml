@@ -99,8 +99,8 @@ def branch_protection(self: ASFGitHubFeature):
     protected_branches = set()
     for ref in refs:
         name = ref["name"]
-        branch_protection = ref.get("branchProtectionRule")
-        if branch_protection is not None:
+        branch_protection_rule = ref.get("branchProtectionRule")
+        if branch_protection_rule is not None:
             protected_branches.add(name)
 
     branches = self.yaml.get("protected_branches", {})
