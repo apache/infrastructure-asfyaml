@@ -59,7 +59,7 @@ It operates on a per-branch basis, meaning you can have different settings for d
       <li><a href="#repo_features">Repository features</a></li>
       <li><a href="#repo_meta">Repository metadata</a></li>
       <li><a href="#tag_protect">Tag protection</a></li>
-      <li><a href="#environments">Repository deployment environments</a></li>
+      <li><a href="#environments">Deployment environments</a></li>
     </ul>
   </li>
   <li><a href="#static">Generating static website content</a>
