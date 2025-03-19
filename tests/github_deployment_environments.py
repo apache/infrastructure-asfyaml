@@ -16,16 +16,9 @@
 # under the License.
 
 """Unit tests for .asf.yaml GitHub Deployment Environments feature"""
-import re
-from unittest.mock import patch, Mock
-
-import pytest
 
 import asfyaml.asfyaml
 import asfyaml.dataobjects
-from asfyaml.feature.github.deployment_environments import validate_environment_configs, get_deployment_policies, \
-    create_deployment_environment, get_user_id, create_deployment_branch_policy, \
-    delete_deployment_branch_policy
 from helpers import YamlTest
 
 # Set .asf.yaml to debug mode
@@ -39,50 +32,40 @@ github:
     environments:
         test-pypi:
           required_reviewers:
-            - id: gopidesupavan
-              type: User
-          prevent_self_review: true
+            - id: 1234
           wait_timer: 60
           deployment_branch_policy:
              protected_branches: true
-             custom_branch_policies: false
 """,
 )
 
-# Something isn't a bool
-invalid_github_deployment_environment_prevent_self_review_not_bool = YamlTest(
+invalid_wait_timer = YamlTest(
     asfyaml.asfyaml.ASFYAMLException,
-    "expecting a boolean value",
+    "Deployment Environment validation failed: \n{\n  \"test-pypi\": [\n    \"wait_timer must be between 0 and 43200\"\n  ]\n}",
     """
 github:
     environments:
         test-pypi:
           required_reviewers:
-            - id: gopidesupavan
-              type: User
-          prevent_self_review: dummy
-          wait_timer: 60
-          deployment_branch_policy:
-             protected_branches: true
-             custom_branch_policies: false
+            - id: 1234
+          wait_timer: -1
 """,
 )
 
-# Something isn't a valid directive
-missing_required_section = YamlTest(
+invalid_deployment_branch_policy = YamlTest(
     asfyaml.asfyaml.ASFYAMLException,
-    "\'protected_branches\' not found",
+    "Deployment Environment validation failed: \n{\n  \"test-pypi\": [\n    \"protected_branches and policies cannot be enabled at the same time\"\n  ]\n}",
     """
 github:
     environments:
         test-pypi:
           required_reviewers:
-            - id: gopidesupavan
-              type: User
-          prevent_self_review: true
-          wait_timer: 60
+            - id: 1234
+          wait_timer: 15
           deployment_branch_policy:
-             custom_branch_policies: false
+            protected_branches: true
+            policies:
+             - name: main
 """,
 )
 
@@ -92,259 +75,13 @@ def test_basic_yaml(test_repo: asfyaml.dataobjects.Repository):
 
     tests_to_run = (
         valid_github_deployment_environments,
-        invalid_github_deployment_environment_prevent_self_review_not_bool,
-        missing_required_section
+        invalid_wait_timer,
+        invalid_deployment_branch_policy
     )
 
     for test in tests_to_run:
-        with test.ctx() as vs:
-            a = asfyaml.asfyaml.ASFYamlInstance(test_repo, "humbedooh", test.yaml)
+        with test.ctx():
+            a = asfyaml.asfyaml.ASFYamlInstance(test_repo, "anonymous", test.yaml)
             a.environments_enabled.add("noop")
             a.no_cache = True
             a.run_parts()
-
-def test_validate_environment_configs_valid():
-    errors = validate_environment_configs(
-        {
-            "test-pypi": {
-                "required_reviewers": [
-                    {
-                        "id": "gopidesupavan",
-                        "type": "User"
-                    }
-                ],
-                "prevent_self_review": True,
-                "wait_timer": 60,
-                "deployment_branch_policy": {
-                    "protected_branches": True,
-                    "custom_branch_policies": False
-                }
-            }
-        }
-    )
-    assert not errors
-
-def test_validate_environment_configs_invalid():
-    errors = validate_environment_configs(
-        {
-            "test-pypi": {
-                "required_reviewers": [
-                    {
-                        "id": "gopidesupavan",
-                        "type": "User"
-                    }
-                ],
-                "prevent_self_review": True,
-                "wait_timer": 60,
-                "deployment_branch_policy": {
-                    "protected_branches": True,
-                    "custom_branch_policies": True
-                }
-            }
-        }
-    )
-    assert "protected_branches and custom_branch_policies cannot be enabled at the same time" in errors[0]["error"]
-
-@patch('requests.get')
-def test_get_deployment_policies_has_some_policies(mock_get):
-    mock_response = Mock()
-    expected_policies = [{
-        "id": 361471,
-        "node_id": "MDE2OkdhdGVCcmFuY2hQb2xpY3kzNjE0NzE=",
-        "name": "release/*"
-        },
-        {
-            "id": 361472,
-            "node_id": "MDE2OkdhdGVCcmFuY2hQb2xpY3kzNjE0NzI=",
-            "name": "main"
-        }]
-
-    mock_response.json.return_value = {
-        "total_count": 2,
-        "branch_policies": [{
-            "id": 361471,
-            "node_id": "MDE2OkdhdGVCcmFuY2hQb2xpY3kzNjE0NzE=",
-            "name": "release/*"
-        },
-            {
-                "id": 361472,
-                "node_id": "MDE2OkdhdGVCcmFuY2hQb2xpY3kzNjE0NzI=",
-                "name": "main"
-            }
-        ]
-    }
-
-    mock_get.return_value = mock_response
-
-    repo_name = "test-repo"
-    token = "test-token"
-    environment_name = "test-environment"
-
-    policies = get_deployment_policies(repo_name, token, environment_name)
-    assert policies == expected_policies
-    mock_get.assert_called_once_with(
-        "https://api.github.com/repos/apache/test-repo/environments/test-environment/deployment-branch-policies",
-        headers={"Authorization": "token test-token", "Accept": "application/vnd.github+json"}
-    )
-
-@patch('requests.get')
-def test_get_deployment_policies_has_no_policies(mock_get):
-    mock_response = Mock()
-
-    mock_response.json.return_value = {}
-    mock_get.return_value = mock_response
-
-    repo_name = "test-repo"
-    token = "test-token"
-    environment_name = "test-environment"
-
-    policies = get_deployment_policies(repo_name, token, environment_name)
-    assert policies == []
-    mock_get.assert_called_once_with(
-        "https://api.github.com/repos/apache/test-repo/environments/test-environment/deployment-branch-policies",
-        headers={"Authorization": "token test-token", "Accept": "application/vnd.github+json"}
-    )
-
-@pytest.mark.parametrize("env_config", [
-    {
-        "required_reviewers": [
-            {
-                "id": "gopidesupavan",
-                "type": "User"
-            }
-        ],
-        "prevent_self_review": True,
-        "wait_timer": 60,
-        "deployment_branch_policy": {
-            "protected_branches": True,
-            "custom_branch_policies": False
-        }
-    },
-    {
-        "required_reviewers": [
-            {
-                "id": "anotheruser",
-                "type": "User"
-            }
-        ],
-        "prevent_self_review": False,
-        "wait_timer": 30,
-        "deployment_branch_policy": {
-            "protected_branches": False,
-            "custom_branch_policies": True
-        }
-    }
-], ids=["with_protected_branches", "with_custom_branch_policies"])
-@patch("asfyaml.feature.github.deployment_environments.get_user_id")
-@patch('asfyaml.feature.github.deployment_environments.pygithub.Github')
-def test_create_deployment_environment(mock_github, mock_get_user_id, env_config):
-    mock_get_user_id.return_value = 123456
-    mock_gh_repo = Mock()
-
-    mock_github.return_value.get_repo.return_value = mock_gh_repo
-    gh_session = mock_github.return_value
-
-    create_deployment_environment(
-        gh_session,
-        mock_gh_repo,
-        "test-environment",
-        env_config,
-    )
-
-    actual_call = mock_gh_repo.create_environment.call_args
-
-    assert actual_call[1]['environment_name'] == "test-environment"
-    assert actual_call[1]['wait_timer'] == env_config["wait_timer"]
-    assert actual_call[1]['reviewers'][0].type == env_config["required_reviewers"][0]["type"]
-    assert actual_call[1]['reviewers'][0].id == 123456
-    assert actual_call[1]['deployment_branch_policy'].protected_branches == env_config["deployment_branch_policy"][
-        "protected_branches"]
-    assert actual_call[1]['deployment_branch_policy'].custom_branch_policies == env_config["deployment_branch_policy"][
-        "custom_branch_policies"]
-
-def test_get_user_id_with_user_name():
-    mock_gh_session = Mock()
-    mock_user = Mock()
-    mock_user.id = 123456
-    mock_gh_session.get_user.return_value = mock_user
-    user_id = get_user_id(mock_gh_session,"gopidesupavan")
-    assert user_id == 123456
-
-def test_get_user_id_with_id():
-    mock_gh_session = Mock()
-    user_id = get_user_id(mock_gh_session,123456)
-    assert user_id == 123456
-
-@patch('requests.post')
-def test_create_deployment_branch_policy_success(mock_post):
-    mock_response = Mock()
-    mock_response.json.return_value = {
-        "id": 364663,
-        "node_id": "MDE2OkdhdGVCcmFuY2hQb2xpY3kzNjQ2NjM=",
-        "name": "main"
-    }
-    mock_response.status_code = 200
-    mock_post.return_value = mock_response
-
-    create_deployment_branch_policy(
-        "test-repo",
-        "test-token",
-        "test-environment",
-        [{"type": "branch", "name": "main"}]
-    )
-    mock_post.assert_called_once_with(
-        url="https://api.github.com/repos/apache/test-repo/environments/test-environment/deployment-branch-policies",
-        headers={"Authorization": "token test-token", "Accept": "application/vnd.github+json"},
-        json={"type": "branch", "name": "main"}
-    )
-
-@patch('requests.post')
-def test_create_deployment_branch_policy_failed(mock_post):
-    mock_response = Mock()
-    mock_response.json.return_value = {
-        "message": "Not Found"
-    }
-    mock_response.status_code = 404
-    mock_post.return_value = mock_response
-
-    with pytest.raises(Exception, match=re.escape('[GitHub] Request error with message: "Not Found". (status code: 404)')):
-        create_deployment_branch_policy(
-            "test-repo",
-            "test-token",
-            "test-environment",
-            [{"type": "branch", "name": "main"}]
-        )
-
-@patch('requests.delete')
-def test_delete_deployment_branch_policy_success(mock_delete):
-    mock_response = Mock()
-    mock_response.status_code = 204
-    mock_delete.return_value = mock_response
-
-    delete_deployment_branch_policy(
-        "test-repo",
-        "test-token",
-        "test-environment",
-        123456
-    )
-    mock_delete.assert_called_once_with(
-        url="https://api.github.com/repos/apache/test-repo/environments/test-environment/deployment-branch-policies/123456",
-        headers={"Authorization": "token test-token", "Accept": "application/vnd.github+json"}
-    )
-
-@patch('requests.delete')
-def test_delete_deployment_branch_policy_failed(mock_delete):
-    mock_response = Mock()
-    mock_response.status_code = 404
-    mock_response.json.return_value = {
-        "message": "Not Found"
-    }
-    mock_delete.return_value = mock_response
-
-    with pytest.raises(Exception, match=re.escape('[GitHub] Request error with message: "Not Found". (status code: 404)')):
-        delete_deployment_branch_policy(
-            "test-repo",
-            "test-token",
-            "test-environment",
-            123456
-        )
