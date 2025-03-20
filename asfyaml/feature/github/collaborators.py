@@ -52,7 +52,7 @@ def collaborators(self: ASFGitHubFeature):
         for user in to_add:
             print("Adding GitHub triage access for %s" % user)
             if not self.noop("collaborators"):
-                self.ghrepo.add_to_collaborators(user)
+                self.ghrepo.add_to_collaborators(user, permission="triage")
         with open(collab_file, "w") as f:
             f.write("\n".join(collabs))
             f.close()
