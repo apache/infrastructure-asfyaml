@@ -144,6 +144,10 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
         self._ghrepo: pygithubrepo.Repository | None = None
 
     @property
+    def can_access_live_data(self) -> bool:
+        return self._ghrepo is not None
+
+    @property
     def ghrepo(self) -> pygithubrepo.Repository:
         if self._ghrepo is None:
             raise RuntimeError("something went wrong, ghrepo is not set")

@@ -42,7 +42,11 @@ def collaborators(self: ASFGitHubFeature):
         if not re.match(r"^[A-Za-z\d](?:[-A-Za-z\d]|-(?=[A-Za-z\d])){0,38}$", user):
             raise Exception("Username %s in collaborator list is not a valid GitHub ID!" % user)
 
-    existing_collaborators = {c.login: c.permissions for c in self.ghrepo.get_collaborators()}
+    if self.can_access_live_data:
+        existing_collaborators = {c.login: c.permissions for c in self.ghrepo.get_collaborators()}
+    else:
+        existing_collaborators = {}
+
     existing_collaborators_by_login = set(existing_collaborators)
 
     to_remove = existing_collaborators_by_login - new_collabs
