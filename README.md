@@ -402,7 +402,7 @@ github:
 
 The following settings are supported:
 
-```yanl
+```yaml
 required_signatures: <boolean>
 required_linear_history: <boolean>
 required_conversation_resolution: <boolean>
