@@ -59,6 +59,7 @@ VALID_PRIVATE_TARGETS = [
     "private@*",
     "security@*",
     "commits@infra.apache.org",
+    "private-commits@tooling.apache.org",
 ]
 
 # regex for valid ASF mailing list
