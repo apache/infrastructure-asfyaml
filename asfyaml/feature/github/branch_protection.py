@@ -228,6 +228,11 @@ def branch_protection(self: ASFGitHubFeature):
             ):
                 branch_changes.append(f"Set dismiss stale reviews to {dismiss_stale_reviews}")
 
+            if is_defined(require_last_push_approval) and (
+                live_reviews is None or require_last_push_approval != live_reviews.require_last_push_approval
+            ):
+                branch_changes.append(f"Set require last push approval to {require_last_push_approval}")
+
         if is_defined(required_status_checks):
             if live_branch_protection_settings is None:
                 live_status_checks = None
