@@ -75,6 +75,6 @@ jobs:
           ruff check
 
       - name: Run mypy
-        if always():
+        if: always()
         run: |
           mypy .
