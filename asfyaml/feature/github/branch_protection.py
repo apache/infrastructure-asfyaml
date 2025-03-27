@@ -146,10 +146,12 @@ def branch_protection(self: ASFGitHubFeature):
             required_approving_review_count = required_pull_request_reviews.get("required_approving_review_count", 0)
             require_code_owner_reviews = required_pull_request_reviews.get("require_code_owner_reviews")
             dismiss_stale_reviews = required_pull_request_reviews.get("dismiss_stale_reviews", NotSet)
+            require_last_push_approval = required_pull_request_reviews.get("require_last_push_approval", NotSet)
         else:
             required_pull_request_reviews = NotSet
             required_approving_review_count = NotSet
             dismiss_stale_reviews = NotSet
+            require_last_push_approval = NotSet
             require_code_owner_reviews = NotSet
 
         required_checks: Opt[list[tuple[str, int]]]
@@ -255,6 +257,7 @@ def branch_protection(self: ASFGitHubFeature):
                 required_approving_review_count=required_approving_review_count,
                 dismiss_stale_reviews=dismiss_stale_reviews,
                 require_code_owner_reviews=require_code_owner_reviews,
+                require_last_push_approval=require_last_push_approval,
                 strict=require_strict,
                 checks=required_checks,  # type: ignore
             )
