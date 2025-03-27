@@ -70,6 +70,10 @@ jobs:
         run: |
           poetry run pre-commit run --show-diff-on-failure --color=always --all-files
 
+      - name: Installs
+        run: |
+          python3 -m pip install mypy ruff
+
       - name: Run ruff check
         run: |
           ruff check
