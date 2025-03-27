@@ -386,6 +386,7 @@ github:
           - another/build-that-must-pass
       required_pull_request_reviews:
         dismiss_stale_reviews: true
+        require_last_push_approval: false
         required_approving_review_count: 3
 
       # squash or rebase must be allowed in the repo for this setting to be set to true.
@@ -408,6 +409,7 @@ required_linear_history: <boolean>
 required_conversation_resolution: <boolean>
 required_pull_request_reviews:
   dismiss_stale_reviews: <boolean>
+  require_last_push_approval: <boolean>
   require_code_owner_reviews: <boolean>
   required_approving_review_count: <integer>
 required_status_checks:
@@ -427,6 +429,7 @@ required_linear_history: false
 required_conversation_resolution: false
 required_pull_request_reviews:
   dismiss_stale_reviews: false
+  require_last_push_approval: false
   require_code_owner_reviews: false
   required_approving_review_count: 0
 required_status_checks:
