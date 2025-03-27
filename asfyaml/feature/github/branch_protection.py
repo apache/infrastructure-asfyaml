@@ -255,6 +255,7 @@ def branch_protection(self: ASFGitHubFeature):
                 required_approving_review_count=required_approving_review_count,
                 dismiss_stale_reviews=dismiss_stale_reviews,
                 require_code_owner_reviews=require_code_owner_reviews,
+                require_last_push_approval=require_last_push_approval,
                 strict=require_strict,
                 checks=required_checks,  # type: ignore
             )
