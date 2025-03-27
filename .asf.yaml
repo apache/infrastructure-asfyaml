@@ -10,3 +10,5 @@ github:
     - yaml
     - git
     - github
+notifications:
+  jobs:         notifications@infra.apache.org
