@@ -503,6 +503,8 @@ github:
 
 The format follows a dictionary/hash with an event type and a subject line template.
 
+<h2 id="supported-event-types">Supported Event Types</h2>
+
 The following **event types** are currently supported:
 
 | event type | notes |
@@ -518,6 +520,8 @@ The following **event types** are currently supported:
 | catchall | If custom subjects are enabled for this repository, but no specific subject line template is defined for that event type, this will be used if present. If there is no `catchall`, and the event type does not have a template, the ASF default subject line will be used instead. |
 | catchall_discussions | Custom catch-all for discussions, as these use slightly different variables. |
 
+
+<h2 id="supported-template-variables">Supported Template Variables</h2>
 
 The **subject line templates** support the use of the following variables only. Custom variables or calls are **not** supported.
 
