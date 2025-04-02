@@ -21,6 +21,7 @@ import os
 import subprocess
 
 DEFAULT_BRANCH = "main"
+UNKNOWN_BRANCH = "--unknown-branch--"
 GIT_CMD = "/usr/bin/git"
 # COMMIT_FIELDS represent the data points we collect from commits when iterating over the change-sets
 COMMIT_FIELDS = [
