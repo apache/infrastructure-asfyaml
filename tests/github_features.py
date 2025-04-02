@@ -99,7 +99,9 @@ def test_basic_yaml(test_repo: asfyaml.dataobjects.Repository):
 
     for test in tests_to_run:
         with test.ctx() as vs:
-            a = asfyaml.asfyaml.ASFYamlInstance(test_repo, "humbedooh", test.yaml)
+            a = asfyaml.asfyaml.ASFYamlInstance(
+                repo=test_repo, committer="humbedooh", config_data=test.yaml, branch=asfyaml.dataobjects.DEFAULT_BRANCH
+            )
             a.environments_enabled.add("noop")
             a.no_cache = True
             a.run_parts()

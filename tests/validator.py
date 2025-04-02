@@ -34,7 +34,9 @@ def test_basic_yaml(base_path: Path, test_repo: asfyaml.dataobjects.Repository):
     expected_envs = {"production", "quietmode"}  # We expect these two envs enabled
     expected_minimum_features = {"test"}
     basic_yaml = open(base_path.joinpath("data/basic-dev-env.yaml"), "r").read()
-    a = asfyaml.asfyaml.ASFYamlInstance(test_repo, "humbedooh", basic_yaml)
+    a = asfyaml.asfyaml.ASFYamlInstance(
+        repo=test_repo, committer="humbedooh", config_data=basic_yaml, branch=asfyaml.dataobjects.DEFAULT_BRANCH
+    )
     a.run_parts()
 
     # We should have both prod+dev envs enabled here
