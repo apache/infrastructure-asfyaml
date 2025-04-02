@@ -59,7 +59,7 @@ def cli():
             "no GitHub token has been provided, either add a '--token' argument or set a 'GH_TOKEN' env variable."
         )
 
-    a = ASFYamlInstance(repo, "anonymous", yml_content)
+    a = ASFYamlInstance(repo, "anonymous", yml_content, dataobjects.DEFAULT_BRANCH)
 
     if args.noop:
         a.environments_enabled.add("noop")
@@ -89,7 +89,7 @@ def validate():
     os.environ["PATH_INFO"] = repo_path.name
     os.environ["GIT_PROJECT_ROOT"] = str(repo_path.parent)
 
-    a = ASFYamlInstance(repo, "anonymous", yml_content)
+    a = ASFYamlInstance(repo, "anonymous", yml_content, dataobjects.DEFAULT_BRANCH)
 
     a.environments_enabled.add("production")
 
