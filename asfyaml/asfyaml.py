@@ -67,10 +67,16 @@ class ASFYamlInstance:
     def __init__(self, repo: dataobjects.Repository, committer: str, config_data: str, branch: str | None = None):
         self.repository = repo
         self.committer = dataobjects.Committer(committer)
+        self.is_tag = False
         if branch and branch.startswith("refs/heads/"):
             self.branch = branch[11:]  # If actual branch, crop and set
+        elif branch and branch.startswith("refs/tags/"):
+            print(f"For {repo.name}, got a tag event ({branch}) when expecting a branch event, not processing!")
+            self.is_tag = True
+            self.branch = dataobjects.UNKNOWN_BRANCH
         else:
-            self.branch = dataobjects.DEFAULT_BRANCH  # Not a valid branch pattern, set to default branch
+            self.branch = dataobjects.UNKNOWN_BRANCH  # Not a valid branch pattern, set to the "unknown branch" marker
+            # to avoid treating it as the main branch.
 
         # Load YAML and, if any parsing errors happen, bail and raise exception
         try:
@@ -152,6 +158,10 @@ class ASFYamlInstance:
         it, and an email with the error message(s) will be sent to the git client as well as
         private@$project.apache.org. The validate_only flag will cause run_parts to only run
         the validation part and then exit immediately afterwards"""
+        # If this is a tag, abort!
+        if self.is_tag:
+            return
+
         # For each enabled feature, spin up validation and runtime processing if directives are found
         # for the feature inside our .asf.yaml file.
         features_to_run = []
