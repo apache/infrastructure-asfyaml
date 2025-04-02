@@ -76,7 +76,7 @@ class ASFYamlInstance:
             self.branch = dataobjects.UNKNOWN_BRANCH
         else:
             self.branch = dataobjects.UNKNOWN_BRANCH  # Not a valid branch pattern, set to the "unknown branch" marker
-                                                      # to avoid treating it as the main branch.
+            # to avoid treating it as the main branch.
 
         # Load YAML and, if any parsing errors happen, bail and raise exception
         try:
