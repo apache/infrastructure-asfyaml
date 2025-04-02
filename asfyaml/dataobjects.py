@@ -20,7 +20,7 @@ import asfyaml.mappings as mappings
 import os
 import subprocess
 
-DEFAULT_BRANCH = "main"
+DEFAULT_BRANCH = "refs/heads/main"
 UNKNOWN_BRANCH = "--unknown-branch--"
 GIT_CMD = "/usr/bin/git"
 # COMMIT_FIELDS represent the data points we collect from commits when iterating over the change-sets
@@ -221,7 +221,7 @@ class Repository:
         if os.path.isfile(head_path):
             hb = open(head_path).read().removeprefix("ref: refs/heads/").strip()
         else:
-            hb = DEFAULT_BRANCH
+            hb = DEFAULT_BRANCH.removeprefix("refs/heads/")
         return hb
 
     @property
