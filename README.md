@@ -463,6 +463,7 @@ github:
       ...
 ~~~
 
+> [!NOTE] The `app_id` of GitHub Actions is `15368`
 
 All protected branches in the YAML must be dictionary entries. Thus, if you only want to disable force push from a branch, you can construct a **minimal dictionary**:
 
