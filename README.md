@@ -423,6 +423,7 @@ required_status_checks:
   checks:
     - context: <string>
       app_id: <integer>
+      app_slug: <string>
 ```
 
 If not explicitly specified, these values will be used by default:
@@ -439,14 +440,18 @@ required_pull_request_reviews:
 required_status_checks:
   strict: false
   contexts: ~
-  checks: ~
+  checks:
 ```
 
 **Notes**
   1. Enabling any of the above checks overrides what you may have set previously, so you'll need to add all the existing checks to your `.asf.yaml` file to reproduce any that Infra set manually for you.
   2. If you need to remove a required check in order to push a change to `.asf.yaml`, create an Infra Jira ticket with a request to have the check manually removed.
 
-Using the 'contexts' list will automatically set an app ID of `-1` (any source) for checks. If you wish to specify a specific source app ID, you can make use of the expanded `checks` list instead:
+Using the 'contexts' list will automatically set an app ID of `-1` (any source) for checks. If you wish to specify a specific source app, you can make use of the expanded `checks` list instead and provide:
+
+- either an `app_slug` like `github-actions` or `github-advanced-security`. The correctness of the slug can be checked
+  accessing the URL `https://github.com/apps/<app_slug>`, e.g. https://github.com/apps/github-actions.
+- or an `app_id`
 
 ~~~yaml
 github:
@@ -456,10 +461,17 @@ github:
         # strict means "Require branches to be up to date before merging".
         strict: true
         checks:
+          # A Github Actions workflow name that must pass
+          - context: build / build (ubuntu-latest)
+            app_slug: github-actions
+          # A security check that must pass
+          - context: CodeQL
+            app_slug: github-advanced-security
+          # GitHub App specified by id
           - context: gh-infra/jenkins
             app_id: 1234
+          # Equivalent to any GitHub App
           - context: another/build-that-must-pass
-            app_id: -1
       ...
 ~~~
 

@@ -99,8 +99,7 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             strictyaml.Optional("ghp_branch"): strictyaml.Str(),
             strictyaml.Optional("ghp_path", default="/docs"): strictyaml.Str(),
             # Branch protection rules - TODO: add actual schema
-            strictyaml.Optional("protected_branches"): asfyaml.validators.EmptyValue()
-            | strictyaml.MapPattern(
+            strictyaml.Optional("protected_branches"): strictyaml.MapPattern(
                 strictyaml.Str(),
                 strictyaml.Map(
                     {
@@ -122,7 +121,8 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                                 strictyaml.Optional("checks"): strictyaml.Seq(
                                     strictyaml.Map(
                                         {
-                                            strictyaml.Optional("context"): strictyaml.Str(),
+                                            "context": strictyaml.Str(),
+                                            strictyaml.Optional("app_slug"): strictyaml.Str(),
                                             strictyaml.Optional("app_id", default=-1): strictyaml.Int(),
                                         }
                                     )
@@ -142,6 +142,7 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
 
     def __init__(self, parent: ASFYamlInstance, yaml: strictyaml.YAML, **kwargs):
         super().__init__(parent, yaml)
+        self._github: pygithub.Github | None = None
         self._ghrepo: pygithubrepo.Repository | None = None
 
     @property
@@ -150,6 +151,18 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             raise RuntimeError("something went wrong, ghrepo is not set")
         else:
             return self._ghrepo
+
+    def _get_app_id_slug(self, slug: str) -> int | None:
+        # Test run
+        if "noop" in self.instance.environments_enabled:
+            return 1234
+        if self._github is None:
+            raise RuntimeError("something went wrong, github is not set")
+        try:
+            return self._github.get_app(slug).id
+        except pygithub.GithubException as e:
+            print(f"[github] Unable to find GitHub app for slug {slug}.")
+            return None
 
     def run(self):
         """GitHub features"""
@@ -183,11 +196,11 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             if not gh_token:
                 gh_token = open(GH_TOKEN_FILE).read().strip()
 
-            pgh = pygithub.Github(auth=pygithubAuth.Token(gh_token))
-            self._ghrepo = pgh.get_repo(f"{self.repository.org_id}/{self.repository.name}")
+            self._github = pygithub.Github(auth=pygithubAuth.Token(gh_token))
+            self._ghrepo = self._github.get_repo(f"{self.repository.org_id}/{self.repository.name}")
         elif gh_token:  # If supplied from OS env, load the ghrepo object anyway
-            pgh = pygithub.Github(auth=pygithubAuth.Token(gh_token))
-            self._ghrepo = pgh.get_repo(f"{self.repository.org_id}/{self.repository.name}")
+            self._github = pygithub.Github(auth=pygithubAuth.Token(gh_token))
+            self._ghrepo = self._github.get_repo(f"{self.repository.org_id}/{self.repository.name}")
 
         # For each sub-feature we see (with the @directive decorator on it), run it
         for _feat in _features:

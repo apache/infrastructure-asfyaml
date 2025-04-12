@@ -83,15 +83,23 @@ query($endCursor: String, $organization: String!, $repository: String!, $refPref
         return []
 
 
+def __get_app_id_check(self: ASFGitHubFeature, check: dict) -> int:
+    app_slug = check.get("app_slug")
+    app_id = check.get("app_id") if app_slug is None else self._get_app_id_slug(app_slug)
+    return -1 if app_id is None else int(app_id)
+
+
 @directive
 def branch_protection(self: ASFGitHubFeature):
     # Branch protections
     if "protected_branches" not in self.yaml:
         return
+    # Testing mode
+    dry_run: bool = self.noop("protected_branches")
 
     # Collect all branches and whether they have active branch protection rules
     try:
-        refs = get_head_refs(self)
+        refs = get_head_refs(self) if not dry_run else []
     except Exception as ex:
         print(f"Error: failed to retrieve current refs: {ex!s}")
         refs = []
@@ -115,15 +123,6 @@ def branch_protection(self: ASFGitHubFeature):
             protected_branches.remove(branch)
 
         branch_changes = []
-        try:
-            ghbranch = self.ghrepo.get_branch(branch=branch)
-        except pygithub.GithubException as e:
-            if e.status == 404:  # No such branch, skip to next rule
-                protection_changes[branch] = [f"Branch {branch} does not exist, protection could not be configured"]
-                continue
-            else:
-                # propagate other errors, GitHub API might have an outage
-                raise e
 
         # We explicitly disable force pushes when branch protections are enabled
         allow_force_push = False
@@ -165,7 +164,8 @@ def branch_protection(self: ASFGitHubFeature):
 
             contexts = required_status_checks.get("contexts", [])
             checks = required_status_checks.get("checks", [])
-            checks_as_dict = {**{ctx: -1 for ctx in contexts}, **{c["context"]: int(c["app_id"]) for c in checks}}
+            checks_as_dict = {**{ctx: -1 for ctx in contexts},
+                              **{c["context"]: __get_app_id_check(self, c) for c in checks}}
 
             required_checks = list(checks_as_dict.items())
 
@@ -179,7 +179,7 @@ def branch_protection(self: ASFGitHubFeature):
 
         # Log changes that will be applied
         try:
-            live_branch_protection_settings = ghbranch.get_protection()
+            live_branch_protection_settings = self.ghrepo.get_branch(branch=branch).get_protection() if not dry_run else None
         except pygithub.GithubException:
             live_branch_protection_settings = None
 
@@ -254,7 +254,16 @@ def branch_protection(self: ASFGitHubFeature):
                     branch_changes.append(f"  - {ctx} (app_id: {appid})")
 
         # Apply all the changes
-        if not self.noop("protected_branches"):
+        if not dry_run:
+            try:
+                ghbranch = self.ghrepo.get_branch(branch=branch)
+            except pygithub.GithubException as e:
+                if e.status == 404:  # No such branch, skip to next rule
+                    protection_changes[branch] = [f"Branch {branch} does not exist, protection could not be configured"]
+                    continue
+                else:
+                    # propagate other errors, GitHub API might have an outage
+                    raise e
             branch_protection_settings = ghbranch.edit_protection(
                 allow_force_pushes=allow_force_push,
                 required_linear_history=required_linear,
@@ -292,16 +301,16 @@ def branch_protection(self: ASFGitHubFeature):
 
     # remove branch protection from all remaining protected branches
     for branch_name in protected_branches:
-        branch = self.ghrepo.get_branch(branch_name)
-        protection_changes[branch] = [f"Remove branch protection from branch '{branch_name}'"]
+        protection_changes[branch_name] = [f"Remove branch protection from branch '{branch_name}'"]
 
-        if not self.noop("github::protected_branches"):
+        if not dry_run:
+            branch = self.ghrepo.get_branch(branch_name)
             branch.remove_protection()
 
     if protection_changes:
         summary = ""
-        for branch, changes in protection_changes.items():
-            summary += f"Updates to the {branch} branch:\n"
+        for branch_name, changes in protection_changes.items():
+            summary += f"Updates to the {branch_name} branch:\n"
             for change in changes:
                 summary += f"  - {change}\n"
         print(summary)
