@@ -622,6 +622,8 @@ github:
     merge_commit_message: PR_TITLE_AND_DESC
     # disable rebase button:
     rebase:  false
+    # enable auto-merge
+    auto_merge: true
 ~~~
 
 At least one of `squash`, `merge`, or `rebase` must be true.

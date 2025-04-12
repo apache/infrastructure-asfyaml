@@ -32,6 +32,7 @@ def enabled_merge_buttons(self: ASFGitHubFeature):
     allow_squash_merge = merges.get("squash", NotSet)
     allow_merge_commits = merges.get("merge", NotSet)
     allow_rebase_merge = merges.get("rebase", NotSet)
+    allow_auto_merge = merges.get("auto_merge", NotSet)
 
     if not allow_squash_merge and not allow_merge_commits and not allow_rebase_merge:
         raise Exception("enabled_merge_buttons: at least one of 'squash', 'merge' or 'rebase' must be enabled")
@@ -104,6 +105,7 @@ def enabled_merge_buttons(self: ASFGitHubFeature):
 
     if not self.noop("enabled_merge_buttons"):
         self.ghrepo.edit(
+            allow_auto_merge=allow_auto_merge,
             allow_squash_merge=allow_squash_merge,
             allow_merge_commit=allow_merge_commits,
             allow_rebase_merge=allow_rebase_merge,

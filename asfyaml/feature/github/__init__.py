@@ -88,6 +88,7 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                     strictyaml.Optional("merge"): strictyaml.Bool(),
                     strictyaml.Optional("merge_commit_message"): strictyaml.Str(),
                     strictyaml.Optional("rebase"): strictyaml.Bool(),
+                    strictyaml.Optional("auto_merge"): strictyaml.Bool(),
                 }
             ),
             # Auto-linking for JIRA. Can be a list of Jira projects or a single string value
