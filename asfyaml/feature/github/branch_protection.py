@@ -164,8 +164,10 @@ def branch_protection(self: ASFGitHubFeature):
 
             contexts = required_status_checks.get("contexts", [])
             checks = required_status_checks.get("checks", [])
-            checks_as_dict = {**{ctx: -1 for ctx in contexts},
-                              **{c["context"]: __get_app_id_check(self, c) for c in checks}}
+            checks_as_dict = {
+                **{ctx: -1 for ctx in contexts},
+                **{c["context"]: __get_app_id_check(self, c) for c in checks},
+            }
 
             required_checks = list(checks_as_dict.items())
 
@@ -179,7 +181,9 @@ def branch_protection(self: ASFGitHubFeature):
 
         # Log changes that will be applied
         try:
-            live_branch_protection_settings = self.ghrepo.get_branch(branch=branch).get_protection() if not dry_run else None
+            live_branch_protection_settings = (
+                self.ghrepo.get_branch(branch=branch).get_protection() if not dry_run else None
+            )
         except pygithub.GithubException:
             live_branch_protection_settings = None
 

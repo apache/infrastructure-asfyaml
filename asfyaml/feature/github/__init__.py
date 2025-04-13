@@ -160,7 +160,7 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             raise RuntimeError("something went wrong, github is not set")
         try:
             return self._github.get_app(slug).id
-        except pygithub.GithubException as e:
+        except pygithub.GithubException:
             print(f"[github] Unable to find GitHub app for slug {slug}.")
             return None
 
