@@ -59,7 +59,7 @@ It operates on a per-branch basis, meaning you can have different settings for d
       <li><a href="#depend_alerts">Dependabot alerts and updates</a></li>
       <li><a href="#GHA_build_status">GitHub Actions build status emails</a></li>
       <li><a href="#pages">GitHub Pages</a></li>
-      <li><a href="#pull_requests">Pull Request setting</a></li>
+      <li><a href="#pull_requests">Pull Request settings</a></li>
       <li><a href="#merge">Merge buttons</a></li>
       <li><a href="#repo_features">Repository features</a></li>
       <li><a href="#repo_meta">Repository metadata</a></li>
