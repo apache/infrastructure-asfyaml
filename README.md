@@ -63,6 +63,7 @@ It operates on a per-branch basis, meaning you can have different settings for d
       <li><a href="#repo_features">Repository features</a></li>
       <li><a href="#repo_meta">Repository metadata</a></li>
       <li><a href="#tag_protect">Tag protection</a></li>
+      <li><a href="#environments">Deployment environments</a></li>
     </ul>
   </li>
   <li><a href="#static">Generating static website content</a>
@@ -692,6 +693,74 @@ github:
 ~~~
 
 **NOTE**: Tag protections have been sunset by GitHub as of 02/12/2024 and will thus not be applied anymore.
+
+<h3 id="environments">Repository deployment environments</h3>
+
+Projects can create deployment environments and deployment branch policies like this:
+
+~~~yaml
+github:
+  environments:
+    pypi:
+      required_reviewers:
+        - id: user_id
+          type: User
+      wait_timer: 5
+      deployment_branch_policy:
+        protected_branches: false
+        policies:
+          - name: main
+            type: branch
+          - name: 1.2.0
+            type: tag
+          - name: "release/*"
+
+    test-pypi:
+      required_reviewers:
+        - id: user_id
+          type: User
+      wait_timer: 60
+      deployment_branch_policy:
+        protected_branches: true
+~~~
+
+The above example creates two deployment environments, `pypi` and `test-pypi`.
+The first environment `pypi` has a deployment branch policy with a custom list of branches in the `policies` list.
+The second environment `test-pypi` has a deployment branch policy to setup all protected branches from the repository.
+
+The `environments` section is a dictionary of environment names, each with a dictionary of settings. The settings are:
+
+```yanl
+required_reviewers:
+  - id: <string> | <int>
+    type: 'User' | 'Team'
+wait_timer: <int>
+deployment_branch_policy:
+  protected_branches: <bool>
+  policies:
+    - name: <string>
+      type: 'branch' | 'tag'
+```
+
+- `required_reviewers`: A list of reviewers that must approve the deployment. (The `id` is the GitHub user ID or username / team slug.)
+- `wait_timer`: To delay a job for a specific amount of time after the job is initially triggered. (in minutes)
+- `deployment_branch_policy`: A dictionary of branch policy settings.
+- `protected_branches`: If set to `true`, the deployment branch policy will be setup to allow deploying from all protected branches.
+- `policies`: A list of branch / tag policies to apply for this environment, only matching branches / tags can deploy to the environment.
+
+**Note**: Only one of the settings `protected_banches` and `policies` can be active when specifying a `deployment_branch_policy`.
+
+If not explicitly specified, these values will be used by default:
+
+```yaml
+required_reviewers: []
+wait_timer: 15
+deployment_branch_policy: ~
+```
+
+- by default `protected_branches` is set to `false`
+- the default `type` for a `required_reviewer` is `User`
+- the default `type` for a `deployment_branch_policy` is `branch`
 
 <p align="right"><a href="#top">Return to top</a>
 

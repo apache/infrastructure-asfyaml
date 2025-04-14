@@ -137,13 +137,52 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             # Dependabot
             strictyaml.Optional("dependabot_alerts"): strictyaml.Bool(),
             strictyaml.Optional("dependabot_updates"): strictyaml.Bool(),
+            # Deployment environments
+            strictyaml.Optional("environments"): strictyaml.MapPattern(
+                strictyaml.Str(),
+                strictyaml.Map(
+                    {
+                        strictyaml.Optional("required_reviewers"): strictyaml.Seq(
+                            strictyaml.Map(
+                                {
+                                    "id": strictyaml.Int() | strictyaml.Str(),
+                                    strictyaml.Optional("type", default="User"): strictyaml.Str(),
+                                }
+                            )
+                        ),
+                        # not supported yet by PyGithub
+                        # strictyaml.Optional("prevent_self_review"): strictyaml.Bool(),
+                        strictyaml.Optional("wait_timer"): strictyaml.Int(),
+                        strictyaml.Optional("deployment_branch_policy"): strictyaml.Map(
+                            {
+                                strictyaml.Optional("protected_branches", default=False): strictyaml.Bool(),
+                                strictyaml.Optional("policies"): strictyaml.Seq(
+                                    strictyaml.Map(
+                                        {
+                                            "name": strictyaml.Str(),
+                                            strictyaml.Optional("type", default="branch"): strictyaml.Str(),
+                                        }
+                                    )
+                                ),
+                            }
+                        ),
+                    }
+                ),
+            ),
         }
     )
 
     def __init__(self, parent: ASFYamlInstance, yaml: strictyaml.YAML, **kwargs):
         super().__init__(parent, yaml)
-        self._github: pygithub.Github | None = None
+        self._gh: pygithub.Github | None = None
         self._ghrepo: pygithubrepo.Repository | None = None
+
+    @property
+    def gh(self) -> pygithub.Github:
+        if self._gh is None:
+            raise RuntimeError("something went wrong, gh is not set")
+        else:
+            return self._gh
 
     @property
     def ghrepo(self) -> pygithubrepo.Repository:
@@ -196,11 +235,11 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             if not gh_token:
                 gh_token = open(GH_TOKEN_FILE).read().strip()
 
-            self._github = pygithub.Github(auth=pygithubAuth.Token(gh_token))
-            self._ghrepo = self._github.get_repo(f"{self.repository.org_id}/{self.repository.name}")
+            self._gh = pygithub.Github(auth=pygithubAuth.Token(gh_token))
+            self._ghrepo = self.gh.get_repo(f"{self.repository.org_id}/{self.repository.name}")
         elif gh_token:  # If supplied from OS env, load the ghrepo object anyway
-            self._github = pygithub.Github(auth=pygithubAuth.Token(gh_token))
-            self._ghrepo = self._github.get_repo(f"{self.repository.org_id}/{self.repository.name}")
+            self._gh = pygithub.Github(auth=pygithubAuth.Token(gh_token))
+            self._ghrepo = self.gh.get_repo(f"{self.repository.org_id}/{self.repository.name}")
 
         # For each sub-feature we see (with the @directive decorator on it), run it
         for _feat in _features:
@@ -226,4 +265,5 @@ from . import (
     collaborators,
     housekeeping,
     protected_tags,
+    deployment_environments,
 )
