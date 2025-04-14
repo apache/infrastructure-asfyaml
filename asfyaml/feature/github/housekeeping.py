@@ -15,17 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""GitHub housekeeping features: delete branch on merge, dependabot.."""
+"""GitHub housekeeping features: dependabot."""
 
 from . import directive, ASFGitHubFeature
 
 
 @directive
 def housekeeping_features(self: ASFGitHubFeature):
-    del_branch_on_merge = self.yaml.get("del_branch_on_merge", None)
-    if del_branch_on_merge is not None and not self.noop("del_branch_on_merge"):
-        self.ghrepo.edit(delete_branch_on_merge=del_branch_on_merge)
-
     dependabot_alerts = self.yaml.get("dependabot_alerts", None)
     if dependabot_alerts is not None and not self.noop("dependabot_alerts"):
         if dependabot_alerts is True:
