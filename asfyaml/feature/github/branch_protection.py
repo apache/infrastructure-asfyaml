@@ -84,7 +84,7 @@ query($endCursor: String, $organization: String!, $repository: String!, $refPref
 
 
 def __context_get_name(context: str | dict) -> str:
-    return context if type(context) is str else context["context"]
+    return context if isinstance(context, str) else context["context"]
 
 
 def __slug_get_app_id(self: ASFGitHubFeature, slug: str) -> int | None:
@@ -100,10 +100,12 @@ def __slug_get_app_id(self: ASFGitHubFeature, slug: str) -> int | None:
 
 # Get the application id for a protected branch check
 def __context_get_app_id(self: ASFGitHubFeature, context: str | dict) -> int:
-    if type(context) is str:
+    if isinstance(context, str):
         return -1
     app = context.get("app")
-    return -1 if app is None else __slug_get_app_id(self, app) if type(app) is str else int(app)
+    if isinstance(app, str):
+        app = __slug_get_app_id(self, app)
+    return -1 if app is None else int(app)
 
 
 @directive
