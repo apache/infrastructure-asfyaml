@@ -83,10 +83,27 @@ query($endCursor: String, $organization: String!, $repository: String!, $refPref
         return []
 
 
-def __get_app_id_check(self: ASFGitHubFeature, check: dict) -> int:
-    app_slug = check.get("app_slug")
-    app_id = check.get("app_id") if app_slug is None else self._get_app_id_slug(app_slug)
-    return -1 if app_id is None else int(app_id)
+def __context_get_name(context: str | dict) -> str:
+    return context if type(context) is str else context["context"]
+
+
+def __slug_get_app_id(self: ASFGitHubFeature, slug: str) -> int | None:
+    # Test run
+    if "noop" in self.instance.environments_enabled:
+        return 1234
+    try:
+        return self.gh.get_app(slug).id
+    except pygithub.GithubException:
+        print(f"[github] Unable to find GitHub app for slug {slug}.")
+        return None
+
+
+# Get the application id for a protected branch check
+def __context_get_app_id(self: ASFGitHubFeature, context: str | dict) -> int:
+    if type(context) is str:
+        return -1
+    app = context.get("app")
+    return -1 if app is None else __slug_get_app_id(self, app) if type(app) is str else int(app)
 
 
 @directive
@@ -163,13 +180,7 @@ def branch_protection(self: ASFGitHubFeature):
             require_strict = required_status_checks.get("strict", NotSet)
 
             contexts = required_status_checks.get("contexts", [])
-            checks = required_status_checks.get("checks", [])
-            checks_as_dict = {
-                **{ctx: -1 for ctx in contexts},
-                **{c["context"]: __get_app_id_check(self, c) for c in checks},
-            }
-
-            required_checks = list(checks_as_dict.items())
+            required_checks = list((__context_get_name(c), __context_get_app_id(self, c)) for c in contexts)
 
             # if no checks are defined, we remove the status checks completely
             if len(required_checks) == 0:

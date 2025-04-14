@@ -117,16 +117,13 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                         strictyaml.Optional("required_status_checks"): strictyaml.Map(
                             {
                                 strictyaml.Optional("strict", default=False): strictyaml.Bool(),
-                                strictyaml.Optional("contexts"): strictyaml.Seq(strictyaml.Str()),
-                                strictyaml.Optional("checks"): strictyaml.Seq(
-                                    strictyaml.Map(
+                                strictyaml.Optional("contexts"): strictyaml.Seq(
+                                    strictyaml.Str() | strictyaml.Map(
                                         {
                                             "context": strictyaml.Str(),
-                                            strictyaml.Optional("app_slug"): strictyaml.Str(),
-                                            strictyaml.Optional("app_id", default=-1): strictyaml.Int(),
+                                            strictyaml.Optional("app"): strictyaml.Int() | strictyaml.Str(),
                                         }
-                                    )
-                                ),
+                                    ))
                             }
                         ),
                     }
@@ -191,17 +188,6 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
         else:
             return self._ghrepo
 
-    def _get_app_id_slug(self, slug: str) -> int | None:
-        # Test run
-        if "noop" in self.instance.environments_enabled:
-            return 1234
-        if self._github is None:
-            raise RuntimeError("something went wrong, github is not set")
-        try:
-            return self._github.get_app(slug).id
-        except pygithub.GithubException:
-            print(f"[github] Unable to find GitHub app for slug {slug}.")
-            return None
 
     def run(self):
         """GitHub features"""

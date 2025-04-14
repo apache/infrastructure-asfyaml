@@ -16,8 +16,6 @@
 # under the License.
 
 """Unit tests for .asf.yaml GitHub branch protection"""
-import strictyaml.exceptions
-
 from helpers import YamlTest
 import asfyaml.asfyaml
 import asfyaml.dataobjects
@@ -34,15 +32,16 @@ github:
   protected_branches:
     main:
       required_status_checks:
-        checks:
+        contexts:
+          - "check1"
             # Only slug
-          - context: "check1"
-            app_slug: github-actions
-            # Only id
           - context: "check2"
-            app_id: 15368
-            # Only context
+            app: "github-actions"
+            # Only id
           - context: "check3"
+            app: 15368
+            # Only context
+          - context: "check4"
 """,
 )
 
