@@ -118,12 +118,14 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                             {
                                 strictyaml.Optional("strict", default=False): strictyaml.Bool(),
                                 strictyaml.Optional("contexts"): strictyaml.Seq(
-                                    strictyaml.Str() | strictyaml.Map(
+                                    strictyaml.Str()
+                                    | strictyaml.Map(
                                         {
                                             "context": strictyaml.Str(),
                                             strictyaml.Optional("app"): strictyaml.Int() | strictyaml.Str(),
                                         }
-                                    ))
+                                    )
+                                ),
                             }
                         ),
                     }
@@ -187,7 +189,6 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             raise RuntimeError("something went wrong, ghrepo is not set")
         else:
             return self._ghrepo
-
 
     def run(self):
         """GitHub features"""
