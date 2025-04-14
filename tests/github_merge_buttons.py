@@ -34,7 +34,6 @@ github:
       squash: true
       merge: true
       rebase: true
-      auto_merge: true
 """,
 )
 

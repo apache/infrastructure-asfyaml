@@ -59,6 +59,7 @@ It operates on a per-branch basis, meaning you can have different settings for d
       <li><a href="#depend_alerts">Dependabot alerts and updates</a></li>
       <li><a href="#GHA_build_status">GitHub Actions build status emails</a></li>
       <li><a href="#pages">GitHub Pages</a></li>
+      <li><a href="#pull_requests">Pull Request setting</a></li>
       <li><a href="#merge">Merge buttons</a></li>
       <li><a href="#repo_features">Repository features</a></li>
       <li><a href="#repo_meta">Repository metadata</a></li>
@@ -564,6 +565,9 @@ github:
   del_branch_on_merge: true
 ~~~
 
+> [!WARNING]
+> This setting is deprecated and has been moved to [pull_requests.del_branch_on_merge](#pull_requests).
+
 You can revert this by setting the variable back to false. (Merely removing the entry will not do that).
 
 <h3 id="depend_alerts">Dependabot alerts and updates</h3>
@@ -602,6 +606,27 @@ The `ghp_branch` setting can **only** be your default branch (e.g. master, main,
 **Note**: This is subject to change as GitHub is relaxing the rules.
 
 The `ghp_path` setting should **always** be specified. It can be either `/docs` or `/`. If not specified, it will default to `/docs`.
+
+<h3 id="pull_requests">Pull Request settings</h3>
+
+Projects can enable/disable various settings for PRs:
+
+- allow [auto-merging](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/automatically-merging-a-pull-request) or PRs
+- allow [updating](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/keeping-your-pull-request-in-sync-with-the-base-branch) head branches of PRs
+- automatically [delete](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-the-automatic-deletion-of-branches) of head branches after merge
+
+Example:
+
+~~~yaml
+github:
+  pull_requests:
+    # allow auto-merge
+    allow_auto_merge: true
+    # enable updating head branches of pull requests
+    allow_update_branch: true
+    # auto-delete head branches after being merged
+    del_branch_on_merge: true
+~~~
 
 <h3 id="merge">Merge buttons</h3>
 
