@@ -713,8 +713,9 @@ github:
 ~~~
 
 The above example creates two deployment environments, `pypi` and `test-pypi`.
-The first environment `pypi` has a deployment branch policy with a custom list of branches in the `policies` list.
-The second environment `test-pypi` has a deployment branch policy to setup all protected branches from the repository.
+
+  - `pypi` has a deployment branch policy with a custom list of branches in the `policies` list.
+  - `test-pypi` has a deployment branch policy to set up all protected branches from the repository.
 
 The `environments` section is a dictionary of environment names, each with a dictionary of settings. The settings are:
 
@@ -730,15 +731,15 @@ deployment_branch_policy:
       type: 'branch' | 'tag'
 ```
 
-- `required_reviewers`: A list of reviewers that must approve the deployment. (The `id` is the GitHub user ID or username / team slug.)
-- `wait_timer`: To delay a job for a specific amount of time after the job is initially triggered. (in minutes)
+- `required_reviewers`: A list of reviewers who must approve the deployment. (The `id` is the GitHub user ID or username / team slug.)
+- `wait_timer`: To delay a job for a specific number of minutes after the job is initially triggered.
 - `deployment_branch_policy`: A dictionary of branch policy settings.
-- `protected_branches`: If set to `true`, the deployment branch policy will be setup to allow deploying from all protected branches.
-- `policies`: A list of branch / tag policies to apply for this environment, only matching branches / tags can deploy to the environment.
+- `protected_branches`: If set to `true`, the deployment branch policy will be set up to allow deploying from all protected branches.
+- `policies`: A list of branch / tag policies to apply for this environment. Only matching branches / tags can deploy to the environment.
 
-**Note**: Only one of the settings `protected_banches` and `policies` can be active when specifying a `deployment_branch_policy`.
+**Note**: Only one of the settings in `protected_branches` and `policies` can be active when specifying a `deployment_branch_policy`.
 
-If not explicitly specified, these values will be used by default:
+If you do not explicitly specify values, the system uses these values by default:
 
 ```yaml
 required_reviewers: []
