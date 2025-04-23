@@ -132,7 +132,15 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                     }
                 ),
             ),
+            strictyaml.Optional("pull_requests"): strictyaml.Map(
+                {
+                    strictyaml.Optional("del_branch_on_merge"): strictyaml.Bool(),
+                    strictyaml.Optional("allow_auto_merge"): strictyaml.Bool(),
+                    strictyaml.Optional("allow_update_branch"): strictyaml.Bool(),
+                }
+            ),
             # Delete branch on merge
+            # TODO: deprecated, use "pull_requests.del_branch_on_merge" instead
             strictyaml.Optional("del_branch_on_merge"): strictyaml.Bool(),
             # Dependabot
             strictyaml.Optional("dependabot_alerts"): strictyaml.Bool(),
@@ -247,6 +255,7 @@ from . import (
     autolink,
     features,
     branch_protection,
+    pull_requests,
     merge_buttons,
     pages,
     custom_subjects,
