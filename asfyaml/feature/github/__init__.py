@@ -145,38 +145,6 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             # Dependabot
             strictyaml.Optional("dependabot_alerts"): strictyaml.Bool(),
             strictyaml.Optional("dependabot_updates"): strictyaml.Bool(),
-            # Deployment environments
-            strictyaml.Optional("environments"): strictyaml.MapPattern(
-                strictyaml.Str(),
-                strictyaml.Map(
-                    {
-                        strictyaml.Optional("required_reviewers"): strictyaml.Seq(
-                            strictyaml.Map(
-                                {
-                                    "id": strictyaml.Int() | strictyaml.Str(),
-                                    strictyaml.Optional("type", default="User"): strictyaml.Str(),
-                                }
-                            )
-                        ),
-                        # not supported yet by PyGithub
-                        # strictyaml.Optional("prevent_self_review"): strictyaml.Bool(),
-                        strictyaml.Optional("wait_timer"): strictyaml.Int(),
-                        strictyaml.Optional("deployment_branch_policy"): strictyaml.Map(
-                            {
-                                strictyaml.Optional("protected_branches", default=False): strictyaml.Bool(),
-                                strictyaml.Optional("policies"): strictyaml.Seq(
-                                    strictyaml.Map(
-                                        {
-                                            "name": strictyaml.Str(),
-                                            strictyaml.Optional("type", default="branch"): strictyaml.Str(),
-                                        }
-                                    )
-                                ),
-                            }
-                        ),
-                    }
-                ),
-            ),
         }
     )
 
@@ -262,5 +230,4 @@ from . import (
     collaborators,
     housekeeping,
     protected_tags,
-    deployment_environments,
 )
