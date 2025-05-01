@@ -21,7 +21,6 @@ It operates on a per-branch basis, meaning you can have different settings for d
 <h2 id="top">Before you start using .asf.yaml</h2>
 
   - `.asf.yaml` only works with Git repositories. There is no equivalent at the moment for Subversion repositories.
-  - Do <b>not</b> use the document separator `--` in your `.asf.yaml` file. It will cause parsing to fail.
   - The configuration file is specific to the branch in which it resides and only code blocks with a `whoami` matching the branch name will run.
   - The configuration file holds a great deal of power, as it controls a host of automated systems.
   - Before using a feature in `.asf.yaml`, make sure that you have discussed what you propose with the entire project team, and understand what the configuration changes will do to the team's workflow and project resources.
