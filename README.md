@@ -377,6 +377,12 @@ We will evaluate the need for other autolink features.
 Projects can enable branch protection in their repos, including most of the sub-level protection features such as 'require status checks to pass before merging' , 'approval by at least $n people' , and 'require pull request reviews'.
 For more details on Branch Protection Rules in general, please refer to the [documentation @ GitHub](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches).
 
+> [!WARNING]
+> The names of the required checks are not validated.
+> 
+> If you modify the `contexts` and `checks` setting for the default branch, consider testing it on a **non** default branch first.
+> A typo in these settings for the default branch will prevent you from modifying the `.asf.yaml` file itself.
+
 Here are some examples:
 
 ~~~yaml
