@@ -379,8 +379,9 @@ For more details on Branch Protection Rules in general, please refer to the [doc
 
 > [!WARNING]
 > The names of the required checks are not validated.
-> 
-> If you modify the `contexts` and `checks` setting for the default branch, consider testing it on a **non** default branch first.
+>
+> If you modify the `contexts` and `checks` setting for the default branch, consider testing it on a **non** default
+> branch first.
 > A typo in these settings for the default branch will prevent you from modifying the `.asf.yaml` file itself.
 
 Here are some examples:
