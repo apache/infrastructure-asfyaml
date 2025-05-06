@@ -40,7 +40,7 @@ class ASFWebsiteStagingFeature(ASFYamlFeature, name="staging", priority=9):
 
     schema = strictyaml.Map(
         {
-            strictyaml.Optional("whoami", default="main"): strictyaml.Str(),
+            strictyaml.Optional("whoami", default=""): strictyaml.Str(),
             strictyaml.Optional("subdir", default=None): strictyaml.Str(),
             strictyaml.Optional("type", default="website"): strictyaml.Str(),
             strictyaml.Optional("hostname", default=None): strictyaml.Str(),
