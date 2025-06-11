@@ -771,6 +771,8 @@ deployment_branch_policy:
 
 **Note**: Only one of the settings in `protected_branches` and `policies` can be active when specifying a `deployment_branch_policy`.
 
+**Note**: Only teams with a team visibility of `visible` can be specified as `required_reviewers`, `secret` teams will be ignored by GitHub.
+
 If you do not explicitly specify values, the system uses these values by default:
 
 ```yaml
