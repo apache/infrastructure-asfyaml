@@ -19,7 +19,7 @@ pytest = ">=8.0"
 pytest-asyncio = ">=0.24"
 
 [tool.poetry.group.dev.dependencies]
-mypy = "^1.15.0"
+mypy = "~=1.15.0" # do not use 0.16.0 for now as it contains a bug we encounter
 pre-commit = ">=2.20.0"
 ruff = ">=0.9.4"
 types-requests = ">=2.32.0.20250306"
