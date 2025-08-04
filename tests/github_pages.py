@@ -58,6 +58,17 @@ github:
 """,
 )
 
+# branch cant be specified when ghp_type == workflow
+invalid_github_pages_workflow_bad_branch = YamlTest(
+    asfyaml.asfyaml.ASFYAMLException,
+    "Invalid GitHub Pages branch",
+    """
+github:
+    ghp_type: workflow
+    ghp_branch: foo
+""",
+)
+
 
 def test_basic_yaml(test_repo: asfyaml.dataobjects.Repository):
     print("[github] Testing GitHub Pages features")
@@ -66,7 +77,7 @@ def test_basic_yaml(test_repo: asfyaml.dataobjects.Repository):
         valid_github_pages,
         invalid_github_pages_garbage,
         invalid_github_pages_bad_branch,
-
+        invalid_github_pages_workflow_bad_branch
     )
 
     for test in tests_to_run:

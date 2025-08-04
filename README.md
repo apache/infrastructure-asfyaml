@@ -601,10 +601,15 @@ This triggers emails when a workflow run fails or if it succeeds after a series 
 
 <h3 id="pages">GitHub Pages</h3>
 
-Projects that use GitHub for website publishing can enable/update GitHub Pages settings, by specifying which branch (and optional path) to publish:
+Projects that use GitHub for website publishing can enable/update GitHub Pages settings or delete existing GitHub Pages.
+
+<h4 id="ghp-legacy">Legacy Mode</h4>
+
+Legacy mode is used by default when no `ghp_type` parameter is specified. GitHub Pages can be enabled by specifying which branch (and optional path) to publish:
 
 ~~~yaml
 github:
+  ghp_type:    legacy  # optional
   ghp_branch:  master
   ghp_path:    /docs
 ~~~
@@ -614,6 +619,25 @@ The `ghp_branch` setting can **only** be your default branch (e.g. master, main,
 **Note**: This is subject to change as GitHub is relaxing the rules.
 
 The `ghp_path` setting should **always** be specified. It can be either `/docs` or `/`. If not specified, it will default to `/docs`.
+
+<h4 id="ghp-workflow">Workflow Mode</h4>
+
+In order to use [custom workflows](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages) to publish to GitHub Pages,
+the `ghp_type` must be set to `workflow` and the other parameters removed (`ghp_branch`, `ghp_path`):
+
+~~~yaml
+github:
+  ghp_type: workflow
+~~~
+
+<h4 id="ghp-disabled">Disable GitHub Pages</h4>
+
+To explicitly disable GitHub Pages for a repository, set the `ghp_type` to `disabled`:
+
+~~~yaml
+github:
+  ghp_type: disabled
+~~~
 
 <h3 id="pull_requests">Pull Request settings</h3>
 

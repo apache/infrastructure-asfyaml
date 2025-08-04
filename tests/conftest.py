@@ -34,4 +34,8 @@ def test_repo(base_path: Path) -> asfyaml.dataobjects.Repository:
     os.environ["GIT_PROJECT_ROOT"] = str(base_path.joinpath("../repos/private"))
     if not os.path.isdir(repo_path):  # Make test repo dir
         os.makedirs(repo_path, exist_ok=True)
+
+    # create a fake HEAD file setting main as default branch
+    Path(os.path.join(repo_path, 'HEAD')).write_text("ref: refs/heads/main")
+
     return asfyaml.dataobjects.Repository(repo_path)

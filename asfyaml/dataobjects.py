@@ -225,6 +225,15 @@ class Repository:
         return hb
 
     @property
+    def default_branch_if_known(self) -> str | None:
+        """Returns the default branch for this repository."""
+        head_path = os.path.join(self.path, "HEAD")
+        if os.path.isfile(head_path):
+            return open(head_path).read().removeprefix("ref: refs/heads/").strip()
+        else:
+            return None
+
+    @property
     def changesets(self):
         """Yields a ChangeSet for each ref update seen in this push.
         Each ChangeSet can have several commits bundled"""
