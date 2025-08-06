@@ -453,7 +453,14 @@ required_status_checks:
 
 **Notes**
   1. Enabling any of the above checks overrides what you may have set previously, so you'll need to add all the existing checks to your `.asf.yaml` file to reproduce any that Infra set manually for you.
-  2. If you need to remove a required check in order to push a change to `.asf.yaml`, create an Infra Jira ticket with a request to have the check manually removed.
+  2. These checks also are observed by Gitbox.
+  3. If you need to remove a required check in order to push a change to `.asf.yaml`, create an Infra Jira ticket with a request to have the check manually removed.
+
+> [!NOTE]
+> **How the synchronization between Gitbox and GitHub works under the hood**
+>
+> When you push to Gitbox, we handle all the synchronization in the Git update phase, which means GitHub is asked for each commit inside that push whether it is allowed.
+> If as much as a single commit is disallowed, the sync process reverts and you get an error message explaining what went wrong.
 
 Using the 'contexts' list will automatically set an app ID of `-1` (any source) for checks. If you wish to specify a specific source app ID, you can make use of the expanded `checks` list instead:
 
