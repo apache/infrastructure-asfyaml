@@ -375,6 +375,7 @@ We will evaluate the need for other autolink features.
 <h3 id="branchpro">Branch protection</h3>
 
 Projects can enable branch protection in their repos, including most of the sub-level protection features such as 'require status checks to pass before merging' , 'approval by at least $n people' , and 'require pull request reviews'. There are no default protections.
+All GitHub branch protection rules are also enforced when pushing directly to ASF Gitbox.
 For more details on Branch Protection Rules in general, please refer to the [documentation @ GitHub](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches).
 
 > [!WARNING]
