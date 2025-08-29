@@ -86,76 +86,70 @@ query($endCursor: String, $organization: String!, $repository: String!, $refPref
 
 def compile_protection_rules(branches_config: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """Separate and validate exact branch rules from pattern rules
-    
+
     Returns:
         Tuple of (pattern_rules, exact_rules)
     """
     pattern_rules = {}
     exact_rules = {}
-    
+
     for rule_name, settings in branches_config.items():
         if "pattern" in settings:
             # This is a pattern rule
             pattern_str = settings["pattern"]
             try:
                 compiled_pattern = re.compile(pattern_str)
-                pattern_rules[rule_name] = {
-                    "regex": compiled_pattern,
-                    "pattern_str": pattern_str,
-                    "settings": settings
-                }
+                pattern_rules[rule_name] = {"regex": compiled_pattern, "pattern_str": pattern_str, "settings": settings}
             except re.error as e:
                 raise Exception(f"Invalid regex pattern in rule '{rule_name}': {e}")
         else:
             # This is an exact branch rule (existing behavior)
             exact_rules[rule_name] = settings
-    
+
     return pattern_rules, exact_rules
 
 
 def match_branches_to_patterns(all_branches: List[str], pattern_rules: Dict[str, Any]) -> Dict[str, List[str]]:
     """Match all repository branches against compiled pattern rules
-    
+
     Returns:
         Dict mapping branch_name -> list of matching rule names
     """
     branch_matches = {}
-    
+
     for branch_name in all_branches:
         matching_rules = []
         for rule_name, rule_data in pattern_rules.items():
             if rule_data["regex"].match(branch_name):
                 matching_rules.append(rule_name)
-        
+
         if matching_rules:
             branch_matches[branch_name] = matching_rules
-    
+
     return branch_matches
 
 
 def resolve_protection_rules(
-    all_branches: Dict[str, Any],
-    pattern_rules: Dict[str, Any], 
-    exact_rules: Dict[str, Any]
+    all_branches: Dict[str, Any], pattern_rules: Dict[str, Any], exact_rules: Dict[str, Any]
 ) -> Tuple[Dict[str, Dict], List[str]]:
     """Resolve final protection rules with precedence handling
-    
+
     Precedence:
     1. Exact branch names override pattern matches
     2. First matching pattern wins for conflicts
-    
+
     Returns:
         Tuple of (final_rules_dict, warnings_list)
     """
     warnings = []
     final_rules = {}
-    
+
     # Get all branch names from the repository
     branch_names = list(all_branches.keys())
-    
+
     # Match branches against patterns
     branch_pattern_matches = match_branches_to_patterns(branch_names, pattern_rules)
-    
+
     # Apply pattern matches first
     for branch_name, matching_rule_names in branch_pattern_matches.items():
         if len(matching_rule_names) > 1:
@@ -163,15 +157,15 @@ def resolve_protection_rules(
                 f"Branch '{branch_name}' matches multiple patterns: {matching_rule_names}. "
                 f"Using first match: '{matching_rule_names[0]}'"
             )
-        
+
         # Use first matching pattern
         first_rule = matching_rule_names[0]
         final_rules[branch_name] = {
             "settings": pattern_rules[first_rule]["settings"],
             "source": f'pattern rule "{first_rule}" ({pattern_rules[first_rule]["pattern_str"]})',
-            "rule_type": "pattern"
+            "rule_type": "pattern",
         }
-    
+
     # Apply exact rules (these override pattern matches)
     for branch_name, settings in exact_rules.items():
         if branch_name in all_branches:
@@ -179,30 +173,30 @@ def resolve_protection_rules(
                 warnings.append(
                     f"Exact rule '{branch_name}' overrides pattern match from {final_rules[branch_name]['source']}"
                 )
-            
+
             final_rules[branch_name] = {
                 "settings": settings,
                 "source": f'exact rule "{branch_name}"',
-                "rule_type": "exact"
+                "rule_type": "exact",
             }
         else:
             warnings.append(f"Exact branch rule '{branch_name}' does not match any existing branch")
-    
+
     # Check for patterns with no matches
     pattern_match_counts = {}
     for rule_name in pattern_rules:
         pattern_match_counts[rule_name] = 0
-    
+
     for matching_rules in branch_pattern_matches.values():
         for rule_name in matching_rules:
             pattern_match_counts[rule_name] += 1
-    
+
     for rule_name, match_count in pattern_match_counts.items():
         if match_count == 0:
             warnings.append(
                 f"Pattern rule '{rule_name}' with pattern '{pattern_rules[rule_name]['pattern_str']}' matches no branches"
             )
-    
+
     return final_rules, warnings
 
 
@@ -238,21 +232,21 @@ def branch_protection(self: ASFGitHubFeature):
     try:
         pattern_rules, exact_rules = compile_protection_rules(branches_config)
         final_rules, rule_warnings = resolve_protection_rules(all_branches, pattern_rules, exact_rules)
-        
+
         # Print warnings about rule conflicts and missing matches
         for warning in rule_warnings:
             print(f"Warning: {warning}")
-            
+
     except Exception as e:
         print(f"Error processing branch protection rules: {e}")
         return
 
     protection_changes = {}
-    
+
     # Process final resolved rules (both exact and pattern-matched branches)
     for branch_name, rule_data in final_rules.items():
         brsettings = rule_data["settings"]
-        
+
         # Remove this branch from currently protected (so we don't remove protection later)
         currently_protected_branches.discard(branch_name)
 
@@ -261,7 +255,9 @@ def branch_protection(self: ASFGitHubFeature):
             ghbranch = self.ghrepo.get_branch(branch=branch_name)
         except pygithub.GithubException as e:
             if e.status == 404:  # No such branch, skip to next rule
-                protection_changes[branch_name] = [f"Branch {branch_name} does not exist, protection could not be configured"]
+                protection_changes[branch_name] = [
+                    f"Branch {branch_name} does not exist, protection could not be configured"
+                ]
                 continue
             else:
                 # propagate other errors, GitHub API might have an outage
@@ -436,19 +432,21 @@ def branch_protection(self: ASFGitHubFeature):
     # (these are branches that had protection but are no longer in our rules)
     for branch_name in currently_protected_branches:
         branch = self.ghrepo.get_branch(branch_name)
-        protection_changes[branch_name] = [f"Remove branch protection from branch '{branch_name}' (no longer matches any rules)"]
+        protection_changes[branch_name] = [
+            f"Remove branch protection from branch '{branch_name}' (no longer matches any rules)"
+        ]
 
         if not self.noop("github::protected_branches"):
             branch.remove_protection()
 
     if protection_changes:
         summary = "Branch Protection Changes:\n"
-        
+
         # Show pattern rule matches first
         pattern_applied = []
         exact_applied = []
         removed = []
-        
+
         for branch_name, changes in protection_changes.items():
             if branch_name in final_rules:
                 rule_data = final_rules[branch_name]
@@ -458,27 +456,27 @@ def branch_protection(self: ASFGitHubFeature):
                     exact_applied.append((branch_name, changes, rule_data["source"]))
             else:
                 removed.append((branch_name, changes))
-        
+
         # Group output by rule type for clarity
         if pattern_applied:
             summary += "\n=== Branches Protected by Pattern Rules ===\n"
-            for branch, changes, source in pattern_applied:
-                summary += f"\n{branch} (via {source}):\n"
+            for branch_name, changes, source in pattern_applied:
+                summary += f"\n{branch_name} (via {source}):\n"
                 for change in changes:
                     summary += f"  - {change}\n"
-        
+
         if exact_applied:
             summary += "\n=== Branches Protected by Exact Rules ===\n"
-            for branch, changes, source in exact_applied:
-                summary += f"\n{branch} (via {source}):\n"
+            for branch_name, changes, source in exact_applied:
+                summary += f"\n{branch_name} (via {source}):\n"
                 for change in changes:
                     summary += f"  - {change}\n"
-        
+
         if removed:
             summary += "\n=== Branch Protection Removed ===\n"
-            for branch, changes in removed:
-                summary += f"\n{branch}:\n"
+            for branch_name, changes in removed:
+                summary += f"\n{branch_name}:\n"
                 for change in changes:
                     summary += f"  - {change}\n"
-        
+
         print(summary)

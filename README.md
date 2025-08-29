@@ -501,22 +501,22 @@ github:
     main:
       required_signatures: true
       required_linear_history: true
-    
+
     develop:
       required_pull_request_reviews:
         required_approving_review_count: 2
-    
+
     # Pattern-based protection (NEW)
     feature-branches:
       pattern: "feature/.*"
       required_pull_request_reviews:
         required_approving_review_count: 1
-    
+
     release-branches:
       pattern: "release/v\\d+\\.\\d+"
       required_signatures: true
       required_linear_history: true
-    
+
     hotfix-branches:
       pattern: "hotfix/.*"
       required_pull_request_reviews:
@@ -565,7 +565,7 @@ Branch Protection Changes:
 feature/user-auth (via pattern rule "feature-branches" (feature/.*)):
   - Set required approving review count to 1
 
-feature/payment (via pattern rule "feature-branches" (feature/.*)):  
+feature/payment (via pattern rule "feature-branches" (feature/.*)):
   - Set required approving review count to 1
 
 === Branches Protected by Exact Rules ===
