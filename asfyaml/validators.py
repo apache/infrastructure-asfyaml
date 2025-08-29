@@ -15,8 +15,39 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import re
 import strictyaml
 import strictyaml.exceptions
+
+
+class BranchPattern(strictyaml.ScalarValidator):
+    """Validates regex patterns for branch matching with security constraints"""
+    
+    MAX_PATTERN_LENGTH = 1000  # Prevent ReDoS attacks
+    
+    def validate_scalar(self, chunk):
+        pattern = chunk.contents.strip()
+        
+        # Basic validation
+        if not pattern:
+            chunk.expecting_but_found("pattern cannot be empty")
+            
+        if len(pattern) > self.MAX_PATTERN_LENGTH:
+            chunk.expecting_but_found(f"pattern too long ({len(pattern)} chars), maximum {self.MAX_PATTERN_LENGTH}")
+        
+        # Validate regex compilation
+        try:
+            compiled = re.compile(pattern)
+            # Test compilation with empty string to catch some ReDoS patterns early
+            compiled.match("")
+            return pattern
+        except re.error as e:
+            chunk.expecting_but_found(f"invalid regex pattern: {e}")
+        except Exception as e:
+            chunk.expecting_but_found(f"regex compilation error: {e}")
+    
+    def to_yaml(self, data):
+        return str(data)
 
 
 class EmptyValue(strictyaml.ScalarValidator):

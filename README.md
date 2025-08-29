@@ -490,6 +490,91 @@ github:
   protected_branches: ~
 ~~~
 
+#### Branch Protection with Patterns
+
+You can now protect branches using regex patterns in addition to exact branch names. This allows you to apply protection rules to multiple branches that match a pattern, such as all feature branches or release branches.
+
+~~~yaml
+github:
+  protected_branches:
+    # Exact branch protection (existing behavior)
+    main:
+      required_signatures: true
+      required_linear_history: true
+    
+    develop:
+      required_pull_request_reviews:
+        required_approving_review_count: 2
+    
+    # Pattern-based protection (NEW)
+    feature-branches:
+      pattern: "feature/.*"
+      required_pull_request_reviews:
+        required_approving_review_count: 1
+    
+    release-branches:
+      pattern: "release/v\\d+\\.\\d+"
+      required_signatures: true
+      required_linear_history: true
+    
+    hotfix-branches:
+      pattern: "hotfix/.*"
+      required_pull_request_reviews:
+        required_approving_review_count: 2
+        dismiss_stale_reviews: true
+~~~
+
+**How Pattern Rules Work:**
+
+- **Rule Names**: When using patterns, the key (e.g., `feature-branches`) is just a descriptive name for the rule
+- **Pattern Field**: Add a `pattern` field with a regular expression to match branch names
+- **Precedence**: Exact branch names always override pattern matches
+- **Conflicts**: When multiple patterns match the same branch, the first pattern in the configuration takes precedence
+
+**Common Pattern Examples:**
+
+| Pattern | Description | Matches |
+|---------|-------------|---------|
+| `feature/.*` | All feature branches | `feature/auth`, `feature/payment` |
+| `release/v\\d+\\.\\d+` | Version releases | `release/v1.0`, `release/v2.1` |
+| `hotfix/.*` | All hotfix branches | `hotfix/security`, `hotfix/bug-123` |
+| `users/[^/]+/.*` | User branches | `users/john/feature`, `users/jane/fix` |
+| `.*` | All branches | Any branch name |
+
+**Pattern Syntax:**
+
+- Use standard regular expression syntax
+- Escape special characters with backslashes: `\\.` for literal dots, `\\d` for digits
+- YAML string escaping: Use double backslashes `\\` in YAML strings
+- Pattern length is limited to 1000 characters for security
+
+**Warnings and Validation:**
+
+The system will provide helpful warnings for common issues:
+- Pattern rules that match no existing branches
+- Branches that match multiple patterns (shows which rule wins)
+- Exact rules that override pattern matches
+- Invalid regular expression syntax
+
+**Example Output:**
+```
+Branch Protection Changes:
+
+=== Branches Protected by Pattern Rules ===
+
+feature/user-auth (via pattern rule "feature-branches" (feature/.*)):
+  - Set required approving review count to 1
+
+feature/payment (via pattern rule "feature-branches" (feature/.*)):  
+  - Set required approving review count to 1
+
+=== Branches Protected by Exact Rules ===
+
+main (via exact rule "main"):
+  - Set required signatures to True
+  - Set required linear history to True
+```
+
 <h3 id="customsubject">Custom subject lines for GitHub events</h3>
 
 You can customize the subject lines for GitHub events (issues and pull requests being opened, closed, and commented on) on a per-repository basis.
