@@ -41,4 +41,5 @@ ML_OVERRIDES = {
 WS_HOSTNAME_OVERRIDES = {
     "comdev-events-site": "events.apache.org",
     "logging-flume-site": "flume.apache.org",
+    "accumulo-fluo-website": "fluo.apache.org",
 }
