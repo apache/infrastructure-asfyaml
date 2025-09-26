@@ -36,7 +36,7 @@ def _run_paged_graphql_query(
         variables = {"endCursor": end_cursor}
         variables.update(input_variables)
 
-        headers, data = self.ghrepo._requester.graphql_query(query, variables)
+        _headers, data = self.ghrepo._requester.graphql_query(query, variables)
         result = data["data"]["repository"]["refs"]["nodes"]
 
         for rule in result:
