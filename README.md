@@ -148,7 +148,7 @@ notifications:
 
 <h3 id="botschemes">Special schemes for bots</h3>
 
-Projects may create special rules for bots such as dependabot on GitHub to have PR and issue activity from these directed to a distinct mailing list. 
+Projects may create special rules for bots such as dependabot on GitHub to have PR and issue activity from these directed to a distinct mailing list.
 
 These special schemes are currently only available for pull requests and issues.
 
