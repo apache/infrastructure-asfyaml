@@ -148,13 +148,14 @@ notifications:
 
 <h3 id="botschemes">Special schemes for bots</h3>
 
-Projects may create special rules for bots such as dependabot on GitHub to have PR and issue activity from these directed to a distinct mailing list. These special schemes are currently only available for pull requests and issues.
+Projects may create special rules for bots such as dependabot on GitHub to have PR and issue activity from these directed to a distinct mailing list. 
+
+These special schemes are currently only available for pull requests and issues.
 
 The general syntax for this is to append `_bot_$botname` to the scheme, for instance:
 
 | notifications       | email       | notes    |
 | ---------------------------- | -------------------- | -------------------- |
-| commits | `commits@foo.apache.org` | |
 | pullrequests | `issues@foo.apache.org` | Send all PR emails (new, closed, comments) to `issues@` |
 | pullrequests_bot_dependabot | `private@foo.apache.org` | Send depandabot PRs to `private@` instead |
 
