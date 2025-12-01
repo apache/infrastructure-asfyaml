@@ -58,7 +58,7 @@ class ASFWebsitePublishingFeature(ASFYamlFeature, name="publish", priority=9):
 
         # Get optional target hostname:
         hostname = self.yaml.hostname if "hostname" in self.yaml else None
-        if hostname and "apache.org" in hostname:
+        if hostname and hostname.endswith(".apache.org"):
             if mappings.WS_HOSTNAME_OVERRIDES.get(self.repository.name, "") != hostname:
                 raise Exception(
                     f".asf.yaml: Invalid hostname '{hostname}' - you cannot specify *.apache.org hostnames, they must be inferred!"
