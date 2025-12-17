@@ -319,7 +319,7 @@ The staging and deployment servers support the Pelican build `output/` sub-dir a
 
 <h2 id="blog">Blog deployment service for Git repositories</h2>
 
-You can deploy a project blog in the same manner as the project's website. It will be deployed as both `$project.blog.apache.org` AND `$project.apache.org/blog` (will redirect internally if a blog is deployed this way).
+You can deploy a project blog in the same manner as the project's website. It will be deployed as `$project.blog.apache.org`.
 
 Deploy a blog by using the `type` parameter in your `publish` setting:
 
@@ -329,7 +329,7 @@ publish:
   type:      blog
 ~~~
 
-**NB**: there is an internal rewrite, so `$project.apache.org/blog` will only rewrite to `/www/blogs/$project` internally if that directory exists e.g. a separate blog is deployed.
+**NB**: The older style of `$project.apache.org/blog` may have file-path translation issues, we recommend using the `$project.blog.apache.org` URL for end-users.
 
 <p align="right"><a href="#top">Return to top</a></p>
 
