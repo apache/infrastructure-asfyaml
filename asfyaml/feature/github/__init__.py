@@ -98,6 +98,8 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             # GitHub Pages: branch (can be default or gh-pages) and path (can be /docs or /)
             strictyaml.Optional("ghp_branch"): strictyaml.Str(),
             strictyaml.Optional("ghp_path", default="/docs"): strictyaml.Str(),
+            # GitHub Immutable Releases
+            strictyaml.Optional("immutable_releases"): strictyaml.Bool(),
             # Branch protection rules - TODO: add actual schema
             strictyaml.Optional("protected_branches"): asfyaml.validators.EmptyValue()
             | strictyaml.MapPattern(
@@ -255,6 +257,7 @@ from . import (
     autolink,
     features,
     branch_protection,
+    immutable_releases,
     pull_requests,
     merge_buttons,
     pages,
