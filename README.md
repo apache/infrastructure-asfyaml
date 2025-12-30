@@ -397,7 +397,8 @@ github:
         # contexts are the names of checks that must pass.
         contexts:
           - gh-infra/jenkins
-          - another/build-that-must-pass
+          - context: CodeQL
+            app: github-advanced-security
       required_pull_request_reviews:
         dismiss_stale_reviews: true
         require_last_push_approval: false
@@ -430,9 +431,8 @@ required_status_checks:
   strict: <boolean>
   contexts:
     - <string>
-  checks:
     - context: <string>
-      app_id: <integer>
+      app: <integer> or <string>
 ```
 
 If not explicitly specified, these values will be used by default:
@@ -449,14 +449,17 @@ required_pull_request_reviews:
 required_status_checks:
   strict: false
   contexts: ~
-  checks: ~
 ```
 
 **Notes**
   1. Enabling any of the above checks overrides what you may have set previously, so you'll need to add all the existing checks to your `.asf.yaml` file to reproduce any that Infra set manually for you.
   2. If you need to remove a required check in order to push a change to `.asf.yaml`, create an Infra Jira ticket with a request to have the check manually removed.
 
-Using the 'contexts' list will automatically set an app ID of `-1` (any source) for checks. If you wish to specify a specific source app ID, you can make use of the expanded `checks` list instead:
+The `contexts` list allows two kinds of entries:
+- If you wish to specify a specific source app, you need to provide a `context` property for the name of the check and an `app` property for the app.
+  You can use either the application's id or its slug.
+  The correctness of the slug can be checked accessing the URL `https://github.com/apps/<app_slug>`, e.g. https://github.com/apps/github-actions.
+- Otherwise, you can just specify the name of the check.
 
 ~~~yaml
 github:
@@ -466,10 +469,18 @@ github:
         # strict means "Require branches to be up to date before merging".
         strict: true
         checks:
+          # A Github Actions workflow name that must pass
+          - context: build / build (ubuntu-latest)
+            app: github-actions
+          # A security check that must pass
+          - context: CodeQL
+            app: github-advanced-security
+          # GitHub App specified by id
           - context: gh-infra/jenkins
-            app_id: 1234
+            app: 1234
+          # Equivalent to any GitHub App
           - context: another/build-that-must-pass
-            app_id: -1
+          - a-third/build-that-must-pass
       ...
 ~~~
 
