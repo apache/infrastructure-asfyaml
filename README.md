@@ -702,6 +702,10 @@ To remove labels from the repository, remove them from the list. You may only ha
 
 <h3 id="tag_protect">Tag protection</h3>
 
+ ⚠️ **Deprecated**
+GitHub tag protection rules were sunset in February 2024 and are no longer applied.
+This section is retained for historical reference only.
+
 As with branch protection rules, you can enable tag protection rules. These rules allow anyone with write-access to create a tag that matches the rule, but does not allow the tag to be deleted or overwritten.
 
 Tag protection rules follow a simple GLOB format, and support an arbitrary number of tag patterns:
