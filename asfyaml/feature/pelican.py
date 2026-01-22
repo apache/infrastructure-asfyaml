@@ -103,7 +103,7 @@ class ASFJekyllFeature(ASFYamlFeature, name="pelican", env="production", priorit
             print(payload)
         print("Done!")
 
-class ASFJekyllTestFeature(ASFYamlFeature, name="pelican", env="citest", priority=4):
+class ASFJekyllTestFeature(ASFYamlFeature, name="pelican", env="citest", priority=3):
     schema = strictyaml.Map(
         {
             strictyaml.Optional("whoami"): strictyaml.Str(),
