@@ -24,7 +24,7 @@ import fnmatch
 CI_HOSTNAME = "ci2.apache.org"
 CI_HOSTNAME_TEST = "ci2-test.apache.org"
 
-class ASFJekyllFeature(ASFYamlFeature, name="pelican", env="production", priority=4):
+class ASFPelicanFeature(ASFYamlFeature, name="pelican", env="production", priority=4):
     schema = strictyaml.Map(
         {
             strictyaml.Optional("whoami"): strictyaml.Str(),
@@ -103,7 +103,7 @@ class ASFJekyllFeature(ASFYamlFeature, name="pelican", env="production", priorit
             print(payload)
         print("Done!")
 
-class ASFJekyllTestFeature(ASFYamlFeature, name="pelican", env="citest", priority=3):
+class ASFPelicanTestFeature(ASFYamlFeature, name="pelicantest", env="citest", priority=3):
     schema = strictyaml.Map(
         {
             strictyaml.Optional("whoami"): strictyaml.Str(),
