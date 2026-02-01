@@ -18,7 +18,7 @@
 # Valid variables that can be used in custom github subject formatting
 # Corresponds to what's available in https://github.com/apache/infrastructure-github-event-notifier
 # N.B. Must agree with the user documentation at:
-# https://cwiki.apache.org/confluence/display/INFRA/Git+-+.asf.yaml+features#Git.asf.yamlfeatures-Supportedtemplatevariables
+# https://github.com/apache/infrastructure-asfyaml/blob/main/README.md#supported-template-variables
 VALID_GITHUB_SUBJECT_VARIABLES = (
     "repository",
     "user",
