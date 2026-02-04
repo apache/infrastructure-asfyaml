@@ -24,6 +24,7 @@ import fnmatch
 CI_HOSTNAME = "ci2.apache.org"
 CI_HOSTNAME_TEST = "ci2-test.apache.org"
 
+
 class ASFPelicanFeature(ASFYamlFeature, name="pelican", env="production", priority=4):
     schema = strictyaml.Map(
         {
@@ -102,6 +103,7 @@ class ASFPelicanFeature(ASFYamlFeature, name="pelican", env="production", priori
         else:
             print(payload)
         print("Done!")
+
 
 class ASFPelicanTestFeature(ASFYamlFeature, name="pelicantest", env="citest", priority=3):
     schema = strictyaml.Map(
