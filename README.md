@@ -376,6 +376,7 @@ We will evaluate the need for other autolink features.
 <h3 id="branchpro">Branch protection</h3>
 
 Projects can enable branch protection in their repos, including most of the sub-level protection features such as 'require status checks to pass before merging' , 'approval by at least $n people' , and 'require pull request reviews'. There are no default protections.
+All GitHub branch protection rules are also enforced when pushing directly to ASF Gitbox.
 For more details on Branch Protection Rules in general, please refer to the [documentation @ GitHub](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches).
 
 > [!WARNING]
@@ -454,7 +455,14 @@ required_status_checks:
 
 **Notes**
   1. Enabling any of the above checks overrides what you may have set previously, so you'll need to add all the existing checks to your `.asf.yaml` file to reproduce any that Infra set manually for you.
-  2. If you need to remove a required check in order to push a change to `.asf.yaml`, create an Infra Jira ticket with a request to have the check manually removed.
+  2. These checks also are observed by Gitbox.
+  3. If you need to remove a required check in order to push a change to `.asf.yaml`, create an Infra Jira ticket with a request to have the check manually removed.
+
+> [!NOTE]
+> **How the synchronization between Gitbox and GitHub works under the hood**
+>
+> When you push to Gitbox, we handle all the synchronization in the Git update phase, which means GitHub is asked for each commit inside that push whether it is allowed.
+> If as much as a single commit is disallowed, the sync process reverts and you get an error message explaining what went wrong.
 
 Using the 'contexts' list will automatically set an app ID of `-1` (any source) for checks. If you wish to specify a specific source app ID, you can make use of the expanded `checks` list instead:
 
