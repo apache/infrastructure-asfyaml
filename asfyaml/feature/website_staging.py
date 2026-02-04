@@ -85,7 +85,8 @@ class ASFWebsiteStagingFeature(ASFYamlFeature, name="staging", priority=9):
                 :-8
             ]  # site/foo-staging -> foo -> $project-foo.staged.a.o
         # The profile value is used in the staging host name, so must only contain valid DNS characters
-        if profile and not re.match(r"^[-.a-zA-Z0-9/]*$", profile):
+        # '.' is disallowed to ensure the hostname is covered by the wildcard certificate for *.staged.apache.org
+        if profile and not re.match(r"^[-a-zA-Z0-9]*$", profile):
             raise Exception(
                 f".asf.yaml: Invalid staging profile, '{profile}'. Must only contain permitted DNS characters (see RFC1035, §2.3.1)"
             )
