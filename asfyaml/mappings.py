@@ -28,7 +28,7 @@ LDAP_TO_HOSTNAME = {
 }
 
 # Repository filename syntax for inferring project names.
-REPO_RE = re.compile(r"(?:incubator-)?([^-.]+)")
+REPO_RE = re.compile(r"(?:incubator-|terraform-provider-)?([^-.]+)")
 
 # Mailing list overrides. Also to be centralized elsewhere.
 ML_OVERRIDES = {
