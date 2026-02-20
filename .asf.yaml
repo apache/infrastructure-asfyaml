@@ -10,5 +10,8 @@ github:
     - yaml
     - git
     - github
+  autolink_jira:
+    - INFRA
 notifications:
   jobs:         notifications@infra.apache.org
+  jira_options: link label comment
