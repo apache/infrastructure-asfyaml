@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "https://github.com/apache/infrastructure-asfyaml/feature/notifications.schema",
+  "title": "E-Mail Notifications",
+  "description": "Configures e-mail notifications. See: https://github.com/apache/infrastructure-asfyaml#notification-settings-for-repositories",
+  "type": "object",
+  "properties": {
+    "commits": {
+      "$ref": "#/$defs/e-mail"
+    },
+    "commits_by_path": {
+      "type": "object",
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/e-mail"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/e-mail"
+            }
+          }
+        ]
+      }
+    },
+    "discussions": {
+      "$ref": "#/$defs/e-mail"
+    },
+    "issues": {
+      "$ref": "#/$defs/e-mail"
+    },
+    "issues_comment": {
+      "$ref": "#/$defs/e-mail"
+    },
+    "issues_status": {
+      "$ref": "#/$defs/e-mail"
+    },
+    "jira_options": {
+      "type": "string"
+    },
+    "jobs": {
+      "$ref": "#/$defs/e-mail"
+    },
+    "pullrequests": {
+      "$ref": "#/$defs/e-mail"
+    },
+    "pullrequests_comment": {
+      "$ref": "#/$defs/e-mail"
+    },
+    "pullrequests_status": {
+      "$ref": "#/$defs/e-mail"
+    }
+  },
+  "patternProperties": {
+    "^(issues|pullrequests)(_status|_comment)?_bot_.*": {
+      "$ref": "#/$defs/e-mail"
+    }
+  },
+  "$defs": {
+    "e-mail": {
+      "description": "E-mail address",
+      "type": "string",
+      "pattern": "[-a-z0-9]+@([-a-z0-9]+\\.)?(incubator\\.)?apache\\.org"
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "https://github.com/apache/infrastructure-asfyaml/asfyaml.schema",
+  "title": "ASF GitHub Configuration",
+  "description": "GitHub Configuration file for ASF projects",
+  "type": "object",
+  "properties": {
+    "github": {
+      "$ref": "feature/github.schema.json"
+    },
+    "notifications": {
+      "$ref": "feature/notifications.schema.json"
+    }
+  }
+}
