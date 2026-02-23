@@ -20,12 +20,14 @@
 import re
 import os
 from . import directive, ASFGitHubFeature, constants
+import github as pygithub
 
 
 @directive
 def collaborators(self: ASFGitHubFeature):
     # Collaborator list for triage rights
     collabs = self.yaml.get("collaborators", [])
+    removed_collabs = []
 
     old_collabs = set()
     new_collabs = set(collabs)
@@ -48,7 +50,14 @@ def collaborators(self: ASFGitHubFeature):
         for user in to_remove:
             print("Removing GitHub triage access for %s" % user)
             if not self.noop("collaborators"):
-                self.ghrepo.remove_from_collaborators(user)
+                try:
+                    self.ghrepo.remove_from_collaborators(user)
+                    removed_collabs.append(user)
+                except pygithub.GithubException as e:
+                    removed_collabs.append(user + " (not removed): " + e)
+        if len(removed_collabs) > 0:
+            print("results of removing collaborators:")
+            print("\n".join(removed_collabs))
         for user in to_add:
             print("Adding GitHub triage access for %s" % user)
             if not self.noop("collaborators"):
