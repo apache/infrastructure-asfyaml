@@ -59,6 +59,8 @@ It operates on a per-branch basis, meaning you can have different settings for d
       <li><a href="#GHA_build_status">GitHub Actions build status emails</a></li>
       <li><a href="#pages">GitHub Pages</a></li>
       <li><a href="#pull_requests">Pull Request settings</a></li>
+      <li><a href="#copilot_code_review">Copilot code review</a></li>
+      <li><a href="#rulesets">Rulesets</a></li>
       <li><a href="#merge">Merge buttons</a></li>
       <li><a href="#repo_features">Repository features</a></li>
       <li><a href="#repo_meta">Repository metadata</a></li>
@@ -645,6 +647,86 @@ github:
     del_branch_on_merge: true
 ~~~
 
+<h3 id="copilot_code_review">Copilot code review</h3>
+
+Projects can enable automatic [GitHub Copilot code review](https://docs.github.com/en/copilot/how-tos/agents/copilot-code-review/configuring-automatic-code-review-by-copilot) on pull requests:
+
+~~~yaml
+github:
+  copilot_code_review:
+    enabled: true
+    review_drafts: false
+    review_on_push: true
+~~~
+
+This creates (or updates) a repository ruleset named `Copilot Code Review`, scoped to the default branch.
+
+Supported settings:
+
+~~~yaml
+enabled: <boolean>
+review_drafts: <boolean>      # optional, default false
+review_on_push: <boolean>     # optional, default false
+~~~
+
+Set `enabled: false` to disable this behavior. Removing the `copilot_code_review` section also removes an existing Copilot ruleset that was previously managed by `.asf.yaml`.
+
+As an alternative, you can configure Copilot review through [`rulesets`](#rulesets). If both `copilot_code_review`
+and `rulesets` try to manage a ruleset named `Copilot Code Review`, validation fails.
+
+<h3 id="rulesets">Rulesets</h3>
+
+Projects can manage GitHub repository rulesets directly:
+
+~~~yaml
+github:
+  rulesets:
+    - name: "Default branch checks"
+      target: branch
+      enforcement: active
+      conditions:
+        ref_name:
+          include:
+            - "~DEFAULT_BRANCH"
+          exclude: []
+      rules:
+        - type: required_status_checks
+          parameters:
+            strict_required_status_checks_policy: true
+            required_status_checks:
+              - context: gh-infra/jenkins
+                integration_id: -1
+~~~
+
+Each entry is sent to the GitHub Rulesets API by `name`:
+
+- If a ruleset with that name exists, it is updated.
+- If it does not exist, it is created.
+- If a previously managed ruleset name is removed from `.asf.yaml`, it is deleted.
+
+Set `rulesets: ~` (or remove the section) to remove previously managed rulesets.
+
+### Migrating from `protected_tags`
+
+`protected_tags` is deprecated on GitHub and no longer applied by `.asf.yaml`. Use `rulesets` with `target: tag`
+instead:
+
+~~~yaml
+github:
+  rulesets:
+    - name: "Release tags"
+      target: tag
+      enforcement: active
+      conditions:
+        ref_name:
+          include:
+            - "rel/*"
+            - "v*.*.*"
+          exclude: []
+      rules:
+        - type: non_fast_forward
+~~~
+
 <h3 id="merge">Merge buttons</h3>
 
 Projects can enable/disable the `merge PR` button in the GitHub UI and configure which actions to allow by adding the following configuration (or derivatives thereof):
@@ -726,6 +808,7 @@ github:
 ~~~
 
 **NOTE**: Tag protections have been sunset by GitHub as of 02/12/2024 and will thus not be applied anymore.
+Use [`rulesets`](#rulesets) with `target: tag` for tag protection policies.
 
 <h3 id="environments">Repository deployment environments</h3>
 
