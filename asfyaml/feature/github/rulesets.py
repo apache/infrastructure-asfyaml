@@ -125,13 +125,11 @@ def reconcile_rulesets(
     self: ASFGitHubFeature,
     desired_rulesets: list[dict[str, Any]],
     previously_managed_names: set[str],
-    existing_rulesets: list[dict[str, Any]] | None = None,
 ) -> None:
     endpoint = _rulesets_endpoint(self)
     existing_by_name: dict[str, dict[str, Any]] = {}
 
-    if existing_rulesets is None:
-        existing_rulesets = list_rulesets(self)
+    existing_rulesets = list_rulesets(self)
 
     for ruleset in existing_rulesets:
         name = ruleset.get("name")

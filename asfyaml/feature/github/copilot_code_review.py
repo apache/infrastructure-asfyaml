@@ -24,7 +24,6 @@ from .rulesets import (
     COPILOT_RULESET_NAME,
     COPILOT_RULE_TYPE,
     get_ruleset_names,
-    list_rulesets,
     reconcile_rulesets,
     ruleset_has_rule_type,
 )
@@ -97,24 +96,7 @@ def copilot_code_review(self: ASFGitHubFeature):
     if self.noop("copilot_code_review"):
         return
 
-    existing_rulesets = list_rulesets(self)
-    existing_copilot_names = [
-        ruleset["name"]
-        for ruleset in existing_rulesets
-        if isinstance(ruleset.get("name"), str) and ruleset_has_rule_type(ruleset, COPILOT_RULE_TYPE)
-    ]
+    desired_rulesets = [_build_copilot_ruleset_payload(review_drafts, review_on_push)] if enabled else []
+    previous_managed_names = {RULESET_NAME} if was_previously_configured else set()
 
-    payload = _build_copilot_ruleset_payload(review_drafts, review_on_push)
-    if enabled and RULESET_NAME not in get_ruleset_names(existing_rulesets) and existing_copilot_names:
-        # Keep managing the previously discovered Copilot ruleset instead of creating a duplicate by name.
-        payload["name"] = existing_copilot_names[0]
-
-    desired_rulesets = [payload] if enabled else []
-    previous_managed_names = ({RULESET_NAME} | set(existing_copilot_names)) if was_previously_configured else set()
-
-    reconcile_rulesets(
-        self,
-        desired_rulesets,
-        previous_managed_names,
-        existing_rulesets=existing_rulesets,
-    )
+    reconcile_rulesets(self, desired_rulesets, previous_managed_names)
