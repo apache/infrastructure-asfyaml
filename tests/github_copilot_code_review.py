@@ -146,6 +146,30 @@ def test_enable_copilot_code_review_updates_existing_ruleset():
     assert requester.calls[1]["input"] == _build_copilot_ruleset_payload(True, False)
 
 
+def test_enable_copilot_code_review_updates_existing_copilot_rule_with_custom_name():
+    existing_rulesets = [
+        {
+            "id": 74,
+            "name": "Copilot legacy config",
+            "rules": [{"type": "copilot_code_review", "parameters": {}}],
+        }
+    ]
+    requester = FakeRequester(rulesets=existing_rulesets)
+    feature = FakeFeature(
+        yaml={"copilot_code_review": {"enabled": True, "review_drafts": False, "review_on_push": True}},
+        previous_yaml={},
+        requester=requester,
+    )
+
+    copilot_code_review(feature)
+
+    assert [call["method"] for call in requester.calls] == ["GET", "PUT"]
+    assert requester.calls[1]["url"] == "/repos/apache/infrastructure-asfyaml/rulesets/74"
+    expected_payload = _build_copilot_ruleset_payload(False, True)
+    expected_payload["name"] = "Copilot legacy config"
+    assert requester.calls[1]["input"] == expected_payload
+
+
 def test_disable_copilot_code_review_deletes_existing_ruleset():
     existing_rulesets = [
         {
@@ -188,6 +212,27 @@ def test_removed_copilot_code_review_section_deletes_existing_ruleset():
     assert requester.calls[1]["url"] == "/repos/apache/infrastructure-asfyaml/rulesets/101"
 
 
+def test_removed_copilot_section_deletes_existing_custom_named_copilot_ruleset():
+    existing_rulesets = [
+        {
+            "id": 102,
+            "name": "Copilot custom name",
+            "rules": [{"type": "copilot_code_review", "parameters": {}}],
+        }
+    ]
+    requester = FakeRequester(rulesets=existing_rulesets)
+    feature = FakeFeature(
+        yaml={},
+        previous_yaml={"copilot_code_review": {"enabled": True}},
+        requester=requester,
+    )
+
+    copilot_code_review(feature)
+
+    assert [call["method"] for call in requester.calls] == ["GET", "DELETE"]
+    assert requester.calls[1]["url"] == "/repos/apache/infrastructure-asfyaml/rulesets/102"
+
+
 def test_noop_mode_does_not_call_api(capsys):
     requester = FakeRequester()
     feature = FakeFeature(
@@ -201,4 +246,101 @@ def test_noop_mode_does_not_call_api(capsys):
 
     captured = capsys.readouterr()
     assert "noop mode active" in captured.out
+    assert requester.calls == []
+
+
+def test_copilot_conflict_with_generic_rulesets_entry():
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={
+            "copilot_code_review": {"enabled": True},
+            "rulesets": [{"name": RULESET_NAME}],
+        },
+        previous_yaml={},
+        requester=requester,
+    )
+
+    with YamlTest(Exception, "Cannot configure Copilot Code Review via both", "").ctx():
+        copilot_code_review(feature)
+
+    assert requester.calls == []
+
+
+def test_copilot_conflict_with_generic_rulesets_copilot_rule_type():
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={
+            "copilot_code_review": {"enabled": True},
+            "rulesets": [
+                {
+                    "name": "custom",
+                    "rules": [{"type": "copilot_code_review", "parameters": {"review_draft_pull_requests": True}}],
+                }
+            ],
+        },
+        previous_yaml={},
+        requester=requester,
+    )
+
+    with YamlTest(Exception, "Cannot configure Copilot Code Review via both", "").ctx():
+        copilot_code_review(feature)
+
+    assert requester.calls == []
+
+
+def test_copilot_disable_does_not_delete_when_rulesets_manage_name():
+    requester = FakeRequester(rulesets=[{"id": 77, "name": RULESET_NAME, "rules": []}])
+    feature = FakeFeature(
+        yaml={
+            "copilot_code_review": {"enabled": False},
+            "rulesets": [{"name": RULESET_NAME}],
+        },
+        previous_yaml={"copilot_code_review": {"enabled": True}},
+        requester=requester,
+    )
+
+    copilot_code_review(feature)
+
+    assert requester.calls == []
+
+
+def test_copilot_disable_does_not_delete_when_rulesets_manage_copilot_rule_type():
+    requester = FakeRequester(rulesets=[{"id": 78, "name": "Copilot custom name", "rules": []}])
+    feature = FakeFeature(
+        yaml={
+            "copilot_code_review": {"enabled": False},
+            "rulesets": [{"name": "my-copilot", "rules": [{"type": "copilot_code_review"}]}],
+        },
+        previous_yaml={"copilot_code_review": {"enabled": True}},
+        requester=requester,
+    )
+
+    copilot_code_review(feature)
+
+    assert requester.calls == []
+
+
+def test_removed_copilot_section_does_not_delete_when_rulesets_manage_name():
+    requester = FakeRequester(rulesets=[{"id": 88, "name": RULESET_NAME, "rules": []}])
+    feature = FakeFeature(
+        yaml={"rulesets": [{"name": RULESET_NAME}]},
+        previous_yaml={"copilot_code_review": {"enabled": True}},
+        requester=requester,
+    )
+
+    copilot_code_review(feature)
+
+    assert requester.calls == []
+
+
+def test_removed_copilot_section_does_not_delete_when_rulesets_manage_copilot_rule_type():
+    requester = FakeRequester(rulesets=[{"id": 89, "name": "Copilot custom name", "rules": []}])
+    feature = FakeFeature(
+        yaml={"rulesets": [{"name": "my-copilot", "rules": [{"type": "copilot_code_review"}]}]},
+        previous_yaml={"copilot_code_review": {"enabled": True}},
+        requester=requester,
+    )
+
+    copilot_code_review(feature)
+
     assert requester.calls == []

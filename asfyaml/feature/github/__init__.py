@@ -139,6 +139,9 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                     strictyaml.Optional("allow_update_branch"): strictyaml.Bool(),
                 }
             ),
+            # Generic repository rulesets
+            strictyaml.Optional("rulesets"): asfyaml.validators.EmptyValue()
+            | strictyaml.Seq(strictyaml.MapPattern(strictyaml.Str(), strictyaml.Any())),
             # Copilot automatic code review (rulesets API)
             strictyaml.Optional("copilot_code_review"): strictyaml.Map(
                 {
@@ -271,5 +274,6 @@ from . import (
     housekeeping,
     protected_tags,
     deployment_environments,
+    rulesets,
     copilot_code_review,
 )

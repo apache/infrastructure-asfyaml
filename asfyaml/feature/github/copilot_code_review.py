@@ -17,53 +17,19 @@
 
 """GitHub Copilot code review ruleset support."""
 
-import json
 from typing import Any
 
 from . import directive, ASFGitHubFeature
+from .rulesets import (
+    COPILOT_RULESET_NAME,
+    COPILOT_RULE_TYPE,
+    get_ruleset_names,
+    list_rulesets,
+    reconcile_rulesets,
+    ruleset_has_rule_type,
+)
 
-RULESET_NAME = "Copilot Code Review"
-
-
-def _rulesets_endpoint(self: ASFGitHubFeature) -> str:
-    return f"/repos/{self.repository.org_id}/{self.repository.name}/rulesets"
-
-
-def _extract_json_payload(response: Any) -> Any:
-    if isinstance(response, (dict, list)):
-        return response
-
-    if isinstance(response, tuple):
-        for item in reversed(response):
-            if isinstance(item, (dict, list)):
-                return item
-        for item in reversed(response):
-            if isinstance(item, str):
-                try:
-                    return json.loads(item)
-                except json.JSONDecodeError:
-                    continue
-
-    return []
-
-
-def _ruleset_has_copilot_rule(ruleset: dict[str, Any]) -> bool:
-    return any(rule.get("type") == "copilot_code_review" for rule in ruleset.get("rules", []))
-
-
-def _list_rulesets(self: ASFGitHubFeature) -> list[dict[str, Any]]:
-    response = self.ghrepo._requester.requestJson("GET", _rulesets_endpoint(self))
-    payload = _extract_json_payload(response)
-    if not isinstance(payload, list):
-        return []
-    return [ruleset for ruleset in payload if isinstance(ruleset, dict)]
-
-
-def _find_copilot_ruleset(rulesets: list[dict[str, Any]]) -> dict[str, Any] | None:
-    for ruleset in rulesets:
-        if ruleset.get("name") == RULESET_NAME or _ruleset_has_copilot_rule(ruleset):
-            return ruleset
-    return None
+RULESET_NAME = COPILOT_RULESET_NAME
 
 
 def _build_copilot_ruleset_payload(review_drafts: bool, review_on_push: bool) -> dict[str, Any]:
@@ -89,6 +55,12 @@ def _build_copilot_ruleset_payload(review_drafts: bool, review_on_push: bool) ->
     }
 
 
+def _rulesets_configure_copilot(rulesets: Any) -> bool:
+    if not isinstance(rulesets, list):
+        return False
+    return any(ruleset_has_rule_type(ruleset, COPILOT_RULE_TYPE) for ruleset in rulesets)
+
+
 @directive
 def copilot_code_review(self: ASFGitHubFeature):
     copilot = self.yaml.get("copilot_code_review")
@@ -106,26 +78,43 @@ def copilot_code_review(self: ASFGitHubFeature):
     else:
         return
 
+    if not enabled and not was_previously_configured:
+        return
+
+    configured_rulesets = self.yaml.get("rulesets")
+    ruleset_names = get_ruleset_names(configured_rulesets)
+    rulesets_configure_copilot = _rulesets_configure_copilot(configured_rulesets)
+
+    if enabled and (RULESET_NAME in ruleset_names or rulesets_configure_copilot):
+        raise Exception(
+            "Cannot configure Copilot Code Review via both 'github.copilot_code_review' and 'github.rulesets'."
+        )
+
+    # If generic rulesets owns this name, avoid deleting it during migration from the convenience block.
+    if not enabled and (RULESET_NAME in ruleset_names or rulesets_configure_copilot):
+        return
+
     if self.noop("copilot_code_review"):
         return
 
-    endpoint = _rulesets_endpoint(self)
-    existing_ruleset = _find_copilot_ruleset(_list_rulesets(self))
+    existing_rulesets = list_rulesets(self)
+    existing_copilot_names = [
+        ruleset["name"]
+        for ruleset in existing_rulesets
+        if isinstance(ruleset.get("name"), str) and ruleset_has_rule_type(ruleset, COPILOT_RULE_TYPE)
+    ]
 
-    if enabled:
-        payload = _build_copilot_ruleset_payload(review_drafts, review_on_push)
-        if existing_ruleset:
-            ruleset_id = existing_ruleset.get("id")
-            if ruleset_id is None:
-                raise Exception("Found Copilot Code Review ruleset without an id")
-            print(f"Updating Copilot code review ruleset ({ruleset_id})")
-            self.ghrepo._requester.requestJson("PUT", f"{endpoint}/{ruleset_id}", input=payload)
-        else:
-            print("Creating Copilot code review ruleset")
-            self.ghrepo._requester.requestJson("POST", endpoint, input=payload)
-    elif existing_ruleset:
-        ruleset_id = existing_ruleset.get("id")
-        if ruleset_id is None:
-            raise Exception("Found Copilot Code Review ruleset without an id")
-        print(f"Deleting Copilot code review ruleset ({ruleset_id})")
-        self.ghrepo._requester.requestJson("DELETE", f"{endpoint}/{ruleset_id}")
+    payload = _build_copilot_ruleset_payload(review_drafts, review_on_push)
+    if enabled and RULESET_NAME not in get_ruleset_names(existing_rulesets) and existing_copilot_names:
+        # Keep managing the previously discovered Copilot ruleset instead of creating a duplicate by name.
+        payload["name"] = existing_copilot_names[0]
+
+    desired_rulesets = [payload] if enabled else []
+    previous_managed_names = ({RULESET_NAME} | set(existing_copilot_names)) if was_previously_configured else set()
+
+    reconcile_rulesets(
+        self,
+        desired_rulesets,
+        previous_managed_names,
+        existing_rulesets=existing_rulesets,
+    )
