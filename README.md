@@ -59,6 +59,8 @@ It operates on a per-branch basis, meaning you can have different settings for d
       <li><a href="#GHA_build_status">GitHub Actions build status emails</a></li>
       <li><a href="#pages">GitHub Pages</a></li>
       <li><a href="#pull_requests">Pull Request settings</a></li>
+      <li><a href="#copilot_code_review">Copilot code review</a></li>
+      <li><a href="#rulesets">Rulesets</a></li>
       <li><a href="#merge">Merge buttons</a></li>
       <li><a href="#repo_features">Repository features</a></li>
       <li><a href="#repo_meta">Repository metadata</a></li>
@@ -645,6 +647,102 @@ github:
     del_branch_on_merge: true
 ~~~
 
+<h3 id="copilot_code_review">Copilot code review</h3>
+
+Projects can enable automatic [GitHub Copilot code review](https://docs.github.com/en/copilot/how-tos/agents/copilot-code-review/configuring-automatic-code-review-by-copilot) on pull requests:
+
+~~~yaml
+github:
+  copilot_code_review:
+    enabled: true
+    review_drafts: false
+    review_on_push: true
+~~~
+
+This creates (or updates) a repository ruleset named `Copilot Code Review`, scoped to the default branch.
+
+Supported settings:
+
+~~~yaml
+enabled: <boolean>
+review_drafts: <boolean>      # optional, default false
+review_on_push: <boolean>     # optional, default false
+~~~
+
+Set `enabled: false` to disable this behavior. Removing the `copilot_code_review` section also removes an existing Copilot ruleset that was previously managed by `.asf.yaml`.
+
+As an alternative, you can configure Copilot review through [`rulesets`](#rulesets). If both `copilot_code_review`
+and `rulesets` try to manage a ruleset named `Copilot Code Review`, validation fails.
+
+<h3 id="rulesets">Rulesets</h3>
+
+Projects can manage GitHub repository rulesets with a migration-friendly syntax:
+
+~~~yaml
+github:
+  rulesets:
+    - name: "Branch Protection"
+      type: branch
+      branches:
+        includes:
+          - "main"
+          - "release/*"
+        excludes: []
+      bypass_users:
+        - "dependabot[bot]"
+      bypass_teams:
+        - "release-managers"
+      required_signatures: true
+      required_linear_history: true
+      required_conversation_resolution: true
+      required_pull_request_reviews:
+        dismiss_stale_reviews: true
+        require_last_push_approval: false
+        require_code_owner_reviews: true
+        required_approving_review_count: 2
+      required_status_checks:
+        - name: "gh-infra/jenkins"
+          app_slug: "jenkins"
+        - name: "build-and-test"
+          app_slug: -1
+~~~
+
+Notes:
+
+- `enforcement` is hardcoded to `active` for this syntax.
+- `bypass_users` and `bypass_teams` accept user names / team slugs and are resolved to IDs automatically.
+- `required_status_checks.app_slug` accepts either a numeric ID or app slug; slugs are resolved to `integration_id`.
+- `required_status_checks_strict` defaults to `false` (set it to `true` to require branches to be up to date before merge).
+- If `branches`/`refs` is omitted for `type: branch`, it defaults to `~DEFAULT_BRANCH`.
+
+Each entry is converted to the GitHub Rulesets API payload and reconciled by `name`:
+
+- If a ruleset with that name exists, it is updated.
+- If it does not exist, it is created.
+- If a previously managed ruleset name is removed from `.asf.yaml`, it is deleted.
+
+Set `rulesets: ~` (or remove the section) to remove previously managed rulesets.
+
+Advanced use: if needed, you can still provide a raw Rulesets API-style payload (`target`, `conditions`, `rules`, etc.).
+
+### Migrating from `protected_tags`
+
+`protected_tags` is deprecated on GitHub and no longer applied by `.asf.yaml`. Use `rulesets` with `type: tag`
+instead:
+
+~~~yaml
+github:
+  rulesets:
+    - name: "Release tags"
+      type: tag
+      branches:
+        includes:
+          - "rel/*"
+          - "v*.*.*"
+        excludes: []
+      non_fast_forward: true
+~~~
+
 <h3 id="merge">Merge buttons</h3>
 
 Projects can enable/disable the `merge PR` button in the GitHub UI and configure which actions to allow by adding the following configuration (or derivatives thereof):
@@ -726,6 +824,7 @@ github:
 ~~~
 
 **NOTE**: Tag protections have been sunset by GitHub as of 02/12/2024 and will thus not be applied anymore.
+Use [`rulesets`](#rulesets) with `type: tag` (or raw rulesets payloads with `target: tag`) for tag protection policies.
 
 <h3 id="environments">Repository deployment environments</h3>
 

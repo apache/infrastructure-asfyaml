@@ -139,6 +139,17 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                     strictyaml.Optional("allow_update_branch"): strictyaml.Bool(),
                 }
             ),
+            # Generic repository rulesets
+            strictyaml.Optional("rulesets"): asfyaml.validators.EmptyValue()
+            | strictyaml.Seq(strictyaml.MapPattern(strictyaml.Str(), strictyaml.Any())),
+            # Copilot automatic code review (rulesets API)
+            strictyaml.Optional("copilot_code_review"): strictyaml.Map(
+                {
+                    "enabled": strictyaml.Bool(),
+                    strictyaml.Optional("review_drafts", default=False): strictyaml.Bool(),
+                    strictyaml.Optional("review_on_push", default=False): strictyaml.Bool(),
+                }
+            ),
             # Delete branch on merge
             # TODO: deprecated, use "pull_requests.del_branch_on_merge" instead
             strictyaml.Optional("del_branch_on_merge"): strictyaml.Bool(),
@@ -263,4 +274,6 @@ from . import (
     housekeeping,
     protected_tags,
     deployment_environments,
+    rulesets,
+    copilot_code_review,
 )
