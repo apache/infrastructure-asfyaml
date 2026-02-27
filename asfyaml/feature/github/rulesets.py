@@ -92,7 +92,9 @@ def ensure_no_copilot_overlap(desired_rulesets: list[dict[str, Any]], copilot_en
         ruleset_has_rule_type(ruleset, COPILOT_RULE_TYPE) for ruleset in desired_rulesets
     )
     if has_overlap:
-        raise Exception("Cannot configure Copilot Code Review via both 'github.copilot_code_review' and 'github.rulesets'.")
+        raise Exception(
+            "Cannot configure Copilot Code Review via both 'github.copilot_code_review' and 'github.rulesets'."
+        )
 
 
 def normalize_rulesets(rulesets: Any) -> list[dict[str, Any]]:
@@ -177,7 +179,9 @@ def rulesets(self: ASFGitHubFeature):
     desired_rulesets = normalize_rulesets(self.yaml.get("rulesets")) if rulesets_configured else []
     ensure_no_copilot_overlap(desired_rulesets, is_copilot_code_review_enabled(self.yaml.get("copilot_code_review")))
 
-    previous_managed_names = get_ruleset_names(previous_yaml.get("rulesets", [])) if was_previously_configured else set()
+    previous_managed_names = (
+        get_ruleset_names(previous_yaml.get("rulesets", [])) if was_previously_configured else set()
+    )
 
     if self.noop("rulesets"):
         return
