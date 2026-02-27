@@ -59,6 +59,7 @@ It operates on a per-branch basis, meaning you can have different settings for d
       <li><a href="#GHA_build_status">GitHub Actions build status emails</a></li>
       <li><a href="#pages">GitHub Pages</a></li>
       <li><a href="#pull_requests">Pull Request settings</a></li>
+      <li><a href="#copilot_code_review">Copilot code review</a></li>
       <li><a href="#merge">Merge buttons</a></li>
       <li><a href="#repo_features">Repository features</a></li>
       <li><a href="#repo_meta">Repository metadata</a></li>
@@ -644,6 +645,30 @@ github:
     # auto-delete head branches after being merged
     del_branch_on_merge: true
 ~~~
+
+<h3 id="copilot_code_review">Copilot code review</h3>
+
+Projects can enable automatic [GitHub Copilot code review](https://docs.github.com/en/copilot/how-tos/agents/copilot-code-review/configuring-automatic-code-review-by-copilot) on pull requests:
+
+~~~yaml
+github:
+  copilot_code_review:
+    enabled: true
+    review_drafts: false
+    review_on_push: true
+~~~
+
+This creates (or updates) a repository ruleset named `Copilot Code Review`, scoped to the default branch.
+
+Supported settings:
+
+~~~yaml
+enabled: <boolean>
+review_drafts: <boolean>      # optional, default false
+review_on_push: <boolean>     # optional, default false
+~~~
+
+Set `enabled: false` to disable this behavior. Removing the `copilot_code_review` section also removes an existing Copilot ruleset that was previously managed by `.asf.yaml`.
 
 <h3 id="merge">Merge buttons</h3>
 
