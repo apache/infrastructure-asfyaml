@@ -99,8 +99,7 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             strictyaml.Optional("ghp_branch"): strictyaml.Str(),
             strictyaml.Optional("ghp_path", default="/docs"): strictyaml.Str(),
             # Branch protection rules - TODO: add actual schema
-            strictyaml.Optional("protected_branches"): asfyaml.validators.EmptyValue()
-            | strictyaml.MapPattern(
+            strictyaml.Optional("protected_branches"): strictyaml.MapPattern(
                 strictyaml.Str(),
                 strictyaml.Map(
                     {
@@ -118,12 +117,12 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                         strictyaml.Optional("required_status_checks"): strictyaml.Map(
                             {
                                 strictyaml.Optional("strict", default=False): strictyaml.Bool(),
-                                strictyaml.Optional("contexts"): strictyaml.Seq(strictyaml.Str()),
-                                strictyaml.Optional("checks"): strictyaml.Seq(
-                                    strictyaml.Map(
+                                strictyaml.Optional("contexts"): strictyaml.Seq(
+                                    strictyaml.Str()
+                                    | strictyaml.Map(
                                         {
-                                            strictyaml.Optional("context"): strictyaml.Str(),
-                                            strictyaml.Optional("app_id", default=-1): strictyaml.Int(),
+                                            "context": strictyaml.Str(),
+                                            strictyaml.Optional("app"): strictyaml.Int() | strictyaml.Str(),
                                         }
                                     )
                                 ),
