@@ -250,9 +250,8 @@ def test_rulesets_convenience_syntax_creates_ruleset():
     assert status_rule["parameters"]["strict_required_status_checks_policy"] is False
 
 
-def test_rulesets_convenience_resolves_bypass_and_app_slug():
+def test_rulesets_convenience_resolves_bypass_team_and_app_slug():
     fake_gh = SimpleNamespace(
-        get_user=lambda username: SimpleNamespace(id={"alice": 101}[username]),
         get_organization=lambda _org: SimpleNamespace(
             get_team_by_slug=lambda slug: SimpleNamespace(id={"infra": 202}[slug])
         ),
@@ -265,7 +264,6 @@ def test_rulesets_convenience_resolves_bypass_and_app_slug():
                     "name": "Branch Protection",
                     "type": "branch",
                     "required_signatures": True,
-                    "bypass_users": ["alice"],
                     "bypass_teams": ["infra"],
                     "required_status_checks": [{"name": "gh-infra/jenkins", "app_slug": "jenkins"}],
                 }
@@ -281,7 +279,6 @@ def test_rulesets_convenience_resolves_bypass_and_app_slug():
     post_call = next(call for call in requester.calls if call["method"] == "POST")
     payload = post_call["input"]
     assert payload["bypass_actors"] == [
-        {"actor_id": 101, "actor_type": "User", "bypass_mode": "always"},
         {"actor_id": 202, "actor_type": "Team", "bypass_mode": "always"},
     ]
     status_rule = next(rule for rule in payload["rules"] if rule["type"] == "required_status_checks")
@@ -290,7 +287,7 @@ def test_rulesets_convenience_resolves_bypass_and_app_slug():
     ]
 
 
-def test_rulesets_convenience_tag_non_fast_forward_rule():
+def test_rulesets_convenience_tag_restrict_force_push_rule():
     requester = FakeRequester()
     feature = FakeFeature(
         yaml={
@@ -299,7 +296,7 @@ def test_rulesets_convenience_tag_non_fast_forward_rule():
                     "name": "Release tags",
                     "type": "tag",
                     "branches": {"includes": ["v*.*.*"], "excludes": []},
-                    "non_fast_forward": True,
+                    "restrict_force_push": True,
                 }
             ]
         },
@@ -338,7 +335,7 @@ def test_rulesets_convenience_minimal_config_includes_safety_rules():
     assert rule_types == ["deletion", "non_fast_forward"]
 
 
-def test_rulesets_convenience_disallow_deletion_false():
+def test_rulesets_convenience_restrict_deletion_false_disables_rule():
     requester = FakeRequester()
     feature = FakeFeature(
         yaml={
@@ -346,7 +343,7 @@ def test_rulesets_convenience_disallow_deletion_false():
                 {
                     "name": "Branch Protection",
                     "type": "branch",
-                    "deletion": False,
+                    "restrict_deletion": False,
                     "required_signatures": True,
                 }
             ]
@@ -355,11 +352,15 @@ def test_rulesets_convenience_disallow_deletion_false():
         requester=requester,
     )
 
-    with pytest.raises(Exception, match="Convenience syntax rulesets always enable 'deletion'"):
-        configure_rulesets(feature)
+    configure_rulesets(feature)
+
+    payload = requester.calls[1]["input"]
+    rule_types = [rule["type"] for rule in payload["rules"]]
+    assert "deletion" not in rule_types
+    assert "non_fast_forward" in rule_types
 
 
-def test_rulesets_convenience_disallow_non_fast_forward_false():
+def test_rulesets_convenience_restrict_force_push_false_disables_rule():
     requester = FakeRequester()
     feature = FakeFeature(
         yaml={
@@ -367,7 +368,7 @@ def test_rulesets_convenience_disallow_non_fast_forward_false():
                 {
                     "name": "Branch Protection",
                     "type": "branch",
-                    "non_fast_forward": False,
+                    "restrict_force_push": False,
                     "required_signatures": True,
                 }
             ]
@@ -376,17 +377,44 @@ def test_rulesets_convenience_disallow_non_fast_forward_false():
         requester=requester,
     )
 
-    with pytest.raises(Exception, match="Convenience syntax rulesets always enable 'non_fast_forward'"):
-        configure_rulesets(feature)
+    configure_rulesets(feature)
+
+    payload = requester.calls[1]["input"]
+    rule_types = [rule["type"] for rule in payload["rules"]]
+    assert "deletion" in rule_types
+    assert "non_fast_forward" not in rule_types
+
+
+def test_rulesets_convenience_both_safety_rules_false_allows_empty_rules():
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={
+            "rulesets": [
+                {
+                    "name": "Branch Protection",
+                    "type": "branch",
+                    "restrict_deletion": False,
+                    "restrict_force_push": False,
+                }
+            ]
+        },
+        previous_yaml={},
+        requester=requester,
+    )
+
+    configure_rulesets(feature)
+
+    payload = requester.calls[1]["input"]
+    assert payload["rules"] == []
 
 
 @pytest.mark.parametrize(
     ("field_name", "field_value"),
     [
-        ("deletion", True),
-        ("deletion", "true"),
-        ("non_fast_forward", True),
-        ("non_fast_forward", "true"),
+        ("restrict_deletion", True),
+        ("restrict_deletion", "true"),
+        ("restrict_force_push", True),
+        ("restrict_force_push", "true"),
     ],
 )
 def test_rulesets_convenience_allow_explicit_safety_true(field_name: str, field_value: bool | str):
@@ -414,7 +442,10 @@ def test_rulesets_convenience_allow_explicit_safety_true(field_name: str, field_
     assert "non_fast_forward" in rule_types
 
 
-@pytest.mark.parametrize("field_name", ["deletion", "non_fast_forward"])
+@pytest.mark.parametrize(
+    "field_name",
+    ["restrict_deletion", "restrict_force_push"],
+)
 def test_rulesets_convenience_reject_invalid_safety_type(field_name: str):
     requester = FakeRequester()
     feature = FakeFeature(

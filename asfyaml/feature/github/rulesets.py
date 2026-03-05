@@ -29,17 +29,16 @@ _CONVENIENCE_RULESET_KEYS = {
     "type",
     "branches",
     "refs",
-    "bypass_users",
     "bypass_teams",
     "bypass_mode",
-    "deletion",
+    "restrict_deletion",
+    "restrict_force_push",
     "required_signatures",
     "required_linear_history",
     "required_conversation_resolution",
     "required_pull_request_reviews",
     "required_status_checks",
     "required_status_checks_strict",
-    "non_fast_forward",
 }
 
 
@@ -144,18 +143,6 @@ def _expect_string_list(value: Any, field_name: str) -> list[str]:
     return value
 
 
-def _resolve_user_id(self: ASFGitHubFeature, user: Any, *, resolve_references: bool, user_cache: dict[str, int]) -> int:
-    if isinstance(user, int):
-        return user
-    if not isinstance(user, str) or not user.strip():
-        raise Exception("bypass_users entries must be user names or numeric IDs")
-    if not resolve_references:
-        return -1
-    if user not in user_cache:
-        user_cache[user] = self.gh.get_user(user).id
-    return user_cache[user]
-
-
 def _resolve_team_id(self: ASFGitHubFeature, team: Any, *, resolve_references: bool, team_cache: dict[str, int]) -> int:
     if isinstance(team, int):
         return team
@@ -221,13 +208,9 @@ def _build_bypass_actors(
     ruleset: dict[str, Any],
     *,
     resolve_references: bool,
-    user_cache: dict[str, int],
     team_cache: dict[str, int],
 ) -> list[dict[str, Any]]:
-    users = ruleset.get("bypass_users", [])
     teams = ruleset.get("bypass_teams", [])
-    if not isinstance(users, list):
-        raise Exception("bypass_users must be a list")
     if not isinstance(teams, list):
         raise Exception("bypass_teams must be a list")
 
@@ -236,14 +219,6 @@ def _build_bypass_actors(
         raise Exception("bypass_mode must be a non-empty string")
 
     actors = []
-    for user in users:
-        actors.append(
-            {
-                "actor_id": _resolve_user_id(self, user, resolve_references=resolve_references, user_cache=user_cache),
-                "actor_type": "User",
-                "bypass_mode": bypass_mode,
-            }
-        )
     for team in teams:
         actors.append(
             {
@@ -355,24 +330,10 @@ def _is_raw_ruleset_definition(ruleset: dict[str, Any]) -> bool:
     return any(key in ruleset for key in _RAW_RULESET_KEYS)
 
 
-def _validate_always_on_safety_rules(ruleset: dict[str, Any]) -> None:
-    for field_name in ("deletion", "non_fast_forward"):
-        if field_name not in ruleset:
-            continue
-        value = ruleset.get(field_name)
-        try:
-            is_enabled = _expect_bool(value, field_name)
-        except Exception as exc:
-            raise Exception(
-                f"{field_name} must be a boolean. "
-                f"Convenience syntax rulesets always enable '{field_name}'. "
-                "Remove this key or use raw Rulesets API payload syntax if you need custom behavior."
-            ) from exc
-        if not is_enabled:
-            raise Exception(
-                f"Convenience syntax rulesets always enable '{field_name}'. "
-                "Use raw Rulesets API payload syntax if you need to disable it."
-            )
+def _is_safety_rule_enabled(ruleset: dict[str, Any], field_name: str) -> bool:
+    if field_name not in ruleset:
+        return True
+    return _expect_bool(ruleset.get(field_name), field_name)
 
 
 def _to_payload_ruleset(
@@ -380,7 +341,6 @@ def _to_payload_ruleset(
     ruleset: dict[str, Any],
     *,
     resolve_references: bool,
-    user_cache: dict[str, int],
     team_cache: dict[str, int],
     app_cache: dict[str, int],
 ) -> dict[str, Any]:
@@ -395,8 +355,6 @@ def _to_payload_ruleset(
     if not isinstance(target, str) or target not in {"branch", "tag"}:
         raise Exception("ruleset type must be one of: branch, tag")
 
-    _validate_always_on_safety_rules(ruleset)
-
     payload: dict[str, Any] = {
         "name": ruleset["name"],
         "target": target,
@@ -410,7 +368,6 @@ def _to_payload_ruleset(
         self,
         ruleset,
         resolve_references=resolve_references,
-        user_cache=user_cache,
         team_cache=team_cache,
     )
     if bypass_actors:
@@ -423,8 +380,10 @@ def _to_payload_ruleset(
         ruleset.get("required_linear_history"), "required_linear_history"
     ):
         rules.append({"type": "required_linear_history"})
-    rules.append({"type": "deletion"})
-    rules.append({"type": "non_fast_forward"})
+    if _is_safety_rule_enabled(ruleset, "restrict_deletion"):
+        rules.append({"type": "deletion"})
+    if _is_safety_rule_enabled(ruleset, "restrict_force_push"):
+        rules.append({"type": "non_fast_forward"})
 
     pull_request_rule = _build_pull_request_rule(ruleset)
     if pull_request_rule:
@@ -456,7 +415,6 @@ def normalize_rulesets(
 
     normalized: list[dict[str, Any]] = []
     seen_names: set[str] = set()
-    user_cache: dict[str, int] = {}
     team_cache: dict[str, int] = {}
     app_cache: dict[str, int] = {}
 
@@ -477,7 +435,6 @@ def normalize_rulesets(
                 self,
                 dict(ruleset),
                 resolve_references=resolve_references,
-                user_cache=user_cache,
                 team_cache=team_cache,
                 app_cache=app_cache,
             )

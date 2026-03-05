@@ -682,7 +682,7 @@ Projects can manage GitHub repository rulesets using one of two styles:
 - Convenience syntax (recommended)
 - Raw payload syntax (advanced)
 
-#### Convenience syntax (recommended)
+Convenience syntax (recommended):
 
 ~~~yaml
 github:
@@ -694,10 +694,10 @@ github:
           - "main"
           - "release/*"
         excludes: []
-      bypass_users:
-        - "dependabot[bot]"
       bypass_teams:
         - "release-managers"
+      restrict_deletion: true
+      restrict_force_push: true
       required_signatures: true
       required_linear_history: true
       required_conversation_resolution: true
@@ -716,15 +716,17 @@ github:
 Notes:
 
 - `enforcement` is hardcoded to `active` for this syntax.
-- `bypass_users` and `bypass_teams` accept user names / team slugs and are resolved to IDs automatically.
+- `bypass_teams` accepts team slugs and resolves them to IDs automatically.
 - `required_status_checks` accepts either a list of strings (check context, any source) or mappings with `name` and optional `app_slug`.
 - `required_status_checks.app_slug` accepts either a numeric ID or app slug; slugs are resolved to `integration_id`.
 - `required_status_checks_strict` defaults to `false` (set it to `true` to require branches to be up to date before merge).
 - If `branches`/`refs` is omitted for `type: branch`, it defaults to `~DEFAULT_BRANCH`.
-- Convenience syntax always includes `deletion` and `non_fast_forward` rules for safety.
-- `deletion: false` and `non_fast_forward: false` are not allowed in convenience syntax. Use raw payload syntax for custom behavior.
+- `restrict_deletion` and `restrict_force_push` default to `true` in convenience syntax.
+- Set `restrict_deletion: false` and/or `restrict_force_push: false` to disable those rules for a convenience entry.
+- `deletion` and `non_fast_forward` are raw rule types under `rules`, not convenience top-level keys.
+- Convenience entries may intentionally resolve to `rules: []` (for example, while staging migration changes).
 
-#### Validation and reconciliation behavior
+Validation and reconciliation behavior:
 
 - Each `rulesets` entry must use exactly one style: convenience syntax or raw payload syntax.
 - Mixing convenience syntax keys and raw payload syntax keys in the same entry is not supported.
@@ -735,7 +737,7 @@ Notes:
 
 Set `rulesets: ~` (or remove the `rulesets` key) to remove previously managed rulesets managed by `.asf.yaml`.
 
-#### Raw payload syntax (advanced)
+Raw payload syntax (advanced):
 
 Use raw payload syntax (`target`, `conditions`, `rules`, `bypass_actors`, etc.) when you need full Rulesets API control.
 
