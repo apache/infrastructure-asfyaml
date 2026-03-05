@@ -25,13 +25,14 @@ from . import directive, ASFGitHubFeature
 COPILOT_RULESET_NAME = "Copilot Code Review"
 COPILOT_RULE_TYPE = "copilot_code_review"
 _RAW_RULESET_KEYS = {"target", "enforcement", "conditions", "rules", "bypass_actors"}
-_FRIENDLY_RULESET_KEYS = {
+_CONVENIENCE_RULESET_KEYS = {
     "type",
     "branches",
     "refs",
     "bypass_users",
     "bypass_teams",
     "bypass_mode",
+    "deletion",
     "required_signatures",
     "required_linear_history",
     "required_conversation_resolution",
@@ -354,6 +355,26 @@ def _is_raw_ruleset_definition(ruleset: dict[str, Any]) -> bool:
     return any(key in ruleset for key in _RAW_RULESET_KEYS)
 
 
+def _validate_always_on_safety_rules(ruleset: dict[str, Any]) -> None:
+    for field_name in ("deletion", "non_fast_forward"):
+        if field_name not in ruleset:
+            continue
+        value = ruleset.get(field_name)
+        try:
+            is_enabled = _expect_bool(value, field_name)
+        except Exception as exc:
+            raise Exception(
+                f"{field_name} must be a boolean. "
+                f"Convenience syntax rulesets always enable '{field_name}'. "
+                "Remove this key or use raw Rulesets API payload syntax if you need custom behavior."
+            ) from exc
+        if not is_enabled:
+            raise Exception(
+                f"Convenience syntax rulesets always enable '{field_name}'. "
+                "Use raw Rulesets API payload syntax if you need to disable it."
+            )
+
+
 def _to_payload_ruleset(
     self: ASFGitHubFeature,
     ruleset: dict[str, Any],
@@ -364,15 +385,17 @@ def _to_payload_ruleset(
     app_cache: dict[str, int],
 ) -> dict[str, Any]:
     if _is_raw_ruleset_definition(ruleset):
-        mixed_keys = _FRIENDLY_RULESET_KEYS.intersection(ruleset)
+        mixed_keys = _CONVENIENCE_RULESET_KEYS.intersection(ruleset)
         if mixed_keys:
             mixed_keys_as_str = ", ".join(sorted(mixed_keys))
-            raise Exception(f"Raw ruleset payload cannot mix friendly keys: {mixed_keys_as_str}")
+            raise Exception(f"Raw ruleset payload cannot mix convenience syntax keys: {mixed_keys_as_str}")
         return dict(ruleset)
 
     target = ruleset.get("type", "branch")
     if not isinstance(target, str) or target not in {"branch", "tag"}:
         raise Exception("ruleset type must be one of: branch, tag")
+
+    _validate_always_on_safety_rules(ruleset)
 
     payload: dict[str, Any] = {
         "name": ruleset["name"],
@@ -400,8 +423,8 @@ def _to_payload_ruleset(
         ruleset.get("required_linear_history"), "required_linear_history"
     ):
         rules.append({"type": "required_linear_history"})
-    if "non_fast_forward" in ruleset and _expect_bool(ruleset.get("non_fast_forward"), "non_fast_forward"):
-        rules.append({"type": "non_fast_forward"})
+    rules.append({"type": "deletion"})
+    rules.append({"type": "non_fast_forward"})
 
     pull_request_rule = _build_pull_request_rule(ruleset)
     if pull_request_rule:
@@ -415,11 +438,6 @@ def _to_payload_ruleset(
     )
     if status_checks_rule:
         rules.append(status_checks_rule)
-
-    if not rules:
-        raise Exception(
-            "Friendly ruleset definitions must define at least one required_* setting or use raw Rulesets API payload keys"
-        )
 
     payload["rules"] = rules
     return payload

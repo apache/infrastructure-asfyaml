@@ -52,7 +52,7 @@ github:
 """,
 )
 
-valid_rulesets_friendly = YamlTest(
+valid_rulesets_convenience = YamlTest(
     None,
     None,
     """
@@ -88,7 +88,7 @@ github:
 """,
 )
 
-invalid_rulesets_friendly_bad_bool = YamlTest(
+invalid_rulesets_convenience_bad_bool = YamlTest(
     asfyaml.asfyaml.ASFYAMLException,
     "required_signatures must be a boolean",
     """
@@ -171,9 +171,9 @@ def test_basic_yaml(test_repo: asfyaml.dataobjects.Repository):
 
     tests_to_run = (
         valid_rulesets,
-        valid_rulesets_friendly,
+        valid_rulesets_convenience,
         invalid_rulesets_not_sequence,
-        invalid_rulesets_friendly_bad_bool,
+        invalid_rulesets_convenience_bad_bool,
     )
 
     for test in tests_to_run:
@@ -202,7 +202,7 @@ def test_rulesets_create_new_ruleset():
     assert requester.calls[1]["input"] == payload
 
 
-def test_rulesets_friendly_syntax_creates_ruleset():
+def test_rulesets_convenience_syntax_creates_ruleset():
     requester = FakeRequester()
     feature = FakeFeature(
         yaml={
@@ -239,6 +239,8 @@ def test_rulesets_friendly_syntax_creates_ruleset():
     assert payload["conditions"]["ref_name"]["exclude"] == []
 
     rule_types = [rule["type"] for rule in payload["rules"]]
+    assert "deletion" in rule_types
+    assert "non_fast_forward" in rule_types
     assert "required_signatures" in rule_types
     assert "required_linear_history" in rule_types
     assert "pull_request" in rule_types
@@ -248,7 +250,7 @@ def test_rulesets_friendly_syntax_creates_ruleset():
     assert status_rule["parameters"]["strict_required_status_checks_policy"] is False
 
 
-def test_rulesets_friendly_resolves_bypass_and_app_slug():
+def test_rulesets_convenience_resolves_bypass_and_app_slug():
     fake_gh = SimpleNamespace(
         get_user=lambda username: SimpleNamespace(id={"alice": 101}[username]),
         get_organization=lambda _org: SimpleNamespace(
@@ -288,7 +290,7 @@ def test_rulesets_friendly_resolves_bypass_and_app_slug():
     ]
 
 
-def test_rulesets_friendly_tag_non_fast_forward_rule():
+def test_rulesets_convenience_tag_non_fast_forward_rule():
     requester = FakeRequester()
     feature = FakeFeature(
         yaml={
@@ -310,10 +312,131 @@ def test_rulesets_friendly_tag_non_fast_forward_rule():
     payload = requester.calls[1]["input"]
     assert payload["target"] == "tag"
     rule_types = [rule["type"] for rule in payload["rules"]]
+    assert "deletion" in rule_types
     assert "non_fast_forward" in rule_types
 
 
-def test_rulesets_friendly_conversation_resolution_false_does_not_add_pull_request_rule():
+def test_rulesets_convenience_minimal_config_includes_safety_rules():
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={
+            "rulesets": [
+                {
+                    "name": "Safety defaults only",
+                    "type": "branch",
+                }
+            ]
+        },
+        previous_yaml={},
+        requester=requester,
+    )
+
+    configure_rulesets(feature)
+
+    payload = requester.calls[1]["input"]
+    rule_types = [rule["type"] for rule in payload["rules"]]
+    assert rule_types == ["deletion", "non_fast_forward"]
+
+
+def test_rulesets_convenience_disallow_deletion_false():
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={
+            "rulesets": [
+                {
+                    "name": "Branch Protection",
+                    "type": "branch",
+                    "deletion": False,
+                    "required_signatures": True,
+                }
+            ]
+        },
+        previous_yaml={},
+        requester=requester,
+    )
+
+    with pytest.raises(Exception, match="Convenience syntax rulesets always enable 'deletion'"):
+        configure_rulesets(feature)
+
+
+def test_rulesets_convenience_disallow_non_fast_forward_false():
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={
+            "rulesets": [
+                {
+                    "name": "Branch Protection",
+                    "type": "branch",
+                    "non_fast_forward": False,
+                    "required_signatures": True,
+                }
+            ]
+        },
+        previous_yaml={},
+        requester=requester,
+    )
+
+    with pytest.raises(Exception, match="Convenience syntax rulesets always enable 'non_fast_forward'"):
+        configure_rulesets(feature)
+
+
+@pytest.mark.parametrize(
+    ("field_name", "field_value"),
+    [
+        ("deletion", True),
+        ("deletion", "true"),
+        ("non_fast_forward", True),
+        ("non_fast_forward", "true"),
+    ],
+)
+def test_rulesets_convenience_allow_explicit_safety_true(field_name: str, field_value: bool | str):
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={
+            "rulesets": [
+                {
+                    "name": "Branch Protection",
+                    "type": "branch",
+                    field_name: field_value,
+                    "required_signatures": True,
+                }
+            ]
+        },
+        previous_yaml={},
+        requester=requester,
+    )
+
+    configure_rulesets(feature)
+
+    payload = requester.calls[1]["input"]
+    rule_types = [rule["type"] for rule in payload["rules"]]
+    assert "deletion" in rule_types
+    assert "non_fast_forward" in rule_types
+
+
+@pytest.mark.parametrize("field_name", ["deletion", "non_fast_forward"])
+def test_rulesets_convenience_reject_invalid_safety_type(field_name: str):
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={
+            "rulesets": [
+                {
+                    "name": "Branch Protection",
+                    "type": "branch",
+                    field_name: "no",
+                    "required_signatures": True,
+                }
+            ]
+        },
+        previous_yaml={},
+        requester=requester,
+    )
+
+    with pytest.raises(Exception, match=rf"{field_name} must be a boolean"):
+        configure_rulesets(feature)
+
+
+def test_rulesets_convenience_conversation_resolution_false_does_not_add_pull_request_rule():
     requester = FakeRequester()
     feature = FakeFeature(
         yaml={
@@ -435,7 +558,7 @@ def test_rulesets_duplicate_names_raise():
         configure_rulesets(feature)
 
 
-def test_rulesets_mixed_raw_and_friendly_keys_raise():
+def test_rulesets_mixed_raw_and_convenience_keys_raise():
     requester = FakeRequester()
     feature = FakeFeature(
         yaml={
@@ -452,5 +575,5 @@ def test_rulesets_mixed_raw_and_friendly_keys_raise():
         requester=requester,
     )
 
-    with pytest.raises(Exception, match="Raw ruleset payload cannot mix friendly keys"):
+    with pytest.raises(Exception, match="Raw ruleset payload cannot mix convenience syntax keys"):
         configure_rulesets(feature)

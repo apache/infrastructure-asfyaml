@@ -671,12 +671,18 @@ review_on_push: <boolean>     # optional, default false
 
 Set `enabled: false` to disable this behavior. Removing the `copilot_code_review` section also removes an existing Copilot ruleset that was previously managed by `.asf.yaml`.
 
-As an alternative, you can configure Copilot review through [`rulesets`](#rulesets). If both `copilot_code_review`
-and `rulesets` try to manage a ruleset named `Copilot Code Review`, validation fails.
+As an alternative, you can configure Copilot review through [`rulesets`](#rulesets). Validation fails if both
+`copilot_code_review` and `rulesets` overlap, either by managing a ruleset named `Copilot Code Review`
+or by defining a `copilot_code_review` rule type in `rulesets`.
 
 <h3 id="rulesets">Rulesets</h3>
 
-Projects can manage GitHub repository rulesets with a migration-friendly syntax:
+Projects can manage GitHub repository rulesets using one of two styles:
+
+- Convenience syntax (recommended)
+- Raw payload syntax (advanced)
+
+#### Convenience syntax (recommended)
 
 ~~~yaml
 github:
@@ -711,19 +717,76 @@ Notes:
 
 - `enforcement` is hardcoded to `active` for this syntax.
 - `bypass_users` and `bypass_teams` accept user names / team slugs and are resolved to IDs automatically.
+- `required_status_checks` accepts either a list of strings (check context, any source) or mappings with `name` and optional `app_slug`.
 - `required_status_checks.app_slug` accepts either a numeric ID or app slug; slugs are resolved to `integration_id`.
 - `required_status_checks_strict` defaults to `false` (set it to `true` to require branches to be up to date before merge).
 - If `branches`/`refs` is omitted for `type: branch`, it defaults to `~DEFAULT_BRANCH`.
+- Convenience syntax always includes `deletion` and `non_fast_forward` rules for safety.
+- `deletion: false` and `non_fast_forward: false` are not allowed in convenience syntax. Use raw payload syntax for custom behavior.
 
-Each entry is converted to the GitHub Rulesets API payload and reconciled by `name`:
+#### Validation and reconciliation behavior
 
-- If a ruleset with that name exists, it is updated.
+- Each `rulesets` entry must use exactly one style: convenience syntax or raw payload syntax.
+- Mixing convenience syntax keys and raw payload syntax keys in the same entry is not supported.
+- Ruleset `name` is the reconciliation key and must be unique within `github.rulesets`.
+- If a ruleset with that `name` exists, it is updated.
 - If it does not exist, it is created.
-- If a previously managed ruleset name is removed from `.asf.yaml`, it is deleted.
+- If a previously managed ruleset `name` is removed from `.asf.yaml`, it is deleted.
 
-Set `rulesets: ~` (or remove the section) to remove previously managed rulesets.
+Set `rulesets: ~` (or remove the `rulesets` key) to remove previously managed rulesets managed by `.asf.yaml`.
 
-Advanced use: if needed, you can still provide a raw Rulesets API-style payload (`target`, `conditions`, `rules`, etc.).
+#### Raw payload syntax (advanced)
+
+Use raw payload syntax (`target`, `conditions`, `rules`, `bypass_actors`, etc.) when you need full Rulesets API control.
+
+Raw payload example (including explicit safety rules):
+
+~~~yaml
+github:
+  rulesets:
+    - name: "Custom branch policy"
+      target: branch
+      enforcement: active
+      conditions:
+        ref_name:
+          include:
+            - "~DEFAULT_BRANCH"
+          exclude: []
+      rules:
+        # Restrict deletions: only bypass actors can delete matching refs.
+        - type: deletion
+        # Block force-push/non-fast-forward updates for matching refs.
+        - type: non_fast_forward
+        - type: required_signatures
+        - type: required_linear_history
+        - type: pull_request
+          parameters:
+            dismiss_stale_reviews_on_push: true
+            require_code_owner_review: true
+            require_last_push_approval: false
+            required_approving_review_count: 2
+            required_review_thread_resolution: true
+        - type: required_status_checks
+          parameters:
+            strict_required_status_checks_policy: false
+            required_status_checks:
+              - context: gh-infra/jenkins
+                integration_id: -1
+~~~
+
+Rule summary for the raw payload example:
+
+- `deletion`: Only bypass actors can delete matching branches/tags.
+- `non_fast_forward`: Blocks force-push and other non-fast-forward updates.
+- `required_signatures`: Requires commits with verified signatures.
+- `required_linear_history`: Disallows merge commits on matching refs.
+- `pull_request`: Requires pull requests and controls review policy.
+- `required_status_checks`: Requires specific CI checks before merge/update.
+
+For the full list of supported rules and semantics, see GitHub docs:
+
+- [Available rules for rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets)
+- [Repository rulesets REST API](https://docs.github.com/en/rest/repos/rules?apiVersion=2022-11-28#get-all-repository-rulesets)
 
 ### Migrating from `protected_tags`
 
@@ -740,7 +803,6 @@ github:
           - "rel/*"
           - "v*.*.*"
         excludes: []
-      non_fast_forward: true
 ~~~
 
 <h3 id="merge">Merge buttons</h3>
@@ -863,7 +925,7 @@ The above example creates two deployment environments, `pypi` and `test-pypi`.
 
 The `environments` section is a dictionary of environment names, each with a dictionary of settings. The settings are:
 
-```yanl
+```yaml
 required_reviewers:
   - id: <string> | <int>
     type: 'User' | 'Team'
