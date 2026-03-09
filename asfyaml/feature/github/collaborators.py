@@ -54,7 +54,7 @@ def collaborators(self: ASFGitHubFeature):
                     self.ghrepo.remove_from_collaborators(user)
                     removed_collabs.append(user)
                 except pygithub.GithubException as e:
-                    skipped_user_message = e.str
+                    skipped_user_message = str(e)
                     removed_collabs.append(f"{user} (not removed): {skipped_user_message}")
         if len(removed_collabs) > 0:
             print("results of removing collaborators:")
