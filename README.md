@@ -59,6 +59,8 @@ It operates on a per-branch basis, meaning you can have different settings for d
       <li><a href="#GHA_build_status">GitHub Actions build status emails</a></li>
       <li><a href="#pages">GitHub Pages</a></li>
       <li><a href="#pull_requests">Pull Request settings</a></li>
+      <li><a href="#copilot_code_review">Copilot code review</a></li>
+      <li><a href="#rulesets">Rulesets</a></li>
       <li><a href="#merge">Merge buttons</a></li>
       <li><a href="#repo_features">Repository features</a></li>
       <li><a href="#repo_meta">Repository metadata</a></li>
@@ -645,6 +647,166 @@ github:
     del_branch_on_merge: true
 ~~~
 
+<h3 id="copilot_code_review">Copilot code review</h3>
+
+Projects can enable automatic [GitHub Copilot code review](https://docs.github.com/en/copilot/how-tos/agents/copilot-code-review/configuring-automatic-code-review-by-copilot) on pull requests:
+
+~~~yaml
+github:
+  copilot_code_review:
+    enabled: true
+    review_drafts: false
+    review_on_push: true
+~~~
+
+This creates (or updates) a repository ruleset named `Copilot Code Review`, scoped to the default branch.
+
+Supported settings:
+
+~~~yaml
+enabled: <boolean>
+review_drafts: <boolean>      # optional, default false
+review_on_push: <boolean>     # optional, default false
+~~~
+
+Set `enabled: false` to disable this behavior. Removing the `copilot_code_review` section also removes an existing Copilot ruleset that was previously managed by `.asf.yaml`.
+
+As an alternative, you can configure Copilot review through [`rulesets`](#rulesets). Validation fails if both
+`copilot_code_review` and `rulesets` overlap, either by managing a ruleset named `Copilot Code Review`
+or by defining a `copilot_code_review` rule type in `rulesets`.
+
+<h3 id="rulesets">Rulesets</h3>
+
+Projects can manage GitHub repository rulesets using one of two styles:
+
+- Convenience syntax (recommended)
+- Raw payload syntax (advanced)
+
+Convenience syntax (recommended):
+
+~~~yaml
+github:
+  rulesets:
+    - name: "Branch Protection"
+      type: branch
+      branches:
+        includes:
+          - "main"
+          - "release/*"
+        excludes: []
+      bypass_teams:
+        - "release-managers"
+      restrict_deletion: true
+      restrict_force_push: true
+      required_signatures: true
+      required_linear_history: true
+      required_conversation_resolution: true
+      required_pull_request_reviews:
+        dismiss_stale_reviews: true
+        require_last_push_approval: false
+        require_code_owner_reviews: true
+        required_approving_review_count: 2
+      required_status_checks:
+        - name: "gh-infra/jenkins"
+          app_slug: "jenkins"
+        - name: "build-and-test"
+          app_slug: -1
+~~~
+
+Notes:
+
+- `enforcement` is hardcoded to `active` for this syntax.
+- `bypass_teams` accepts team slugs and resolves them to IDs automatically.
+- `required_status_checks` accepts either a list of strings (check context, any source) or mappings with `name` and optional `app_slug`.
+- `required_status_checks.app_slug` accepts either a numeric ID or app slug; slugs are resolved to `integration_id`.
+- `required_status_checks_strict` defaults to `false` (set it to `true` to require branches to be up to date before merge).
+- If `branches`/`refs` is omitted for `type: branch`, it defaults to `~DEFAULT_BRANCH`.
+- `restrict_deletion` and `restrict_force_push` default to `true` in convenience syntax.
+- Set `restrict_deletion: false` and/or `restrict_force_push: false` to disable those rules for a convenience entry.
+- `deletion` and `non_fast_forward` are raw rule types under `rules`, not convenience top-level keys.
+- Convenience entries may intentionally resolve to `rules: []` (for example, while staging migration changes).
+
+Validation and reconciliation behavior:
+
+- Each `rulesets` entry must use exactly one style: convenience syntax or raw payload syntax.
+- Mixing convenience syntax keys and raw payload syntax keys in the same entry is not supported.
+- Ruleset `name` is the reconciliation key and must be unique within `github.rulesets`.
+- If a ruleset with that `name` exists, it is updated.
+- If it does not exist, it is created.
+- If a previously managed ruleset `name` is removed from `.asf.yaml`, it is deleted.
+
+Set `rulesets: ~` (or remove the `rulesets` key) to remove previously managed rulesets managed by `.asf.yaml`.
+
+Raw payload syntax (advanced):
+
+Use raw payload syntax (`target`, `conditions`, `rules`, `bypass_actors`, etc.) when you need full Rulesets API control.
+
+Raw payload example (including explicit safety rules):
+
+~~~yaml
+github:
+  rulesets:
+    - name: "Custom branch policy"
+      target: branch
+      enforcement: active
+      conditions:
+        ref_name:
+          include:
+            - "~DEFAULT_BRANCH"
+          exclude: []
+      rules:
+        # Restrict deletions: only bypass actors can delete matching refs.
+        - type: deletion
+        # Block force-push/non-fast-forward updates for matching refs.
+        - type: non_fast_forward
+        - type: required_signatures
+        - type: required_linear_history
+        - type: pull_request
+          parameters:
+            dismiss_stale_reviews_on_push: true
+            require_code_owner_review: true
+            require_last_push_approval: false
+            required_approving_review_count: 2
+            required_review_thread_resolution: true
+        - type: required_status_checks
+          parameters:
+            strict_required_status_checks_policy: false
+            required_status_checks:
+              - context: gh-infra/jenkins
+                integration_id: -1
+~~~
+
+Rule summary for the raw payload example:
+
+- `deletion`: Only bypass actors can delete matching branches/tags.
+- `non_fast_forward`: Blocks force-push and other non-fast-forward updates.
+- `required_signatures`: Requires commits with verified signatures.
+- `required_linear_history`: Disallows merge commits on matching refs.
+- `pull_request`: Requires pull requests and controls review policy.
+- `required_status_checks`: Requires specific CI checks before merge/update.
+
+For the full list of supported rules and semantics, see GitHub docs:
+
+- [Available rules for rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets)
+- [Repository rulesets REST API](https://docs.github.com/en/rest/repos/rules?apiVersion=2022-11-28#get-all-repository-rulesets)
+
+### Migrating from `protected_tags`
+
+`protected_tags` is deprecated on GitHub and no longer applied by `.asf.yaml`. Use `rulesets` with `type: tag`
+instead:
+
+~~~yaml
+github:
+  rulesets:
+    - name: "Release tags"
+      type: tag
+      branches:
+        includes:
+          - "rel/*"
+          - "v*.*.*"
+        excludes: []
+~~~
+
 <h3 id="merge">Merge buttons</h3>
 
 Projects can enable/disable the `merge PR` button in the GitHub UI and configure which actions to allow by adding the following configuration (or derivatives thereof):
@@ -726,6 +888,7 @@ github:
 ~~~
 
 **NOTE**: Tag protections have been sunset by GitHub as of 02/12/2024 and will thus not be applied anymore.
+Use [`rulesets`](#rulesets) with `type: tag` (or raw rulesets payloads with `target: tag`) for tag protection policies.
 
 <h3 id="environments">Repository deployment environments</h3>
 
@@ -764,7 +927,7 @@ The above example creates two deployment environments, `pypi` and `test-pypi`.
 
 The `environments` section is a dictionary of environment names, each with a dictionary of settings. The settings are:
 
-```yanl
+```yaml
 required_reviewers:
   - id: <string> | <int>
     type: 'User' | 'Team'
