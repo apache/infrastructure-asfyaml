@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "https://github.com/apache/infrastructure-asfyaml/feature/github.asfyaml.schema",
+  "title": "GitHub settings",
+  "description": "Configures GitHub settings for the repository. See: https://github.com/apache/infrastructure-asfyaml#github-settings",
+  "type": "object",
+  "properties": {
+    "description": {
+      "type": "string",
+      "description": "Configures the description of the repository"
+    },
+    "protected_branches": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "github/branch_protection.schema.json"
+      }
+    }
+  }
+}
