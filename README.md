@@ -569,6 +569,18 @@ The **subject line templates** support the use of the following variables only. 
 
 **Note**: If your project uses multiple GitHub repositories, we recommend using the `repository` variable to let people know which repo the email relates to. If your project has a single repo or does not use GitHub integration much (or at all), you can omit that variable.
 
+<h3 id="immutable_releases">Immutable Releases</h3>
+
+Immutable GitHub releases make the release Git tag and the release assets immutable.
+See [GitHub Docs](https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/immutable-releases).
+
+To enable immutable GitHub releases:
+~~~yaml
+github:
+  # The default is false
+  immutable_releases: true
+~~~
+
 <h3 id="default_branch">Default branch</h3>
 
 To change the default GitHub repository branch (which is the landing branch when users browse to `github.com/apache/<repository>` and the default branch pull requests are initially based on, etc.) create an INFRA Jira ticket. If you are renaming the default branch and the new default branch does not yet exist, you can ask Infra to rename the branch at the same time. Include a **link** to the mailing list thread where the change of the default was agreed.
