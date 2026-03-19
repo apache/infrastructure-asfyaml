@@ -70,8 +70,8 @@ def config_pages(self: ASFGitHubFeature):
                     json={"source": ghps},
                 )
                 print("GitHub Pages set to branch=%s, path=%s" % (ghp_branch, ghp_path))
-            except requests.exceptions.RequestException:
-                print("Could not set GitHub Pages configuration!")
+            except requests.exceptions.RequestException as e:
+                raise Exception(f"Could not set GitHub Pages configuration for {self.repository.name}: {e}")
         # Enabled, update settings?
         elif 200 <= rv.status_code < 300:
             try:
@@ -88,6 +88,6 @@ def config_pages(self: ASFGitHubFeature):
                 print("GitHub Pages updated to %r" % ghps)
                 print(rv.status_code)
                 print(rv.text)
-            except requests.exceptions.RequestException:
-                print("Could not set GitHub Pages configuration!")
+            except requests.exceptions.RequestException as e:
+                raise Exception(f"Could not set GitHub Pages configuration for {self.repository.name}: {e}")
     # TODO: Allow disabling GitHub Pages by removing the entries..
