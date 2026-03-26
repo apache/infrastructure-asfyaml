@@ -489,6 +489,8 @@ def reconcile_rulesets(
 
 @directive
 def rulesets(self: ASFGitHubFeature):
+    if "github_rulesets" not in self.instance.environments_enabled:
+        return
     previous_yaml = self.previous_yaml if isinstance(self.previous_yaml, dict) else {}
     rulesets_configured = "rulesets" in self.yaml
     was_previously_configured = "rulesets" in previous_yaml

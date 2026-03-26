@@ -158,6 +158,7 @@ class FakeFeature:
         self.ghrepo = SimpleNamespace(_requester=requester)
         self.gh = gh
         self._noop_enabled = noop_enabled
+        self.instance = SimpleNamespace(environments_enabled={"production", "github_rulesets"})
 
     def noop(self, directive: str) -> bool:
         if self._noop_enabled:
@@ -182,6 +183,7 @@ def test_basic_yaml(test_repo: asfyaml.dataobjects.Repository):
                 repo=test_repo, committer="humbedooh", config_data=test.yaml, branch=asfyaml.dataobjects.DEFAULT_BRANCH
             )
             a.environments_enabled.add("noop")
+            a.environments_enabled.add("github_rulesets")
             a.no_cache = True
             a.run_parts()
 
