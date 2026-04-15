@@ -50,15 +50,14 @@ def _rulesets_endpoint(self: ASFGitHubFeature) -> str:
 
 def list_rulesets(self: ASFGitHubFeature) -> list[dict[str, Any]]:
     status, _headers, body = self.ghrepo._requester.requestJson("GET", _rulesets_endpoint(self))
-    match status:
-        case 200:
-            pass
-        case 404:
-            raise Exception(f"Repository '{self.repository.org_id}/{self.repository.name}' not found or not accessible")
-        case 500:
-            raise Exception("GitHub server error while listing rulesets")
-        case _:
-            raise Exception(f"Unexpected response while listing rulesets: HTTP {status}")
+    _check_ruleset_response(
+        status,
+        200,
+        f"Repository '{self.repository.org_id}/{self.repository.name}' not found or not accessible",
+        "while listing rulesets",
+        body,
+        has_422=False,
+    )
     payload = json.loads(body)
     if not isinstance(payload, list):
         raise Exception(
@@ -79,7 +78,7 @@ def _check_ruleset_response(
         detail = body
     match status:
         case 404:
-            raise Exception(not_found_msg)
+            raise Exception(f"{not_found_msg}: {detail}")
         case 422 if has_422:
             raise Exception(f"Validation failed {error_context}: {detail}")
         case 500:
