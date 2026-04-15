@@ -20,6 +20,8 @@
 import json
 from typing import Any
 
+from github import UnknownObjectException
+
 from . import directive, ASFGitHubFeature
 
 COPILOT_RULESET_NAME = "Copilot Code Review"
@@ -169,12 +171,11 @@ def _resolve_integration_id(
         if not resolve_references:
             return -1
         if candidate not in app_cache:
-            response = self.ghrepo._requester.requestJson("GET", f"/apps/{candidate}")
-            payload = _extract_json_payload(response)
-            app_id = payload.get("id") if isinstance(payload, dict) else None
-            if not isinstance(app_id, int):
-                raise Exception(f"Unable to resolve app_slug '{candidate}' to integration_id")
-            app_cache[candidate] = app_id
+            try:
+                app = self.gh.get_app(candidate)
+                app_cache[candidate] = app.id
+            except UnknownObjectException as exc:
+                raise Exception(f"Unable to resolve app_slug '{candidate}' to integration_id") from exc
         return app_cache[candidate]
 
     raise Exception("required_status_checks.app_slug must be a string or integer")

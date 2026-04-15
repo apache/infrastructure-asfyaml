@@ -23,6 +23,7 @@ from typing import Any
 import asfyaml.asfyaml
 import asfyaml.dataobjects
 import pytest
+from github import UnknownObjectException
 from asfyaml.feature.github.rulesets import COPILOT_RULESET_NAME, rulesets as configure_rulesets
 from helpers import YamlTest
 
@@ -124,19 +125,12 @@ def _build_ruleset_payload(name: str) -> dict[str, Any]:
 
 
 class FakeRequester:
-    def __init__(self, rulesets: list[dict[str, Any]] | None = None, apps: dict[str, int] | None = None):
+    def __init__(self, rulesets: list[dict[str, Any]] | None = None):
         self.rulesets = rulesets or []
-        self.apps = apps or {}
         self.calls: list[dict[str, Any]] = []
 
     def requestJson(self, method: str, url: str, input: dict[str, Any] | None = None):  # noqa: N802
         self.calls.append({"method": method, "url": url, "input": input})
-        if method == "GET" and url.startswith("/apps/"):
-            app_slug = url.rsplit("/", 1)[-1]
-            app_id = self.apps.get(app_slug)
-            if app_id is None:
-                return 404, {}, {}
-            return 200, {}, {"id": app_id}
         if method == "GET":
             return 200, {}, self.rulesets
         return 200, {}, {}
@@ -257,8 +251,9 @@ def test_rulesets_convenience_resolves_bypass_team_and_app_slug():
         get_organization=lambda _org: SimpleNamespace(
             get_team_by_slug=lambda slug: SimpleNamespace(id={"infra": 202}[slug])
         ),
+        get_app=lambda slug: SimpleNamespace(id={"jenkins": 303}[slug]),
     )
-    requester = FakeRequester(apps={"jenkins": 303})
+    requester = FakeRequester()
     feature = FakeFeature(
         yaml={
             "rulesets": [
@@ -287,6 +282,33 @@ def test_rulesets_convenience_resolves_bypass_team_and_app_slug():
     assert status_rule["parameters"]["required_status_checks"] == [
         {"context": "gh-infra/jenkins", "integration_id": 303}
     ]
+
+
+def test_rulesets_convenience_unknown_app_slug_raises():
+    def raise_unknown(_slug: str):
+        raise UnknownObjectException(404, {"message": "Not Found"}, {})
+
+    fake_gh = SimpleNamespace(get_app=raise_unknown)
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={
+            "rulesets": [
+                {
+                    "name": "Branch Protection",
+                    "type": "branch",
+                    "required_status_checks": [{"name": "gh-infra/jenkins", "app_slug": "unknown-app"}],
+                }
+            ]
+        },
+        previous_yaml={},
+        requester=requester,
+        gh=fake_gh,
+    )
+
+    with pytest.raises(Exception, match="Unable to resolve app_slug 'unknown-app' to integration_id") as exc_info:
+        configure_rulesets(feature)
+
+    assert isinstance(exc_info.value.__cause__, UnknownObjectException)
 
 
 def test_rulesets_convenience_tag_restrict_force_push_rule():
