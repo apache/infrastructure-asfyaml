@@ -539,7 +539,6 @@ def reconcile_rulesets(
             update_ruleset(self, ruleset_id, ruleset)
         else:
             print(f"Creating GitHub ruleset '{name}'")
-            print(json.dumps(ruleset, indent=2))
             add_ruleset(self, ruleset)
 
     removed_names = previously_managed_names - desired_names
