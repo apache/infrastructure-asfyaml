@@ -61,7 +61,9 @@ def list_rulesets(self: ASFGitHubFeature) -> list[dict[str, Any]]:
             raise Exception(f"Unexpected response while listing rulesets: HTTP {status}")
     payload = json.loads(body)
     if not isinstance(payload, list):
-        raise Exception(f"Unexpected response format while listing rulesets: expected a list, got {type(payload).__name__}")
+        raise Exception(
+            f"Unexpected response format while listing rulesets: expected a list, got {type(payload).__name__}"
+        )
     return [ruleset for ruleset in payload if isinstance(ruleset, dict)]
 
 
@@ -90,7 +92,9 @@ def add_ruleset(self: ASFGitHubFeature, ruleset: dict[str, Any]) -> None:
     name = ruleset["name"]
     status, _headers, body = self.ghrepo._requester.requestJson("POST", _rulesets_endpoint(self), input=ruleset)
     _check_ruleset_response(
-        status, 201, body=body,
+        status,
+        201,
+        body=body,
         not_found_msg=f"Repository '{self.repository.org_id}/{self.repository.name}' not found or not accessible",
         error_context=f"while creating ruleset '{name}'",
     )
@@ -102,18 +106,20 @@ def update_ruleset(self: ASFGitHubFeature, ruleset_id: int, ruleset: dict[str, A
         "PUT", f"{_rulesets_endpoint(self)}/{ruleset_id}", input=ruleset
     )
     _check_ruleset_response(
-        status, 200, body=body,
+        status,
+        200,
+        body=body,
         not_found_msg=f"Ruleset '{name}' ({ruleset_id}) not found",
         error_context=f"while updating ruleset '{name}' ({ruleset_id})",
     )
 
 
 def delete_ruleset(self: ASFGitHubFeature, ruleset_id: int, name: str) -> None:
-    status, _headers, body = self.ghrepo._requester.requestJson(
-        "DELETE", f"{_rulesets_endpoint(self)}/{ruleset_id}"
-    )
+    status, _headers, body = self.ghrepo._requester.requestJson("DELETE", f"{_rulesets_endpoint(self)}/{ruleset_id}")
     _check_ruleset_response(
-        status, 204, body=body,
+        status,
+        204,
+        body=body,
         not_found_msg=f"Ruleset '{name}' ({ruleset_id}) not found",
         error_context=f"while deleting ruleset '{name}' ({ruleset_id})",
         has_422=False,
