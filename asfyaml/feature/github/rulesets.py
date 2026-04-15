@@ -230,8 +230,18 @@ def _resolve_integration_id(
     raise Exception("required_status_checks.app_slug must be a string or integer")
 
 
+def _to_ref(pattern: str, target: str) -> str:
+    """Prefix a bare name with refs/heads/ or refs/tags/; leave refs/ and ~ patterns untouched."""
+    if pattern.startswith("refs/") or pattern.startswith("~"):
+        return pattern
+    prefix = "refs/heads/" if target == "branch" else "refs/tags/"
+    return f"{prefix}{pattern}"
+
+
 def _build_ref_name_condition(ruleset: dict[str, Any], target: str) -> dict[str, list[str]]:
-    ref_config = ruleset.get("branches", ruleset.get("refs"))
+    use_branches = "branches" in ruleset
+    ref_config = ruleset.get("branches") if use_branches else ruleset.get("refs")
+
     if ref_config is None:
         if target == "branch":
             return {"include": ["~DEFAULT_BRANCH"], "exclude": []}
@@ -247,9 +257,16 @@ def _build_ref_name_condition(ruleset: dict[str, Any], target: str) -> dict[str,
 
     exclude = ref_config.get("excludes", [])
 
+    include = _expect_string_list(include, "ruleset branches.includes")
+    exclude = _expect_string_list(exclude, "ruleset branches.excludes")
+
+    if use_branches:
+        include = [_to_ref(p, target) for p in include]
+        exclude = [_to_ref(p, target) for p in exclude]
+
     return {
-        "include": _expect_string_list(include, "ruleset branches.includes"),
-        "exclude": _expect_string_list(exclude, "ruleset branches.excludes"),
+        "include": include,
+        "exclude": exclude,
     }
 
 

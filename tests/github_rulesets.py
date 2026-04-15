@@ -251,7 +251,7 @@ def test_rulesets_convenience_syntax_creates_ruleset():
     assert payload["name"] == "Branch Protection"
     assert payload["target"] == "branch"
     assert payload["enforcement"] == "active"
-    assert payload["conditions"]["ref_name"]["include"] == ["main"]
+    assert payload["conditions"]["ref_name"]["include"] == ["refs/heads/main"]
     assert payload["conditions"]["ref_name"]["exclude"] == []
 
     rule_types = [rule["type"] for rule in payload["rules"]]
@@ -366,6 +366,37 @@ def test_rulesets_convenience_unknown_app_slug_raises():
         configure_rulesets(feature)
 
     assert isinstance(exc_info.value.__cause__, UnknownObjectException)
+
+
+@pytest.mark.parametrize(
+    ("ruleset_type", "key", "pattern", "expected"),
+    [
+        # branches + branch target: bare name gets refs/heads/ prefix
+        ("branch", "branches", "main", "refs/heads/main"),
+        ("branch", "branches", "release/*", "refs/heads/release/*"),
+        # branches + tag target: bare name gets refs/tags/ prefix
+        ("tag", "branches", "rel/*", "refs/tags/rel/*"),
+        ("tag", "branches", "v*.*.*", "refs/tags/v*.*.*"),
+        # already-absolute and tilde patterns are left untouched regardless of target
+        ("branch", "branches", "refs/heads/main", "refs/heads/main"),
+        ("branch", "branches", "~DEFAULT_BRANCH", "~DEFAULT_BRANCH"),
+        ("tag", "branches", "refs/tags/v1.*", "refs/tags/v1.*"),
+        # refs: always passed through as-is
+        ("branch", "refs", "refs/heads/main", "refs/heads/main"),
+        ("tag", "refs", "refs/tags/rel/*", "refs/tags/rel/*"),
+        ("branch", "refs", "main", "main"),
+    ],
+)
+def test_rulesets_ref_name_condition_prefixing(ruleset_type: str, key: str, pattern: str, expected: str):
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={"rulesets": [{"name": "R", "type": ruleset_type, key: {"includes": [pattern]}}]},
+        previous_yaml={},
+        requester=requester,
+    )
+    configure_rulesets(feature)
+    payload = requester.calls[1]["input"]
+    assert payload["conditions"]["ref_name"]["include"] == [expected]
 
 
 def test_rulesets_convenience_tag_restrict_force_push_rule():
