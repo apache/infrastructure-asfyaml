@@ -149,11 +149,13 @@ class FakeRequester:
             case "GET":
                 return self.list_status, {}, json.dumps(self.rulesets)
             case "POST":
-                return self.post_status, {}, error_body
+                return self.post_status, {}, json.dumps({**(input or {}), "id": 999}) if self.post_status == 201 else error_body
             case "PUT":
-                return self.put_status, {}, error_body
+                return self.put_status, {}, json.dumps(input or {}) if self.put_status == 200 else error_body
+            case "DELETE":
+                return self.delete_status, {}, "" if self.delete_status == 204 else error_body
             case _:
-                return self.delete_status, {}, error_body
+                raise ValueError(f"FakeRequester: unexpected HTTP method '{method}'")
 
 
 class FakeFeature:
