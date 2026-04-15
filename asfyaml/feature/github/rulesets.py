@@ -153,7 +153,10 @@ def _resolve_team_id(self: ASFGitHubFeature, team: Any, *, resolve_references: b
     if not resolve_references:
         return -1
     if team not in team_cache:
-        team_cache[team] = self.gh.get_organization(self.repository.org_id).get_team_by_slug(team).id
+        try:
+            team_cache[team] = self.gh.get_organization(self.repository.org_id).get_team_by_slug(team).id
+        except UnknownObjectException as exc:
+            raise Exception(f"Unable to resolve bypass_team '{team}' to team ID") from exc
     return team_cache[team]
 
 

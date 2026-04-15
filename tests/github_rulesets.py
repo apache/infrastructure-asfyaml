@@ -247,11 +247,19 @@ def test_rulesets_convenience_syntax_creates_ruleset():
 
 
 def test_rulesets_convenience_resolves_bypass_team_and_app_slug():
+    def get_team_by_slug(slug: str):
+        if slug not in {"infra"}:
+            raise UnknownObjectException(404, {"message": "Not Found"}, {})
+        return SimpleNamespace(id={"infra": 202}[slug])
+
+    def get_app(slug: str):
+        if slug not in {"jenkins"}:
+            raise UnknownObjectException(404, {"message": "Not Found"}, {})
+        return SimpleNamespace(id={"jenkins": 303}[slug])
+
     fake_gh = SimpleNamespace(
-        get_organization=lambda _org: SimpleNamespace(
-            get_team_by_slug=lambda slug: SimpleNamespace(id={"infra": 202}[slug])
-        ),
-        get_app=lambda slug: SimpleNamespace(id={"jenkins": 303}[slug]),
+        get_organization=lambda _org: SimpleNamespace(get_team_by_slug=get_team_by_slug),
+        get_app=get_app,
     )
     requester = FakeRequester()
     feature = FakeFeature(
@@ -282,6 +290,35 @@ def test_rulesets_convenience_resolves_bypass_team_and_app_slug():
     assert status_rule["parameters"]["required_status_checks"] == [
         {"context": "gh-infra/jenkins", "integration_id": 303}
     ]
+
+
+def test_rulesets_convenience_unknown_bypass_team_raises():
+    def raise_unknown(_slug: str):
+        raise UnknownObjectException(404, {"message": "Not Found"}, {})
+
+    fake_gh = SimpleNamespace(
+        get_organization=lambda _org: SimpleNamespace(get_team_by_slug=raise_unknown),
+    )
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={
+            "rulesets": [
+                {
+                    "name": "Branch Protection",
+                    "type": "branch",
+                    "bypass_teams": ["unknown-team"],
+                }
+            ]
+        },
+        previous_yaml={},
+        requester=requester,
+        gh=fake_gh,
+    )
+
+    with pytest.raises(Exception, match="Unable to resolve bypass_team 'unknown-team' to team ID") as exc_info:
+        configure_rulesets(feature)
+
+    assert isinstance(exc_info.value.__cause__, UnknownObjectException)
 
 
 def test_rulesets_convenience_unknown_app_slug_raises():
