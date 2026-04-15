@@ -126,16 +126,34 @@ def _build_ruleset_payload(name: str) -> dict[str, Any]:
 
 
 class FakeRequester:
-    def __init__(self, rulesets: list[dict[str, Any]] | None = None, *, list_status: int = 200):
+    def __init__(
+        self,
+        rulesets: list[dict[str, Any]] | None = None,
+        *,
+        list_status: int = 200,
+        post_status: int = 201,
+        put_status: int = 200,
+        delete_status: int = 204,
+    ):
         self.rulesets = rulesets or []
         self.list_status = list_status
+        self.post_status = post_status
+        self.put_status = put_status
+        self.delete_status = delete_status
         self.calls: list[dict[str, Any]] = []
 
     def requestJson(self, method: str, url: str, input: dict[str, Any] | None = None):  # noqa: N802
         self.calls.append({"method": method, "url": url, "input": input})
-        if method == "GET":
-            return self.list_status, {}, json.dumps(self.rulesets)
-        return 200, {}, "{}"
+        error_body = json.dumps({"message": "Validation Failed", "errors": [{"field": "rules", "code": "invalid"}]})
+        match method:
+            case "GET":
+                return self.list_status, {}, json.dumps(self.rulesets)
+            case "POST":
+                return self.post_status, {}, error_body
+            case "PUT":
+                return self.put_status, {}, error_body
+            case _:
+                return self.delete_status, {}, error_body
 
 
 class FakeFeature:
@@ -585,6 +603,70 @@ def test_rulesets_list_unexpected_payload_raises():
     )
 
     with pytest.raises(Exception, match="expected a list, got dict"):
+        configure_rulesets(feature)
+
+
+@pytest.mark.parametrize(
+    ("post_status", "match"),
+    [
+        (404, "not found or not accessible"),
+        (422, "Validation failed while creating ruleset.*rules.*invalid"),
+        (500, "GitHub server error while creating ruleset"),
+        (503, "Unexpected response while creating ruleset 'Default branch checks': HTTP 503"),
+    ],
+)
+def test_rulesets_add_error_status_raises(post_status: int, match: str):
+    requester = FakeRequester(post_status=post_status)
+    feature = FakeFeature(
+        yaml={"rulesets": [_build_ruleset_payload("Default branch checks")]},
+        previous_yaml={},
+        requester=requester,
+    )
+
+    with pytest.raises(Exception, match=match):
+        configure_rulesets(feature)
+
+
+@pytest.mark.parametrize(
+    ("put_status", "match"),
+    [
+        (404, "Ruleset 'Default branch checks' \\(22\\) not found"),
+        (422, "Validation failed while updating ruleset 'Default branch checks' \\(22\\).*rules.*invalid"),
+        (500, "GitHub server error while updating ruleset 'Default branch checks' \\(22\\)"),
+        (503, "Unexpected response while updating ruleset 'Default branch checks' \\(22\\): HTTP 503"),
+    ],
+)
+def test_rulesets_update_error_status_raises(put_status: int, match: str):
+    payload = _build_ruleset_payload("Default branch checks")
+    requester = FakeRequester(rulesets=[{"id": 22, "name": payload["name"]}], put_status=put_status)
+    feature = FakeFeature(
+        yaml={"rulesets": [payload]},
+        previous_yaml={"rulesets": [payload]},
+        requester=requester,
+    )
+
+    with pytest.raises(Exception, match=match):
+        configure_rulesets(feature)
+
+
+@pytest.mark.parametrize(
+    ("delete_status", "match"),
+    [
+        (404, "Ruleset 'Default branch checks' \\(31\\) not found"),
+        (500, "GitHub server error while deleting ruleset 'Default branch checks' \\(31\\)"),
+        (503, "Unexpected response while deleting ruleset 'Default branch checks' \\(31\\): HTTP 503"),
+    ],
+)
+def test_rulesets_delete_error_status_raises(delete_status: int, match: str):
+    existing = [{"id": 31, "name": "Default branch checks"}]
+    requester = FakeRequester(rulesets=existing, delete_status=delete_status)
+    feature = FakeFeature(
+        yaml={},
+        previous_yaml={"rulesets": [_build_ruleset_payload("Default branch checks")]},
+        requester=requester,
+    )
+
+    with pytest.raises(Exception, match=match):
         configure_rulesets(feature)
 
 
