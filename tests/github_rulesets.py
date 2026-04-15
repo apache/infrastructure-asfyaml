@@ -17,6 +17,7 @@
 
 """Unit tests for .asf.yaml GitHub rulesets feature."""
 
+import json
 from types import SimpleNamespace
 from typing import Any
 
@@ -125,15 +126,16 @@ def _build_ruleset_payload(name: str) -> dict[str, Any]:
 
 
 class FakeRequester:
-    def __init__(self, rulesets: list[dict[str, Any]] | None = None):
+    def __init__(self, rulesets: list[dict[str, Any]] | None = None, *, list_status: int = 200):
         self.rulesets = rulesets or []
+        self.list_status = list_status
         self.calls: list[dict[str, Any]] = []
 
     def requestJson(self, method: str, url: str, input: dict[str, Any] | None = None):  # noqa: N802
         self.calls.append({"method": method, "url": url, "input": input})
         if method == "GET":
-            return 200, {}, self.rulesets
-        return 200, {}, {}
+            return self.list_status, {}, json.dumps(self.rulesets)
+        return 200, {}, "{}"
 
 
 class FakeFeature:
@@ -551,6 +553,39 @@ def test_rulesets_convenience_conversation_resolution_false_does_not_add_pull_re
     rule_types = [rule["type"] for rule in payload["rules"]]
     assert "required_signatures" in rule_types
     assert "pull_request" not in rule_types
+
+
+@pytest.mark.parametrize(
+    ("status", "match"),
+    [
+        (404, "not found or not accessible"),
+        (500, "GitHub server error"),
+        (403, "Unexpected response while listing rulesets: HTTP 403"),
+    ],
+)
+def test_rulesets_list_error_status_raises(status: int, match: str):
+    requester = FakeRequester(list_status=status)
+    feature = FakeFeature(
+        yaml={"rulesets": [_build_ruleset_payload("Default branch checks")]},
+        previous_yaml={},
+        requester=requester,
+    )
+
+    with pytest.raises(Exception, match=match):
+        configure_rulesets(feature)
+
+
+def test_rulesets_list_unexpected_payload_raises():
+    requester = FakeRequester()
+    requester.rulesets = {}  # type: ignore[assignment]  — force a non-list body
+    feature = FakeFeature(
+        yaml={"rulesets": [_build_ruleset_payload("Default branch checks")]},
+        previous_yaml={},
+        requester=requester,
+    )
+
+    with pytest.raises(Exception, match="expected a list, got dict"):
+        configure_rulesets(feature)
 
 
 def test_rulesets_update_existing_ruleset():

@@ -48,29 +48,17 @@ def _rulesets_endpoint(self: ASFGitHubFeature) -> str:
     return f"/repos/{self.repository.org_id}/{self.repository.name}/rulesets"
 
 
-def _extract_json_payload(response: Any) -> Any:
-    if isinstance(response, (dict, list)):
-        return response
-
-    if isinstance(response, tuple):
-        for item in reversed(response):
-            if isinstance(item, (dict, list)):
-                return item
-        for item in reversed(response):
-            if isinstance(item, str):
-                try:
-                    return json.loads(item)
-                except json.JSONDecodeError:
-                    continue
-
-    return []
-
-
 def list_rulesets(self: ASFGitHubFeature) -> list[dict[str, Any]]:
-    response = self.ghrepo._requester.requestJson("GET", _rulesets_endpoint(self))
-    payload = _extract_json_payload(response)
+    status, _headers, body = self.ghrepo._requester.requestJson("GET", _rulesets_endpoint(self))
+    if status == 404:
+        raise Exception(f"Repository '{self.repository.org_id}/{self.repository.name}' not found or not accessible")
+    if status == 500:
+        raise Exception("GitHub server error while listing rulesets")
+    if status != 200:
+        raise Exception(f"Unexpected response while listing rulesets: HTTP {status}")
+    payload = json.loads(body)
     if not isinstance(payload, list):
-        return []
+        raise Exception(f"Unexpected response format while listing rulesets: expected a list, got {type(payload).__name__}")
     return [ruleset for ruleset in payload if isinstance(ruleset, dict)]
 
 
