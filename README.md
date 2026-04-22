@@ -649,6 +649,8 @@ github:
 
 <h3 id="copilot_code_review">Copilot code review</h3>
 
+Copilot code review can review code written in any coding language and provide feedback. It reviews your code from multiple angles to identify issues and suggest fixes, which you can apply with a couple of clicks.
+
 Projects can enable automatic [GitHub Copilot code review](https://docs.github.com/en/copilot/how-tos/agents/copilot-code-review/configuring-automatic-code-review-by-copilot) on pull requests:
 
 ~~~yaml
@@ -676,6 +678,8 @@ As an alternative, you can configure Copilot review through [`rulesets`](#rulese
 or by defining a `copilot_code_review` rule type in `rulesets`.
 
 <h3 id="rulesets">Rulesets</h3>
+
+Rulesets help you control how people can interact with branches and tags in a repository.
 
 Projects can manage GitHub repository rulesets using one of two styles:
 
