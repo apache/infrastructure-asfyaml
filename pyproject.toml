@@ -12,7 +12,7 @@ pyyaml = "*"
 strictyaml = "*"
 easydict = "*"
 asfpy = "*"
-PyGithub = "^2.5.0"
+PyGithub = "^2.7.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = ">=8.0"
