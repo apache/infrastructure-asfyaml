@@ -88,8 +88,7 @@ def _create_or_update_deployment_environment(self: ASFGitHubFeature, env_name, e
     required_reviewers = env_config.get("required_reviewers", [])
     required_reviewers_with_id = [get_reviewer(reviewer) for reviewer in required_reviewers]
 
-    # prevent_self_review is not supported by pygithub yet, https://github.com/PyGithub/PyGithub/pull/3246 is open
-    # prevent_self_review = env_config.get("prevent_self_review", True)
+    prevent_self_review = env_config.get("prevent_self_review", True)
 
     if "deployment_branch_policy" in env_config:
         deployment_branch_policy = env_config.get("deployment_branch_policy")
@@ -107,6 +106,7 @@ def _create_or_update_deployment_environment(self: ASFGitHubFeature, env_name, e
     print(f"Updates to deployment environment {env_name}")
     print(f"  - Set required_reviewers to {[r.id for r in required_reviewers_with_id]}")
     print(f"  - Set wait_timer to {wait_timer}")
+    print(f"  - Set prevent_self_review to {prevent_self_review}")
     if deployment_branch_policy is None:
         print("  - Set deployment branch policy = None")
     else:
@@ -121,6 +121,7 @@ def _create_or_update_deployment_environment(self: ASFGitHubFeature, env_name, e
             environment_name=env_name,
             wait_timer=wait_timer,
             reviewers=required_reviewers_with_id,
+            prevent_self_review=prevent_self_review,
             deployment_branch_policy=deployment_branch_policy,
         )
 

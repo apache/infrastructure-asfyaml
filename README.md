@@ -936,6 +936,7 @@ required_reviewers:
   - id: <string> | <int>
     type: 'User' | 'Team'
 wait_timer: <int>
+prevent_self_review: <bool>
 deployment_branch_policy:
   protected_branches: <bool>
   policies:
@@ -945,6 +946,7 @@ deployment_branch_policy:
 
 - `required_reviewers`: A list of reviewers who must approve the deployment. (The `id` is the GitHub user ID or username / team slug.)
 - `wait_timer`: To delay a job for a specific number of minutes after the job is initially triggered.
+- `prevent_self_review`: If set to `true`, the user that triggered the deployment cannot also approve it as a `required_reviewer`.
 - `deployment_branch_policy`: A dictionary of branch policy settings.
 - `protected_branches`: If set to `true`, the deployment branch policy will be set up to allow deploying from all protected branches.
 - `policies`: A list of branch / tag policies to apply for this environment. Only matching branches / tags can deploy to the environment.
@@ -958,6 +960,7 @@ If you do not explicitly specify values, the system uses these values by default
 ```yaml
 required_reviewers: []
 wait_timer: 15
+prevent_self_review: true
 deployment_branch_policy: ~
 ```
 

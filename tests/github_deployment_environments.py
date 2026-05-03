@@ -70,6 +70,33 @@ github:
 """,
 )
 
+valid_prevent_self_review = YamlTest(
+    None,
+    None,
+    """
+github:
+    environments:
+        test-pypi:
+          required_reviewers:
+            - id: 1234
+          wait_timer: 60
+          prevent_self_review: false
+""",
+)
+
+invalid_prevent_self_review = YamlTest(
+    asfyaml.asfyaml.ASFYAMLException,
+    "when expecting a boolean",
+    """
+github:
+    environments:
+        test-pypi:
+          required_reviewers:
+            - id: 1234
+          prevent_self_review: 123
+""",
+)
+
 
 def test_basic_yaml(test_repo: asfyaml.dataobjects.Repository):
     print("[github] Testing deployment environments")
@@ -77,7 +104,9 @@ def test_basic_yaml(test_repo: asfyaml.dataobjects.Repository):
     tests_to_run = (
         valid_github_deployment_environments,
         invalid_wait_timer,
-        invalid_deployment_branch_policy
+        invalid_deployment_branch_policy,
+        valid_prevent_self_review,
+        invalid_prevent_self_review,
     )
 
     for test in tests_to_run:

@@ -169,8 +169,7 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                                 }
                             )
                         ),
-                        # not supported yet by PyGithub
-                        # strictyaml.Optional("prevent_self_review"): strictyaml.Bool(),
+                        strictyaml.Optional("prevent_self_review"): strictyaml.Bool(),
                         strictyaml.Optional("wait_timer"): strictyaml.Int(),
                         strictyaml.Optional("deployment_branch_policy"): strictyaml.Map(
                             {
