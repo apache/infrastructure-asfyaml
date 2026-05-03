@@ -17,12 +17,14 @@
 
 """Unit tests for .asf.yaml GitHub rulesets feature."""
 
+import json
 from types import SimpleNamespace
 from typing import Any
 
 import asfyaml.asfyaml
 import asfyaml.dataobjects
 import pytest
+from github import UnknownObjectException
 from asfyaml.feature.github.rulesets import COPILOT_RULESET_NAME, rulesets as configure_rulesets
 from helpers import YamlTest
 
@@ -124,22 +126,36 @@ def _build_ruleset_payload(name: str) -> dict[str, Any]:
 
 
 class FakeRequester:
-    def __init__(self, rulesets: list[dict[str, Any]] | None = None, apps: dict[str, int] | None = None):
+    def __init__(
+        self,
+        rulesets: list[dict[str, Any]] | None = None,
+        *,
+        list_status: int = 200,
+        post_status: int = 201,
+        put_status: int = 200,
+        delete_status: int = 204,
+    ):
         self.rulesets = rulesets or []
-        self.apps = apps or {}
+        self.list_status = list_status
+        self.post_status = post_status
+        self.put_status = put_status
+        self.delete_status = delete_status
         self.calls: list[dict[str, Any]] = []
 
     def requestJson(self, method: str, url: str, input: dict[str, Any] | None = None):  # noqa: N802
         self.calls.append({"method": method, "url": url, "input": input})
-        if method == "GET" and url.startswith("/apps/"):
-            app_slug = url.rsplit("/", 1)[-1]
-            app_id = self.apps.get(app_slug)
-            if app_id is None:
-                return 404, {}, {}
-            return 200, {}, {"id": app_id}
-        if method == "GET":
-            return 200, {}, self.rulesets
-        return 200, {}, {}
+        error_body = json.dumps({"message": "Validation Failed", "errors": [{"field": "rules", "code": "invalid"}]})
+        match method:
+            case "GET":
+                return self.list_status, {}, json.dumps(self.rulesets)
+            case "POST":
+                return self.post_status, {}, json.dumps({**(input or {}), "id": 999}) if self.post_status == 201 else error_body
+            case "PUT":
+                return self.put_status, {}, json.dumps(input or {}) if self.put_status == 200 else error_body
+            case "DELETE":
+                return self.delete_status, {}, "" if self.delete_status == 204 else error_body
+            case _:
+                raise ValueError(f"FakeRequester: unexpected HTTP method '{method}'")
 
 
 class FakeFeature:
@@ -237,7 +253,7 @@ def test_rulesets_convenience_syntax_creates_ruleset():
     assert payload["name"] == "Branch Protection"
     assert payload["target"] == "branch"
     assert payload["enforcement"] == "active"
-    assert payload["conditions"]["ref_name"]["include"] == ["main"]
+    assert payload["conditions"]["ref_name"]["include"] == ["refs/heads/main"]
     assert payload["conditions"]["ref_name"]["exclude"] == []
 
     rule_types = [rule["type"] for rule in payload["rules"]]
@@ -253,12 +269,21 @@ def test_rulesets_convenience_syntax_creates_ruleset():
 
 
 def test_rulesets_convenience_resolves_bypass_team_and_app_slug():
+    def get_team_by_slug(slug: str):
+        if slug not in {"infra"}:
+            raise UnknownObjectException(404, {"message": "Not Found"}, {})
+        return SimpleNamespace(id={"infra": 202}[slug])
+
+    def get_app(slug: str):
+        if slug not in {"jenkins"}:
+            raise UnknownObjectException(404, {"message": "Not Found"}, {})
+        return SimpleNamespace(id={"jenkins": 303}[slug])
+
     fake_gh = SimpleNamespace(
-        get_organization=lambda _org: SimpleNamespace(
-            get_team_by_slug=lambda slug: SimpleNamespace(id={"infra": 202}[slug])
-        ),
+        get_organization=lambda _org: SimpleNamespace(get_team_by_slug=get_team_by_slug),
+        get_app=get_app,
     )
-    requester = FakeRequester(apps={"jenkins": 303})
+    requester = FakeRequester()
     feature = FakeFeature(
         yaml={
             "rulesets": [
@@ -287,6 +312,93 @@ def test_rulesets_convenience_resolves_bypass_team_and_app_slug():
     assert status_rule["parameters"]["required_status_checks"] == [
         {"context": "gh-infra/jenkins", "integration_id": 303}
     ]
+
+
+def test_rulesets_convenience_unknown_bypass_team_raises():
+    def raise_unknown(_slug: str):
+        raise UnknownObjectException(404, {"message": "Not Found"}, {})
+
+    fake_gh = SimpleNamespace(
+        get_organization=lambda _org: SimpleNamespace(get_team_by_slug=raise_unknown),
+    )
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={
+            "rulesets": [
+                {
+                    "name": "Branch Protection",
+                    "type": "branch",
+                    "bypass_teams": ["unknown-team"],
+                }
+            ]
+        },
+        previous_yaml={},
+        requester=requester,
+        gh=fake_gh,
+    )
+
+    with pytest.raises(Exception, match="Unable to resolve bypass_team 'unknown-team' to team ID") as exc_info:
+        configure_rulesets(feature)
+
+    assert isinstance(exc_info.value.__cause__, UnknownObjectException)
+
+
+def test_rulesets_convenience_unknown_app_slug_raises():
+    def raise_unknown(_slug: str):
+        raise UnknownObjectException(404, {"message": "Not Found"}, {})
+
+    fake_gh = SimpleNamespace(get_app=raise_unknown)
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={
+            "rulesets": [
+                {
+                    "name": "Branch Protection",
+                    "type": "branch",
+                    "required_status_checks": [{"name": "gh-infra/jenkins", "app_slug": "unknown-app"}],
+                }
+            ]
+        },
+        previous_yaml={},
+        requester=requester,
+        gh=fake_gh,
+    )
+
+    with pytest.raises(Exception, match="Unable to resolve app_slug 'unknown-app' to integration_id") as exc_info:
+        configure_rulesets(feature)
+
+    assert isinstance(exc_info.value.__cause__, UnknownObjectException)
+
+
+@pytest.mark.parametrize(
+    ("ruleset_type", "key", "pattern", "expected"),
+    [
+        # branches + branch target: bare name gets refs/heads/ prefix
+        ("branch", "branches", "main", "refs/heads/main"),
+        ("branch", "branches", "release/*", "refs/heads/release/*"),
+        # branches + tag target: bare name gets refs/tags/ prefix
+        ("tag", "branches", "rel/*", "refs/tags/rel/*"),
+        ("tag", "branches", "v*.*.*", "refs/tags/v*.*.*"),
+        # already-absolute and tilde patterns are left untouched regardless of target
+        ("branch", "branches", "refs/heads/main", "refs/heads/main"),
+        ("branch", "branches", "~DEFAULT_BRANCH", "~DEFAULT_BRANCH"),
+        ("tag", "branches", "refs/tags/v1.*", "refs/tags/v1.*"),
+        # refs: always passed through as-is
+        ("branch", "refs", "refs/heads/main", "refs/heads/main"),
+        ("tag", "refs", "refs/tags/rel/*", "refs/tags/rel/*"),
+        ("branch", "refs", "main", "main"),
+    ],
+)
+def test_rulesets_ref_name_condition_prefixing(ruleset_type: str, key: str, pattern: str, expected: str):
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={"rulesets": [{"name": "R", "type": ruleset_type, key: {"includes": [pattern]}}]},
+        previous_yaml={},
+        requester=requester,
+    )
+    configure_rulesets(feature)
+    payload = requester.calls[1]["input"]
+    assert payload["conditions"]["ref_name"]["include"] == [expected]
 
 
 def test_rulesets_convenience_tag_restrict_force_push_rule():
@@ -492,6 +604,103 @@ def test_rulesets_convenience_conversation_resolution_false_does_not_add_pull_re
     rule_types = [rule["type"] for rule in payload["rules"]]
     assert "required_signatures" in rule_types
     assert "pull_request" not in rule_types
+
+
+@pytest.mark.parametrize(
+    ("status", "match"),
+    [
+        (404, "not found or not accessible"),
+        (500, "GitHub server error"),
+        (403, "Unexpected response while listing rulesets: HTTP 403"),
+    ],
+)
+def test_rulesets_list_error_status_raises(status: int, match: str):
+    requester = FakeRequester(list_status=status)
+    feature = FakeFeature(
+        yaml={"rulesets": [_build_ruleset_payload("Default branch checks")]},
+        previous_yaml={},
+        requester=requester,
+    )
+
+    with pytest.raises(Exception, match=match):
+        configure_rulesets(feature)
+
+
+def test_rulesets_list_unexpected_payload_raises():
+    requester = FakeRequester()
+    requester.rulesets = {}  # type: ignore[assignment]  — force a non-list body
+    feature = FakeFeature(
+        yaml={"rulesets": [_build_ruleset_payload("Default branch checks")]},
+        previous_yaml={},
+        requester=requester,
+    )
+
+    with pytest.raises(Exception, match="expected a list, got dict"):
+        configure_rulesets(feature)
+
+
+@pytest.mark.parametrize(
+    ("post_status", "match"),
+    [
+        (404, "not found or not accessible"),
+        (422, "Validation failed while creating ruleset.*rules.*invalid"),
+        (500, "GitHub server error while creating ruleset"),
+        (503, "Unexpected response while creating ruleset 'Default branch checks': HTTP 503"),
+    ],
+)
+def test_rulesets_add_error_status_raises(post_status: int, match: str):
+    requester = FakeRequester(post_status=post_status)
+    feature = FakeFeature(
+        yaml={"rulesets": [_build_ruleset_payload("Default branch checks")]},
+        previous_yaml={},
+        requester=requester,
+    )
+
+    with pytest.raises(Exception, match=match):
+        configure_rulesets(feature)
+
+
+@pytest.mark.parametrize(
+    ("put_status", "match"),
+    [
+        (404, "Ruleset 'Default branch checks' \\(22\\) not found"),
+        (422, "Validation failed while updating ruleset 'Default branch checks' \\(22\\).*rules.*invalid"),
+        (500, "GitHub server error while updating ruleset 'Default branch checks' \\(22\\)"),
+        (503, "Unexpected response while updating ruleset 'Default branch checks' \\(22\\): HTTP 503"),
+    ],
+)
+def test_rulesets_update_error_status_raises(put_status: int, match: str):
+    payload = _build_ruleset_payload("Default branch checks")
+    requester = FakeRequester(rulesets=[{"id": 22, "name": payload["name"]}], put_status=put_status)
+    feature = FakeFeature(
+        yaml={"rulesets": [payload]},
+        previous_yaml={"rulesets": [payload]},
+        requester=requester,
+    )
+
+    with pytest.raises(Exception, match=match):
+        configure_rulesets(feature)
+
+
+@pytest.mark.parametrize(
+    ("delete_status", "match"),
+    [
+        (404, "Ruleset 'Default branch checks' \\(31\\) not found"),
+        (500, "GitHub server error while deleting ruleset 'Default branch checks' \\(31\\)"),
+        (503, "Unexpected response while deleting ruleset 'Default branch checks' \\(31\\): HTTP 503"),
+    ],
+)
+def test_rulesets_delete_error_status_raises(delete_status: int, match: str):
+    existing = [{"id": 31, "name": "Default branch checks"}]
+    requester = FakeRequester(rulesets=existing, delete_status=delete_status)
+    feature = FakeFeature(
+        yaml={},
+        previous_yaml={"rulesets": [_build_ruleset_payload("Default branch checks")]},
+        requester=requester,
+    )
+
+    with pytest.raises(Exception, match=match):
+        configure_rulesets(feature)
 
 
 def test_rulesets_update_existing_ruleset():

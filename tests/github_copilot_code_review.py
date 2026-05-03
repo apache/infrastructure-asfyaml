@@ -17,6 +17,7 @@
 
 """Unit tests for .asf.yaml GitHub Copilot code review feature."""
 
+import json
 from types import SimpleNamespace
 from typing import Any
 
@@ -64,9 +65,15 @@ class FakeRequester:
 
     def requestJson(self, method: str, url: str, input: dict[str, Any] | None = None):  # noqa: N802
         self.calls.append({"method": method, "url": url, "input": input})
-        if method == "GET":
-            return 200, {}, self.rulesets
-        return 200, {}, {}
+        match method:
+            case "GET":
+                return 200, {}, json.dumps(self.rulesets)
+            case "POST":
+                return 201, {}, "{}"
+            case "PUT":
+                return 200, {}, "{}"
+            case _:
+                return 204, {}, "{}"
 
 
 class FakeFeature:

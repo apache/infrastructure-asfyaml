@@ -20,6 +20,8 @@
 import json
 from typing import Any
 
+from github import UnknownObjectException
+
 from . import directive, ASFGitHubFeature
 
 COPILOT_RULESET_NAME = "Copilot Code Review"
@@ -46,30 +48,81 @@ def _rulesets_endpoint(self: ASFGitHubFeature) -> str:
     return f"/repos/{self.repository.org_id}/{self.repository.name}/rulesets"
 
 
-def _extract_json_payload(response: Any) -> Any:
-    if isinstance(response, (dict, list)):
-        return response
-
-    if isinstance(response, tuple):
-        for item in reversed(response):
-            if isinstance(item, (dict, list)):
-                return item
-        for item in reversed(response):
-            if isinstance(item, str):
-                try:
-                    return json.loads(item)
-                except json.JSONDecodeError:
-                    continue
-
-    return []
-
-
 def list_rulesets(self: ASFGitHubFeature) -> list[dict[str, Any]]:
-    response = self.ghrepo._requester.requestJson("GET", _rulesets_endpoint(self))
-    payload = _extract_json_payload(response)
+    status, _headers, body = self.ghrepo._requester.requestJson("GET", _rulesets_endpoint(self))
+    _check_ruleset_response(
+        status,
+        200,
+        f"Repository '{self.repository.org_id}/{self.repository.name}' not found or not accessible",
+        "while listing rulesets",
+        body,
+        has_422=False,
+    )
+    payload = json.loads(body)
     if not isinstance(payload, list):
-        return []
+        raise Exception(
+            f"Unexpected response format while listing rulesets: expected a list, got {type(payload).__name__}"
+        )
     return [ruleset for ruleset in payload if isinstance(ruleset, dict)]
+
+
+def _check_ruleset_response(
+    status: int, success_code: int, not_found_msg: str, error_context: str, body: str, *, has_422: bool = True
+) -> None:
+    if status == success_code:
+        return
+    try:
+        parsed = json.loads(body)
+        detail = str(parsed.get("errors") or parsed.get("message") or body)
+    except (json.JSONDecodeError, AttributeError):
+        detail = body
+    match status:
+        case 404:
+            raise Exception(f"{not_found_msg}: {detail}")
+        case 422 if has_422:
+            raise Exception(f"Validation failed {error_context}: {detail}")
+        case 500:
+            raise Exception(f"GitHub server error {error_context}: {detail}")
+        case _:
+            raise Exception(f"Unexpected response {error_context}: HTTP {status}: {detail}")
+
+
+def add_ruleset(self: ASFGitHubFeature, ruleset: dict[str, Any]) -> None:
+    name = ruleset["name"]
+    status, _headers, body = self.ghrepo._requester.requestJson("POST", _rulesets_endpoint(self), input=ruleset)
+    _check_ruleset_response(
+        status,
+        201,
+        body=body,
+        not_found_msg=f"Repository '{self.repository.org_id}/{self.repository.name}' not found or not accessible",
+        error_context=f"while creating ruleset '{name}'",
+    )
+
+
+def update_ruleset(self: ASFGitHubFeature, ruleset_id: int, ruleset: dict[str, Any]) -> None:
+    name = ruleset["name"]
+    status, _headers, body = self.ghrepo._requester.requestJson(
+        "PUT", f"{_rulesets_endpoint(self)}/{ruleset_id}", input=ruleset
+    )
+    _check_ruleset_response(
+        status,
+        200,
+        body=body,
+        not_found_msg=f"Ruleset '{name}' ({ruleset_id}) not found",
+        error_context=f"while updating ruleset '{name}' ({ruleset_id})",
+    )
+
+
+def delete_ruleset(self: ASFGitHubFeature, ruleset_id: int, name: str) -> None:
+    status, _headers, body = self.ghrepo._requester.requestJson("DELETE", f"{_rulesets_endpoint(self)}/{ruleset_id}")
+    _check_ruleset_response(
+        status,
+        204,
+        body=body,
+        not_found_msg=f"Ruleset '{name}' ({ruleset_id}) not found",
+        error_context=f"while deleting ruleset '{name}' ({ruleset_id})",
+        has_422=False,
+    )
 
 
 def get_ruleset_names(rulesets: Any) -> set[str]:
@@ -151,7 +204,10 @@ def _resolve_team_id(self: ASFGitHubFeature, team: Any, *, resolve_references: b
     if not resolve_references:
         return -1
     if team not in team_cache:
-        team_cache[team] = self.gh.get_organization(self.repository.org_id).get_team_by_slug(team).id
+        try:
+            team_cache[team] = self.gh.get_organization(self.repository.org_id).get_team_by_slug(team).id
+        except UnknownObjectException as exc:
+            raise Exception(f"Unable to resolve bypass_team '{team}' to team ID") from exc
     return team_cache[team]
 
 
@@ -169,19 +225,28 @@ def _resolve_integration_id(
         if not resolve_references:
             return -1
         if candidate not in app_cache:
-            response = self.ghrepo._requester.requestJson("GET", f"/apps/{candidate}")
-            payload = _extract_json_payload(response)
-            app_id = payload.get("id") if isinstance(payload, dict) else None
-            if not isinstance(app_id, int):
-                raise Exception(f"Unable to resolve app_slug '{candidate}' to integration_id")
-            app_cache[candidate] = app_id
+            try:
+                app = self.gh.get_app(candidate)
+                app_cache[candidate] = app.id
+            except UnknownObjectException as exc:
+                raise Exception(f"Unable to resolve app_slug '{candidate}' to integration_id") from exc
         return app_cache[candidate]
 
     raise Exception("required_status_checks.app_slug must be a string or integer")
 
 
+def _to_ref(pattern: str, target: str) -> str:
+    """Prefix a bare name with refs/heads/ or refs/tags/; leave refs/ and ~ patterns untouched."""
+    if pattern.startswith("refs/") or pattern.startswith("~"):
+        return pattern
+    prefix = "refs/heads/" if target == "branch" else "refs/tags/"
+    return f"{prefix}{pattern}"
+
+
 def _build_ref_name_condition(ruleset: dict[str, Any], target: str) -> dict[str, list[str]]:
-    ref_config = ruleset.get("branches", ruleset.get("refs"))
+    use_branches = "branches" in ruleset
+    ref_config = ruleset.get("branches") if use_branches else ruleset.get("refs")
+
     if ref_config is None:
         if target == "branch":
             return {"include": ["~DEFAULT_BRANCH"], "exclude": []}
@@ -197,9 +262,16 @@ def _build_ref_name_condition(ruleset: dict[str, Any], target: str) -> dict[str,
 
     exclude = ref_config.get("excludes", [])
 
+    include = _expect_string_list(include, "ruleset branches.includes")
+    exclude = _expect_string_list(exclude, "ruleset branches.excludes")
+
+    if use_branches:
+        include = [_to_ref(p, target) for p in include]
+        exclude = [_to_ref(p, target) for p in exclude]
+
     return {
-        "include": _expect_string_list(include, "ruleset branches.includes"),
-        "exclude": _expect_string_list(exclude, "ruleset branches.excludes"),
+        "include": include,
+        "exclude": exclude,
     }
 
 
@@ -448,7 +520,6 @@ def reconcile_rulesets(
     desired_rulesets: list[dict[str, Any]],
     previously_managed_names: set[str],
 ) -> None:
-    endpoint = _rulesets_endpoint(self)
     existing_by_name: dict[str, dict[str, Any]] = {}
 
     existing_rulesets = list_rulesets(self)
@@ -470,10 +541,10 @@ def reconcile_rulesets(
             if ruleset_id is None:
                 raise Exception(f"Found ruleset '{name}' without an id")
             print(f"Updating GitHub ruleset '{name}' ({ruleset_id})")
-            self.ghrepo._requester.requestJson("PUT", f"{endpoint}/{ruleset_id}", input=ruleset)
+            update_ruleset(self, ruleset_id, ruleset)
         else:
             print(f"Creating GitHub ruleset '{name}'")
-            self.ghrepo._requester.requestJson("POST", endpoint, input=ruleset)
+            add_ruleset(self, ruleset)
 
     removed_names = previously_managed_names - desired_names
     for name in sorted(removed_names):
@@ -484,7 +555,7 @@ def reconcile_rulesets(
         if ruleset_id is None:
             raise Exception(f"Found ruleset '{name}' without an id")
         print(f"Deleting GitHub ruleset '{name}' ({ruleset_id})")
-        self.ghrepo._requester.requestJson("DELETE", f"{endpoint}/{ruleset_id}")
+        delete_ruleset(self, ruleset_id, name)
 
 
 @directive
