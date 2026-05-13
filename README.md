@@ -729,6 +729,7 @@ Notes:
 - Set `restrict_deletion: false` and/or `restrict_force_push: false` to disable those rules for a convenience entry.
 - `deletion` and `non_fast_forward` are raw rule types under `rules`, not convenience top-level keys.
 - Convenience entries may intentionally resolve to `rules: []` (for example, while staging migration changes).
+- If `required_conversation_resolution` is set, `required_pull_request_reviews` must be present as well.
 
 Validation and reconciliation behavior:
 
