@@ -43,13 +43,15 @@ _CONVENIENCE_RULESET_KEYS = {
     "required_status_checks_strict",
 }
 _NUMERICAL_VALUE_KEYS = {  # Values that are expected to be integers but YAML gets it wrong..
-        "max_entries_to_build",
-        "min_entries_to_merge",
-        "max_entries_to_merge",
-        "min_entries_to_merge_wait_minutes",
-        "check_response_timeout_minutes",
-        "required_approving_review_count",
+    "max_entries_to_build",
+    "min_entries_to_merge",
+    "max_entries_to_merge",
+    "min_entries_to_merge_wait_minutes",
+    "check_response_timeout_minutes",
+    "required_approving_review_count",
 }
+
+
 def _rulesets_endpoint(self: ASFGitHubFeature) -> str:
     return f"/repos/{self.repository.org_id}/{self.repository.name}/rulesets"
 
