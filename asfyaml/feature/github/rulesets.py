@@ -422,14 +422,6 @@ def _convert_to_boolints(
     """https://issues.apache.org/jira/browse/INFRA-27864
     Converts certain elements in raw payloads that are meant to be either
     integers or boolean values but are not, because...YAML."""
-    NUMERICAL_KEYS = (
-        "max_entries_to_build",
-        "min_entries_to_merge",
-        "max_entries_to_merge",
-        "min_entries_to_merge_wait_minutes",
-        "check_response_timeout_minutes",
-        "required_approving_review_count",
-    )
     if isinstance(data, dict):
         newdict = {}
         for k, v in data.items():
