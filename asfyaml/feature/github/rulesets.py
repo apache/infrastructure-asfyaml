@@ -42,6 +42,16 @@ _CONVENIENCE_RULESET_KEYS = {
     "required_status_checks",
     "required_status_checks_strict",
 }
+_NUMERICAL_VALUE_KEYS = {  # Values that are expected to be integers but YAML gets it wrong..
+    "max_entries_to_build",
+    "min_entries_to_merge",
+    "max_entries_to_merge",
+    "min_entries_to_merge_wait_minutes",
+    "check_response_timeout_minutes",
+    "required_approving_review_count",
+    "minimum_approvals",
+    "max_file_path_length",
+}
 
 
 def _rulesets_endpoint(self: ASFGitHubFeature) -> str:
@@ -408,6 +418,34 @@ def _is_safety_rule_enabled(ruleset: dict[str, Any], field_name: str) -> bool:
     return _expect_bool(ruleset.get(field_name), field_name)
 
 
+def _convert_to_boolints(
+    data: Any,
+) -> Any:
+    """https://issues.apache.org/jira/browse/INFRA-27864
+    Converts certain elements in raw payloads that are meant to be either
+    integers or boolean values but are not, because...YAML."""
+    if isinstance(data, dict):
+        newdict = {}
+        for k, v in data.items():
+            if k in _NUMERICAL_VALUE_KEYS:
+                try:
+                    v = int(v)
+                except ValueError:
+                    pass
+            else:
+                v = _convert_to_boolints(v)
+            newdict[k] = v
+        return newdict
+    elif isinstance(data, list):
+        return [_convert_to_boolints(x) for x in data]
+    else:
+        if data == "false":
+            return False
+        elif data == "true":
+            return True
+        return data
+
+
 def _to_payload_ruleset(
     self: ASFGitHubFeature,
     ruleset: dict[str, Any],
@@ -421,7 +459,7 @@ def _to_payload_ruleset(
         if mixed_keys:
             mixed_keys_as_str = ", ".join(sorted(mixed_keys))
             raise Exception(f"Raw ruleset payload cannot mix convenience syntax keys: {mixed_keys_as_str}")
-        return dict(ruleset)
+        return dict(_convert_to_boolints(ruleset))
 
     target = ruleset.get("type", "branch")
     if not isinstance(target, str) or target not in {"branch", "tag"}:
