@@ -28,6 +28,16 @@ It operates on a per-branch basis, meaning you can have different settings for d
 
 ## Contents
 <ul>
+  <li><a href="#project">Project metadata</a>
+    <ul>
+        <li><a href="#project-definition">Schema</a></li>
+        <li><a href="#atrsync">Sync to Apache Trusted Releases</a>
+            <ul>
+                <li><a href="#atrinit">Initial setup</a></li>
+            </ul>
+        </li>
+    </ul>
+  </li>
   <li><a href="#notif">Notification settings for repositories</a>
     <ul>
       <li><a href="#review">Reviewing your old (pre-.asf.yaml) configuration</a></li>
@@ -88,6 +98,48 @@ It operates on a per-branch basis, meaning you can have different settings for d
 </ul>
 
 <hr/>
+
+<h2 id="project">Project metadata</h2>
+
+Projects can define their data in .asf.yaml, similar to that defined in a <a href="https://projects.apache.org/doap.html">DOAP file</a>, but in a way that can be synchronized with Apache Trusted Releases (ATR)
+
+<h3 id="project-definition">Schema</h3>
+
+Most of the field names are either identical to those in DOAP or are self explanatory. Below is an example from the ATR project itself:
+
+~~~yaml
+project:
+  metadata:
+    committee: tooling
+    name: Apache Trusted Releases
+    description: ATR is a platform through which committees of Apache Software Foundation (ASF) projects can make official ASF software releases. Official ASF releases are endorsed as an "act of the Foundation". It is therefore important that the foundation - its board, members, committees, and contributors - and the general public can have confidence in the releases.
+    short_description: A platform for making official ASF software releases.
+    homepage: https://tooling.apache.org/trusted-releases.html
+    lifecycle_page: https://tooling.apache.org/trusted-releases.html
+    download_page: https://github.com/apache/tooling-trusted-releases
+    bug_database: https://github.com/apache/tooling-trusted-releases/issues
+    mailing_lists: https://tooling.apache.org/lists.html
+    repositories:
+      - git+ssh://git@github.com:apache/tooling-trusted-releases.git
+    standards:
+      - https://owasp.org/www-project-application-security-verification-standard/
+    categories:
+      - build-management
+    programming_languages:
+      - python
+  features:
+    atr_sync: true
+~~~
+
+<h3 id="atrsync">Synchronizing to ATR</h3>
+
+By default, your project definition will be synchronized to ATR. If you wish to opt out of this, setting `atr_sync: false` will allow you to define the values but opt-out of the sync process.
+
+When sync is _enabled_, you will be unable to edit the values manually in ATR. The .asf.yaml file becomes the authoritative source of project metadata.
+
+<h4 id="atrinit">Initial values from ATR</h4>
+
+ATR seeds the metadata from Whimsy and LDAP. If you want to move the definition into your .asf.yaml file, you can export the yaml from ATR by using the export function on the project metadata page.
 
 <h2 id="notif">Notification settings for repositories</h2>
 
