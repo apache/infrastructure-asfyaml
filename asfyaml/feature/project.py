@@ -24,7 +24,7 @@ from asfyaml.asfyaml import ASFYamlFeature
 
 # Path to the ATR client config, rendered onto the box by puppet (eyaml).
 # Expected JSON shape: {"url": "https://atr.example/api", "token": "<bearer-jwt>"}
-ATR_CONFIG_PATH = "/x1/gitbox/auth/atr.txt"
+ATR_CONFIG_PATH = "/x1/gitbox/auth/atr.json"
 
 _METADATA_SCHEMA = strictyaml.Map(
     {
@@ -51,7 +51,7 @@ _FEATURES_SCHEMA = strictyaml.Map(
 )
 
 
-class ASFATRFeature(ASFYamlFeature, name="atr", env="production", priority=5):
+class ASFATRFeature(ASFYamlFeature, name="project", env="production", priority=5):
     """Push project metadata from .asf.yaml to the Apache Trusted Releases (ATR) platform."""
 
     schema = strictyaml.Map(
