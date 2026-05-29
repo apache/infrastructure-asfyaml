@@ -72,6 +72,7 @@ valid_metadata = YamlTest(
     """
 project:
     metadata:
+        key: tooling-trusted-releases
         committee: tooling
         name: Apache Trusted Releases
         short_description: A platform for making official ASF software releases.
@@ -97,6 +98,8 @@ valid_metadata_with_policy = YamlTest(
     """
 project:
     metadata:
+        key: tooling-trusted-releases
+        committee: tooling
         name: Apache Trusted Releases
     policy:
         vote_recipients:
@@ -114,6 +117,7 @@ valid_metadata_with_doap = YamlTest(
     """
 project:
     metadata:
+        key: tooling-trusted-releases
         committee: tooling
         doap: https://tooling.apache.org/doap.rdf
 """,
@@ -130,6 +134,18 @@ project:
 """,
 )
 
+# key and committee are required inside metadata
+invalid_missing_key = YamlTest(
+    asfyaml.asfyaml.ASFYAMLException,
+    "required key",
+    """
+project:
+    metadata:
+        committee: tooling
+        name: Apache Trusted Releases
+""",
+)
+
 # unexpected key inside metadata
 invalid_unknown_metadata_key = YamlTest(
     asfyaml.asfyaml.ASFYAMLException,
@@ -137,8 +153,55 @@ invalid_unknown_metadata_key = YamlTest(
     """
 project:
     metadata:
+        key: tooling-trusted-releases
+        committee: tooling
         name: Apache Trusted Releases
         foobar: nope
+""",
+)
+
+valid_full_policy = YamlTest(
+    None,
+    None,
+    """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+        name: Apache Trusted Releases
+    policy:
+        announce_release_subject: "[ANNOUNCE] Apache Foo released"
+        binary_artifact_paths:
+            - dist/*.jar
+        file_tag_mappings:
+            sources:
+                - "*.tar.gz"
+            binaries:
+                - "*.jar"
+        github_repository_branch: main
+        github_vote_workflow_path:
+            - .github/workflows/vote.yml
+        license_check_mode: RAT
+        vote_recipients:
+            to: private@tooling.apache.org
+        min_hours: 72
+        preserve_download_files: true
+        vote_mode: email
+""",
+)
+
+# vote_mode only accepts manual/email/trusted
+invalid_bad_vote_mode = YamlTest(
+    asfyaml.asfyaml.ASFYAMLException,
+    "when expecting one of: manual, email, trusted",
+    """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+        name: Apache Trusted Releases
+    policy:
+        vote_mode: telepathy
 """,
 )
 
@@ -149,6 +212,8 @@ invalid_unknown_policy_key = YamlTest(
     """
 project:
     metadata:
+        key: tooling-trusted-releases
+        committee: tooling
         name: Apache Trusted Releases
     policy:
         reviewers:
@@ -162,9 +227,12 @@ def test_schema_validation(test_repo: asfyaml.dataobjects.Repository):
     tests_to_run = (
         valid_metadata,
         valid_metadata_with_policy,
+        valid_full_policy,
         valid_metadata_with_doap,
         invalid_missing_metadata,
+        invalid_missing_key,
         invalid_unknown_metadata_key,
+        invalid_bad_vote_mode,
         invalid_unknown_policy_key,
     )
     for test in tests_to_run:
@@ -367,10 +435,11 @@ def test_parse_doap_rejects_disallowed_host_before_fetching(monkeypatch):
         _parse_doap("https://evil.example.com/doap.rdf")
 
 
-def test_noop_payload_shape(test_repo: asfyaml.dataobjects.Repository, capsys):
+def test_noop_payload_shape(atr_repo: asfyaml.dataobjects.Repository, capsys):
     yaml = """
 project:
     metadata:
+        key: tooling-trusted-releases
         committee: tooling
         name: Apache Trusted Releases
         homepage: https://tooling.apache.org/trusted-releases.html
@@ -379,7 +448,7 @@ project:
             to: private@tooling.apache.org
 """
     a = asfyaml.asfyaml.ASFYamlInstance(
-        repo=test_repo, committer="arm", config_data=yaml, branch=asfyaml.dataobjects.DEFAULT_BRANCH
+        repo=atr_repo, committer="arm", config_data=yaml, branch=asfyaml.dataobjects.DEFAULT_BRANCH
     )
     a.environments_enabled.add("noop")
     a.no_cache = True
@@ -387,13 +456,49 @@ project:
 
     out = capsys.readouterr().out
     payload = json.loads(out[out.index("{") : out.rindex("}") + 1])
+    assert payload["project_key"] == "tooling-trusted-releases"
     assert payload["committee_key"] == "tooling"
+    assert "key" not in payload["project"]
     assert "committee" not in payload["project"]
     assert payload["project"]["name"] == "Apache Trusted Releases"
     assert payload["policy"]["vote_recipients"]["to"] == "private@tooling.apache.org"
 
 
-def test_noop_payload_explicit_key(test_repo: asfyaml.dataobjects.Repository, capsys):
+def test_noop_payload_policy_types(atr_repo: asfyaml.dataobjects.Repository, capsys):
+    yaml = """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+        name: Apache Trusted Releases
+    policy:
+        min_hours: 72
+        preserve_download_files: true
+        license_check_mode: RAT
+        binary_artifact_paths:
+            - dist/*.jar
+        file_tag_mappings:
+            sources:
+                - "*.tar.gz"
+"""
+    a = asfyaml.asfyaml.ASFYamlInstance(
+        repo=atr_repo, committer="arm", config_data=yaml, branch=asfyaml.dataobjects.DEFAULT_BRANCH
+    )
+    a.environments_enabled.add("noop")
+    a.no_cache = True
+    a.run_parts()
+
+    out = capsys.readouterr().out
+    policy = json.loads(out[out.index("{") : out.rindex("}") + 1])["policy"]
+    assert policy["min_hours"] == 72  # int, not "72"
+    assert policy["preserve_download_files"] is True  # bool, not "true"
+    assert policy["license_check_mode"] == "RAT"
+    assert policy["binary_artifact_paths"] == ["dist/*.jar"]
+    assert policy["file_tag_mappings"] == {"sources": ["*.tar.gz"]}
+
+
+def test_committee_matching_repo_prefix_is_accepted(atr_repo: asfyaml.dataobjects.Repository, capsys):
+    # Repo "tooling-trusted-releases" accepts committee "tooling" (prefix before the hyphen).
     yaml = """
 project:
     metadata:
@@ -402,7 +507,7 @@ project:
         name: Apache Trusted Releases
 """
     a = asfyaml.asfyaml.ASFYamlInstance(
-        repo=test_repo, committer="arm", config_data=yaml, branch=asfyaml.dataobjects.DEFAULT_BRANCH
+        repo=atr_repo, committer="arm", config_data=yaml, branch=asfyaml.dataobjects.DEFAULT_BRANCH
     )
     a.environments_enabled.add("noop")
     a.no_cache = True
@@ -412,24 +517,20 @@ project:
     payload = json.loads(out[out.index("{") : out.rindex("}") + 1])
     assert payload["project_key"] == "tooling-test"
     assert payload["committee_key"] == "tooling"
-    assert "key" not in payload["project"]
 
 
-def test_noop_payload_key_defaults_to_repo(test_repo: asfyaml.dataobjects.Repository, capsys):
+def test_committee_not_matching_repo_is_rejected(atr_repo: asfyaml.dataobjects.Repository):
     yaml = """
 project:
     metadata:
+        key: tooling-trusted-releases
+        committee: whimsy
         name: Apache Trusted Releases
 """
     a = asfyaml.asfyaml.ASFYamlInstance(
-        repo=test_repo, committer="arm", config_data=yaml, branch=asfyaml.dataobjects.DEFAULT_BRANCH
+        repo=atr_repo, committer="arm", config_data=yaml, branch=asfyaml.dataobjects.DEFAULT_BRANCH
     )
     a.environments_enabled.add("noop")
     a.no_cache = True
-    a.run_parts()
-
-    out = capsys.readouterr().out
-    payload = json.loads(out[out.index("{") : out.rindex("}") + 1])
-    # Unset key and committee both fall back to the repo's derived project name.
-    assert payload["project_key"] == test_repo.project
-    assert payload["committee_key"] == test_repo.project
+    with pytest.raises(asfyaml.asfyaml.ASFYAMLException, match="does not match repository name"):
+        a.run_parts()

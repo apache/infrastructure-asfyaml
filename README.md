@@ -107,6 +107,8 @@ Projects can define their data in .asf.yaml, similar to that defined in a <a hre
 
 Most of the field names under `metadata` are either identical to those in DOAP or are self explanatory. Below is an example using the ATR project data:
 
+`key` (the ATR project key) and `committee` (its owning committee) are both required. The `committee` must match the start of your repository name — for example a repository named `tooling-trusted-releases` must belong to the `tooling` committee.
+
 ~~~yaml
 project:
   metadata:
@@ -139,13 +141,12 @@ project:
     atr_sync: true
 ~~~
 
-`key` (the ATR project key) and `committee` both default to your repository's project name, so you only need to set them when they differ from it — for example a sub-project whose key or owning committee isn't the repository name.
-
 Alternatively, if you already have a DOAP file and want to continue to use it as the main source of project data, you can link the DOAP file into ATR like this:
 
 ~~~yaml
 project:
   metadata:
+    key: tooling-trusted-releases
     committee: tooling
     doap: https://raw.githubusercontent.com/apache/tooling-trusted-releases/refs/heads/main/doap_atr.rdf
   policy:
@@ -161,9 +162,52 @@ project:
 
 Note that in this case, for security reasons: you must use https, your link must live under apache.org or raw.githubusercontent.com/apache, and HTTP redirects will not be followed. (A `github.com/apache/...` link redirects to `raw.githubusercontent.com`, so link directly to the raw file as shown above.)
 
-<h3 id="policy">Release policy recipients</h3>
+<h3 id="policy">Release policy</h3>
 
-The optional `policy` block sets the default email recipients ATR uses when a release vote starts and when a release is announced. Each of `vote_recipients` and `announce_recipients` accepts `to` (a single address), `cc`, and `bcc` (lists of addresses).
+The optional `policy` block configures how ATR runs your project, releases, votes and announcements. Every field is optional; set only the ones you need. ATR will default the rest.
+
+The two recipient blocks, `vote_recipients` and `announce_recipients`, each take `to` (a single address), `cc`, and `bcc` (lists of addresses):
+
+~~~yaml
+project:
+  metadata:
+    key: tooling-trusted-releases
+    committee: tooling
+  policy:
+    vote_mode: email
+    min_hours: 72
+    license_check_mode: RAT
+    vote_recipients:
+      to: private@tooling.apache.org
+    source_artifact_paths:
+      - "*-src.tar.gz"
+    file_tag_mappings:
+      sources:
+        - "*-src.tar.gz"
+~~~
+
+The remaining fields:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `vote_mode` | `manual`, `email` or `trusted` | How a release vote is conducted. Mutually exclusive with `manual_vote`. |
+| `manual_vote` | boolean | Conduct the vote manually. Mutually exclusive with `vote_mode`. |
+| `min_hours` | integer | Minimum hours a vote must remain open. |
+| `license_check_mode` | `Both`, `Lightweight` or `RAT` | Which license check(s) to run. |
+| `preserve_download_files` | boolean | Keep download files after a release completes. |
+| `source_artifact_paths` | list of globs | Paths identifying source artifacts. |
+| `binary_artifact_paths` | list of globs | Paths identifying binary artifacts. |
+| `source_excludes_lightweight` | list of globs | Paths excluded from the lightweight license check. |
+| `source_excludes_rat` | list of globs | Paths excluded from the RAT license check. |
+| `file_tag_mappings` | map of label to globs | Groups release files under named tags. |
+| `release_checklist` | string | Checklist shown to release managers. |
+| `start_vote_subject` / `start_vote_template` | string | Subject and body for the vote-start email. |
+| `vote_comment_template` | string | Template for vote comments. |
+| `finish_vote_template` | string | Template for the vote-result email. |
+| `announce_release_subject` / `announce_release_template` | string | Subject and body for the announcement email. |
+| `github_repository_name` | string | GitHub repository backing trusted publishing. |
+| `github_repository_branch` | string | Branch within that repository. |
+| `github_compose_workflow_path` / `github_vote_workflow_path` / `github_finish_workflow_path` | list of paths | Workflow files for each release stage. |
 
 <h3 id="atrsync">Synchronizing to ATR</h3>
 

@@ -35,11 +35,11 @@ ATR_CONFIG_PATH = "/x1/gitbox/auth/atr.json"
 
 _METADATA_SCHEMA = strictyaml.Map(
     {
-        # The ATR project key. Defaults to the repository's project name when unset.
-        strictyaml.Optional("key"): strictyaml.Str(),
-        strictyaml.Optional("committee"): strictyaml.Str(),
+        # The ATR project key and its owning committee. Both required.
+        "key": strictyaml.Str(),
+        "committee": strictyaml.Str(),
         # When set, the project fields are sourced from this DOAP file (downloaded
-        # at run time) instead of the keys below — only `committee` is still honoured.
+        # at run time) instead of the keys below — `key` and `committee` are still required.
         strictyaml.Optional("doap"): strictyaml.Str(),
         strictyaml.Optional("name"): strictyaml.Str(),
         strictyaml.Optional("description"): strictyaml.Str(),
@@ -65,11 +65,35 @@ _RECIPIENTS_SCHEMA = strictyaml.Map(
     }
 )
 
-# Release policy. Only the recipient defaults are exposed via .asf.yaml for now.
+# Release policy, mirroring ATR's PolicyArgsBase. All fields optional.
 _POLICY_SCHEMA = strictyaml.Map(
     {
+        strictyaml.Optional("announce_release_subject"): strictyaml.Str(),
+        strictyaml.Optional("announce_release_template"): strictyaml.Str(),
+        strictyaml.Optional("binary_artifact_paths"): strictyaml.Seq(strictyaml.Str()),
+        strictyaml.Optional("file_tag_mappings"): strictyaml.MapPattern(
+            strictyaml.Str(), strictyaml.Seq(strictyaml.Str())
+        ),
+        strictyaml.Optional("github_compose_workflow_path"): strictyaml.Seq(strictyaml.Str()),
+        strictyaml.Optional("github_finish_workflow_path"): strictyaml.Seq(strictyaml.Str()),
+        strictyaml.Optional("github_repository_branch"): strictyaml.Str(),
+        strictyaml.Optional("github_repository_name"): strictyaml.Str(),
+        strictyaml.Optional("github_vote_workflow_path"): strictyaml.Seq(strictyaml.Str()),
+        strictyaml.Optional("license_check_mode"): strictyaml.Enum(["Both", "Lightweight", "RAT"]),
         strictyaml.Optional("vote_recipients"): _RECIPIENTS_SCHEMA,
         strictyaml.Optional("announce_recipients"): _RECIPIENTS_SCHEMA,
+        strictyaml.Optional("manual_vote"): strictyaml.Bool(),
+        strictyaml.Optional("min_hours"): strictyaml.Int(),
+        strictyaml.Optional("preserve_download_files"): strictyaml.Bool(),
+        strictyaml.Optional("release_checklist"): strictyaml.Str(),
+        strictyaml.Optional("source_artifact_paths"): strictyaml.Seq(strictyaml.Str()),
+        strictyaml.Optional("source_excludes_lightweight"): strictyaml.Seq(strictyaml.Str()),
+        strictyaml.Optional("source_excludes_rat"): strictyaml.Seq(strictyaml.Str()),
+        strictyaml.Optional("start_vote_subject"): strictyaml.Str(),
+        strictyaml.Optional("start_vote_template"): strictyaml.Str(),
+        strictyaml.Optional("finish_vote_template"): strictyaml.Str(),
+        strictyaml.Optional("vote_comment_template"): strictyaml.Str(),
+        strictyaml.Optional("vote_mode"): strictyaml.Enum(["manual", "email", "trusted"]),
     }
 )
 
@@ -96,8 +120,8 @@ class ASFATRFeature(ASFYamlFeature, name="project", env="production", priority=5
         Sync project metadata to ATR. Sample entry:
             project:
               metadata:
-                key: tooling-test    # optional; ATR project key, defaults to the repo name
-                committee: tooling   # optional; defaults to the project key
+                key: tooling-test    # required; ATR project key
+                committee: tooling   # required; repo must be named <committee>-xxx
                 name: Apache Foo
                 homepage: https://foo.apache.org/
                 # ...or, instead of the fields above, point at a DOAP file:
@@ -120,9 +144,13 @@ class ASFATRFeature(ASFYamlFeature, name="project", env="production", priority=5
         metadata = dict(self.yaml.get("metadata") or {})
         # `key` and `committee` are authored inside metadata but map to top-level ATR API
         # fields, so pop them before forwarding the rest as the project payload.
-        # Both default to the repository's project name (the repo's LDAP key).
-        project_key = metadata.pop("key", self.repository.project)
-        committee_key = metadata.pop("committee", project_key)
+        project_key = metadata.pop("key")
+        committee_key = metadata.pop("committee")
+        # Guard against a repo configuring another project's committee: the committee must
+        # match the start of the repository name (e.g. tooling-trusted-releases -> tooling).
+        repo_name = self.repository.name
+        if repo_name != committee_key and not repo_name.startswith(f"{committee_key}-"):
+            raise Exception(f"committee '{committee_key}' does not match repository name '{repo_name}'")
         # A DOAP file, if given, is the authoritative source for the project fields.
         doap_url = metadata.pop("doap", None)
         if doap_url:
@@ -221,11 +249,11 @@ def _doap_metadata(content: bytes, source: str = "DOAP file") -> dict:
     try:
         root = fromstring(content)
     except ParseError as e:
-        raise Exception(f"Could not parse DOAP file from {source}: {e}")
+        raise Exception(f"Could not parse {source}: {e}")
 
     project = root.find(f"{_DOAP_NS}Project")
     if project is None:
-        raise Exception(f"No doap:Project element found in DOAP file {source}")
+        raise Exception(f"No doap:Project element found in {source}")
 
     metadata: dict = {}
     for key, tag in (
