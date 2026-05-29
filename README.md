@@ -105,11 +105,12 @@ Projects can define their data in .asf.yaml, similar to that defined in a <a hre
 
 <h3 id="project-definition">Schema</h3>
 
-Most of the field names are either identical to those in DOAP or are self explanatory. Below is an example from the ATR project itself:
+Most of the field names under `metadata` are either identical to those in DOAP or are self explanatory. Below is an example using the ATR project data:
 
 ~~~yaml
 project:
   metadata:
+    key: tooling-trusted-releases
     committee: tooling
     name: Apache Trusted Releases
     description: ATR is a platform through which committees of Apache Software Foundation (ASF) projects can make official ASF software releases. Official ASF releases are endorsed as an "act of the Foundation". It is therefore important that the foundation - its board, members, committees, and contributors - and the general public can have confidence in the releases.
@@ -127,15 +128,48 @@ project:
       - build-management
     programming_languages:
       - python
+  policy:
+    vote_recipients:
+      to: private@tooling.apache.org
+      cc:
+        - dev@tooling.apache.org
+    announce_recipients:
+      to: announce@apache.org
   features:
     atr_sync: true
 ~~~
+
+`key` (the ATR project key) and `committee` both default to your repository's project name, so you only need to set them when they differ from it — for example a sub-project whose key or owning committee isn't the repository name.
+
+Alternatively, if you already have a DOAP file and want to continue to use it as the main source of project data, you can link the DOAP file into ATR like this:
+
+~~~yaml
+project:
+  metadata:
+    committee: tooling
+    doap: https://raw.githubusercontent.com/apache/tooling-trusted-releases/refs/heads/main/doap_atr.rdf
+  policy:
+    vote_recipients:
+      to: private@tooling.apache.org
+      cc:
+        - dev@tooling.apache.org
+    announce_recipients:
+      to: announce@apache.org
+  features:
+    atr_sync: true
+~~~
+
+Note that in this case, for security reasons: you must use https, your link must live under apache.org or raw.githubusercontent.com/apache, and HTTP redirects will not be followed. (A `github.com/apache/...` link redirects to `raw.githubusercontent.com`, so link directly to the raw file as shown above.)
+
+<h3 id="policy">Release policy recipients</h3>
+
+The optional `policy` block sets the default email recipients ATR uses when a release vote starts and when a release is announced. Each of `vote_recipients` and `announce_recipients` accepts `to` (a single address), `cc`, and `bcc` (lists of addresses).
 
 <h3 id="atrsync">Synchronizing to ATR</h3>
 
 By default, your project definition will be synchronized to ATR. If you wish to opt out of this, setting `atr_sync: false` will allow you to define the values but opt-out of the sync process.
 
-When sync is _enabled_, you will be unable to edit the values manually in ATR. The .asf.yaml file becomes the authoritative source of project metadata.
+When sync is _enabled_, you will be unable to edit the values manually in ATR. The .asf.yaml file will be the authoritative source of project metadata.
 
 <h4 id="atrinit">Initial values from ATR</h4>
 
