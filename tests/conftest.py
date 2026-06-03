@@ -35,3 +35,8 @@ def test_repo(base_path: Path) -> asfyaml.dataobjects.Repository:
     if not os.path.isdir(repo_path):  # Make test repo dir
         os.makedirs(repo_path, exist_ok=True)
     return asfyaml.dataobjects.Repository(repo_path)
+
+@pytest.fixture
+def atr_repo(base_path: Path) -> asfyaml.dataobjects.Repository:
+    """A repository named like an ATR project, for the `project` feature tests."""
+    return asfyaml.dataobjects.Repository(str(base_path.joinpath("../repos/tooling-trusted-releases.git")))

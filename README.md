@@ -28,6 +28,16 @@ It operates on a per-branch basis, meaning you can have different settings for d
 
 ## Contents
 <ul>
+  <li><a href="#project">Project metadata</a>
+    <ul>
+        <li><a href="#project-definition">Schema</a></li>
+        <li><a href="#atrsync">Sync to Apache Trusted Releases</a>
+            <ul>
+                <li><a href="#atrinit">Initial setup</a></li>
+            </ul>
+        </li>
+    </ul>
+  </li>
   <li><a href="#notif">Notification settings for repositories</a>
     <ul>
       <li><a href="#review">Reviewing your old (pre-.asf.yaml) configuration</a></li>
@@ -88,6 +98,126 @@ It operates on a per-branch basis, meaning you can have different settings for d
 </ul>
 
 <hr/>
+
+<h2 id="project">Project metadata</h2>
+
+Projects can define their data in .asf.yaml, similar to that defined in a <a href="https://projects.apache.org/doap.html">DOAP file</a>, but in a way that can be synchronized with Apache Trusted Releases (ATR)
+
+<h3 id="project-definition">Schema</h3>
+
+Most of the field names under `metadata` are either identical to those in DOAP or are self explanatory. Below is an example using the ATR project data:
+
+`key` (the ATR project key) and `committee` (its owning committee) are both required. The `committee` must match the start of your repository name — for example a repository named `tooling-trusted-releases` must belong to the `tooling` committee.
+
+~~~yaml
+project:
+  metadata:
+    key: tooling-trusted-releases
+    committee: tooling
+    name: Apache Trusted Releases
+    description: ATR is a platform through which committees of Apache Software Foundation (ASF) projects can make official ASF software releases. Official ASF releases are endorsed as an "act of the Foundation". It is therefore important that the foundation - its board, members, committees, and contributors - and the general public can have confidence in the releases.
+    short_description: A platform for making official ASF software releases.
+    homepage: https://tooling.apache.org/trusted-releases.html
+    lifecycle_page: https://tooling.apache.org/trusted-releases.html
+    download_page: https://github.com/apache/tooling-trusted-releases
+    bug_database: https://github.com/apache/tooling-trusted-releases/issues
+    mailing_lists: https://tooling.apache.org/lists.html
+    repositories:
+      - git+ssh://git@github.com:apache/tooling-trusted-releases.git
+    standards:
+      - https://owasp.org/www-project-application-security-verification-standard/
+    categories:
+      - build-management
+    programming_languages:
+      - python
+  policy:
+    vote_recipients:
+      to: private@tooling.apache.org
+      cc:
+        - dev@tooling.apache.org
+    announce_recipients:
+      to: announce@apache.org
+  features:
+    atr_sync: true
+~~~
+
+Alternatively, if you already have a DOAP file and want to continue to use it as the main source of project data, you can link the DOAP file into ATR like this:
+
+~~~yaml
+project:
+  metadata:
+    key: tooling-trusted-releases
+    committee: tooling
+    doap: https://raw.githubusercontent.com/apache/tooling-trusted-releases/refs/heads/main/doap_atr.rdf
+  policy:
+    vote_recipients:
+      to: private@tooling.apache.org
+      cc:
+        - dev@tooling.apache.org
+    announce_recipients:
+      to: announce@apache.org
+  features:
+    atr_sync: true
+~~~
+
+Note that in this case, for security reasons: you must use https, your link must live under apache.org or raw.githubusercontent.com/apache, and HTTP redirects will not be followed. (A `github.com/apache/...` link redirects to `raw.githubusercontent.com`, so link directly to the raw file as shown above.)
+
+<h3 id="policy">Release policy</h3>
+
+The optional `policy` block configures how ATR runs your project, releases, votes and announcements. Every field is optional; set only the ones you need. ATR will default the rest.
+
+The two recipient blocks, `vote_recipients` and `announce_recipients`, each take `to` (a single address), `cc`, and `bcc` (lists of addresses):
+
+~~~yaml
+project:
+  metadata:
+    key: tooling-trusted-releases
+    committee: tooling
+  policy:
+    vote_mode: email
+    min_hours: 72
+    license_check_mode: RAT
+    vote_recipients:
+      to: private@tooling.apache.org
+    source_artifact_paths:
+      - "*-src.tar.gz"
+    file_tag_mappings:
+      sources:
+        - "*-src.tar.gz"
+~~~
+
+The remaining fields:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `vote_mode` | `manual`, `email` or `trusted` | How a release vote is conducted. Mutually exclusive with `manual_vote`. |
+| `manual_vote` | boolean | Conduct the vote manually. Mutually exclusive with `vote_mode`. |
+| `min_hours` | integer | Minimum hours a vote must remain open. |
+| `license_check_mode` | `Both`, `Lightweight` or `RAT` | Which license check(s) to run. |
+| `preserve_download_files` | boolean | Keep download files after a release completes. |
+| `source_artifact_paths` | list of globs | Paths identifying source artifacts. |
+| `binary_artifact_paths` | list of globs | Paths identifying binary artifacts. |
+| `source_excludes_lightweight` | list of globs | Paths excluded from the lightweight license check. |
+| `source_excludes_rat` | list of globs | Paths excluded from the RAT license check. |
+| `file_tag_mappings` | map of label to globs | Groups release files under named tags. |
+| `release_checklist` | string | Checklist shown to release managers. |
+| `start_vote_subject` / `start_vote_template` | string | Subject and body for the vote-start email. |
+| `vote_comment_template` | string | Template for vote comments. |
+| `finish_vote_template` | string | Template for the vote-result email. |
+| `announce_release_subject` / `announce_release_template` | string | Subject and body for the announcement email. |
+| `github_repository_name` | string | GitHub repository backing trusted publishing. |
+| `github_repository_branch` | string | Branch within that repository. |
+| `github_compose_workflow_path` / `github_vote_workflow_path` / `github_finish_workflow_path` | list of paths | Workflow files for each release stage. |
+
+<h3 id="atrsync">Synchronizing to ATR</h3>
+
+By default, your project definition will be synchronized to ATR. If you wish to opt out of this, setting `atr_sync: false` will allow you to define the values but opt-out of the sync process.
+
+When sync is _enabled_, you will be unable to edit the values manually in ATR. The .asf.yaml file will be the authoritative source of project metadata.
+
+<h4 id="atrinit">Initial values from ATR</h4>
+
+ATR seeds the metadata from Whimsy and LDAP. If you want to move the definition into your .asf.yaml file, you can export the yaml from ATR by using the export function on the project metadata page.
 
 <h2 id="notif">Notification settings for repositories</h2>
 
