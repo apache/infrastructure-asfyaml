@@ -169,7 +169,7 @@ class ASFATRFeature(ASFYamlFeature, name="project", env="production", priority=5
             return
 
         config = _load_config(ATR_CONFIG_PATH)
-        url = f"{config['url'].rstrip('/')}/project/config"
+        url = f"{config['url'].rstrip('/')}/api/project/config"
         headers = {
             "Authorization": f"Bearer {config['token']}",
             "Content-Type": "application/json",
