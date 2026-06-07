@@ -30,8 +30,12 @@ _RDF_NS = "{http://www.w3.org/1999/02/22-rdf-syntax-ns#}"
 _ASFEXT_NS = "{http://projects.apache.org/ns/asfext#}"
 
 # Path to the ATR client config, rendered onto the box by puppet (eyaml).
-# Expected JSON shape: {"url": "https://atr.example/api", "token": "<bearer-jwt>"}
+# Expected JSON shape: {"url": "https://atr.example", "token": "<system-pat>"}
 ATR_CONFIG_PATH = "/x1/gitbox/auth/atr.json"
+
+# ATR mints system JWTs against a fixed service identity, so the uid we send at exchange
+# time must match its SYSTEM_SERVICE_UID — it comes back as the subject of the JWT.
+_ATR_SYSTEM_UID = "system"
 
 _METADATA_SCHEMA = strictyaml.Map(
     {
@@ -169,9 +173,11 @@ class ASFATRFeature(ASFYamlFeature, name="project", env="production", priority=5
             return
 
         config = _load_config(ATR_CONFIG_PATH)
-        url = f"{config['url'].rstrip('/')}/api/project/config"
+        base_url = config["url"].rstrip("/")
+        jwt = _exchange_token_for_jwt(base_url, config["token"])
+        url = f"{base_url}/api/project/config"
         headers = {
-            "Authorization": f"Bearer {config['token']}",
+            "Authorization": f"Bearer {jwt}",
             "Content-Type": "application/json",
         }
         print(f"[project] POST {url} for project {project_key}")
@@ -189,6 +195,25 @@ def _load_config(path: str) -> dict:
         if required not in config:
             raise Exception(f"ATR config at {path} is missing required key '{required}'")
     return config
+
+
+def _exchange_token_for_jwt(base_url: str, token: str) -> str:
+    """Swap the configured system PAT for a short-lived ATR JWT.
+
+    /project/config is gated to system bearer tokens, and ATR issues those JWTs via
+    /api/jwt/create.
+    """
+    resp = requests.post(
+        f"{base_url}/api/jwt/create",
+        json={"asfuid": _ATR_SYSTEM_UID, "pat": token},
+        timeout=30,
+    )
+    if not resp.ok:
+        raise Exception(f"ATR token exchange failed ({resp.status_code}): {resp.text}")
+    jwt = resp.json().get("jwt")
+    if not jwt:
+        raise Exception(f"ATR token exchange returned no JWT: {resp.text}")
+    return jwt
 
 
 def _doap_text(parent, tag):
