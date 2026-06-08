@@ -23,7 +23,7 @@ import pytest
 
 import asfyaml.asfyaml
 import asfyaml.dataobjects
-from asfyaml.feature.project import _doap_metadata, _parse_doap, _validate_doap_url
+from asfyaml.feature.project import _doap_metadata, _exchange_token_for_jwt, _parse_doap, _validate_doap_url
 from helpers import YamlTest
 
 # The ATR project's own description, reused across the DOAP fixture and assertions.
@@ -517,6 +517,58 @@ project:
     payload = json.loads(out[out.index("{") : out.rindex("}") + 1])
     assert payload["project_key"] == "tooling-test"
     assert payload["committee_key"] == "tooling"
+
+
+def test_exchange_token_for_jwt_posts_system_pat(monkeypatch):
+    # The config holds a system PAT; ATR swaps it for a JWT at /api/jwt/create.
+    captured = {}
+
+    class FakeResponse:
+        ok = True
+
+        @staticmethod
+        def json():
+            return {"asfuid": "system", "jwt": "a-short-lived-jwt"}
+
+    def fake_post(url, json=None, timeout=None):
+        captured["url"] = url
+        captured["json"] = json
+        return FakeResponse()
+
+    monkeypatch.setattr("asfyaml.feature.project.requests.post", fake_post)
+    jwt = _exchange_token_for_jwt("https://atr.example", "the-system-pat")
+    assert jwt == "a-short-lived-jwt"
+    assert captured["url"] == "https://atr.example/api/jwt/create"
+    assert captured["json"] == {"asfuid": "system", "pat": "the-system-pat"}
+
+
+def test_exchange_token_for_jwt_failure_raises(monkeypatch):
+    class FakeResponse:
+        ok = False
+        status_code = 401
+        text = "unauthorized"
+
+    monkeypatch.setattr(
+        "asfyaml.feature.project.requests.post", lambda url, json=None, timeout=None: FakeResponse()
+    )
+    with pytest.raises(Exception, match="ATR token exchange failed"):
+        _exchange_token_for_jwt("https://atr.example", "bad-pat")
+
+
+def test_exchange_token_for_jwt_missing_jwt_raises(monkeypatch):
+    class FakeResponse:
+        ok = True
+        text = '{"asfuid": "system"}'
+
+        @staticmethod
+        def json():
+            return {"asfuid": "system"}
+
+    monkeypatch.setattr(
+        "asfyaml.feature.project.requests.post", lambda url, json=None, timeout=None: FakeResponse()
+    )
+    with pytest.raises(Exception, match="returned no JWT"):
+        _exchange_token_for_jwt("https://atr.example", "the-system-pat")
 
 
 def test_committee_not_matching_repo_is_rejected(atr_repo: asfyaml.dataobjects.Repository):
