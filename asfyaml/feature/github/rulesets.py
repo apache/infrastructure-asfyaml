@@ -51,6 +51,7 @@ _NUMERICAL_VALUE_KEYS = {  # Values that are expected to be integers but YAML ge
     "required_approving_review_count",
     "minimum_approvals",
     "max_file_path_length",
+    "actor_id",
 }
 
 
