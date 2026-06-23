@@ -58,6 +58,7 @@ VALID_NOTIFICATION_SCHEMES = [
 VALID_PRIVATE_TARGETS = [
     "private@*",
     "security@*",
+    "security-notifications@*",
     "commits@infra.apache.org",
     "private-commits@*",
 ]
