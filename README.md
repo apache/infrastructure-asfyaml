@@ -122,6 +122,9 @@ project:
     download_page: https://github.com/apache/tooling-trusted-releases
     bug_database: https://github.com/apache/tooling-trusted-releases/issues
     mailing_lists: https://tooling.apache.org/lists.html
+    security_contact: security@apache.org
+    threat_model_link: https://tooling.apache.org/security/threat-model
+    threat_model_src_link: https://github.com/apache/tooling-trusted-releases/blob/main/THREATS.md
     repositories:
       - git+ssh://git@github.com:apache/tooling-trusted-releases.git
     standards:
@@ -140,6 +143,8 @@ project:
   features:
     atr_sync: true
 ~~~
+
+`security_contact`, if set, must be either `security@apache.org` or `security@<committee>.apache.org`. The two threat-model fields are URLs: `threat_model_link` points at the published threat model, and `threat_model_src_link` at its source.
 
 Alternatively, if you already have a DOAP file and want to continue to use it as the main source of project data, you can link the DOAP file into ATR like this:
 
@@ -201,6 +206,7 @@ The remaining fields:
 | `source_excludes_rat` | list of globs | Paths excluded from the RAT license check. |
 | `file_tag_mappings` | map of label to globs | Groups release files under named tags. |
 | `release_checklist` | string | Checklist shown to release managers. |
+| `download_path_suffix` | string | Subdirectory the release is published under. A per-release template that may use `{{PROJECT_KEY}}` and `{{VERSION}}`. |
 | `start_vote_subject` / `start_vote_template` | string | Subject and body for the vote-start email. |
 | `vote_comment_template` | string | Template for vote comments. |
 | `finish_vote_template` | string | Template for the vote-result email. |

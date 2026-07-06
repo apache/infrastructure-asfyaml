@@ -53,6 +53,11 @@ _METADATA_SCHEMA = strictyaml.Map(
         strictyaml.Optional("download_page"): strictyaml.Str(),
         strictyaml.Optional("bug_database"): strictyaml.Str(),
         strictyaml.Optional("mailing_lists"): strictyaml.Str(),
+        # Security fields. ATR checks the values: the contact must be security@apache.org
+        # or security@<committee>.apache.org, and the two links must be URLs.
+        strictyaml.Optional("security_contact"): strictyaml.Str(),
+        strictyaml.Optional("threat_model_link"): strictyaml.Str(),
+        strictyaml.Optional("threat_model_src_link"): strictyaml.Str(),
         strictyaml.Optional("repositories"): strictyaml.Seq(strictyaml.Str()),
         strictyaml.Optional("standards"): strictyaml.Seq(strictyaml.Str()),
         strictyaml.Optional("categories"): strictyaml.Seq(strictyaml.Str()),
@@ -75,6 +80,9 @@ _POLICY_SCHEMA = strictyaml.Map(
         strictyaml.Optional("announce_release_subject"): strictyaml.Str(),
         strictyaml.Optional("announce_release_template"): strictyaml.Str(),
         strictyaml.Optional("binary_artifact_paths"): strictyaml.Seq(strictyaml.Str()),
+        # Subdirectory the release is published under, as a per-release template that may
+        # use {{PROJECT_KEY}}/{{VERSION}}. ATR checks it resolves to a valid relative path.
+        strictyaml.Optional("download_path_suffix"): strictyaml.Str(),
         strictyaml.Optional("file_tag_mappings"): strictyaml.MapPattern(
             strictyaml.Str(), strictyaml.Seq(strictyaml.Str())
         ),
@@ -128,11 +136,15 @@ class ASFATRFeature(ASFYamlFeature, name="project", env="production", priority=5
                 committee: tooling   # required; repo must be named <committee>-xxx
                 name: Apache Foo
                 homepage: https://foo.apache.org/
+                security_contact: security@apache.org   # or security@<committee>.apache.org
+                threat_model_link: https://foo.apache.org/security/threat-model
+                threat_model_src_link: https://github.com/apache/foo/blob/main/THREATS.md
                 # ...or, instead of the fields above, point at a DOAP file:
                 doap: https://foo.apache.org/doap.rdf
               policy:
                 vote_recipients:
                   to: private@foo.apache.org
+                download_path_suffix: "{{PROJECT_KEY}}/{{VERSION}}"   # subdir releases land under
               features:
                 atr_sync: true       # set false to opt out of syncing
         """

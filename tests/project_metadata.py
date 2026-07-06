@@ -123,6 +123,25 @@ project:
 """,
 )
 
+# The security fields and the download path suffix, as added to ATR.
+valid_security_and_download_suffix = YamlTest(
+    None,
+    None,
+    """
+project:
+    metadata:
+        key: tooling
+        committee: tooling
+        name: Apache Tooling
+        homepage: https://github.com/test
+        security_contact: security@apache.org
+        threat_model_link: http://test/
+        threat_model_src_link: http://test/
+    policy:
+        download_path_suffix: tesettest
+""",
+)
+
 # metadata is a required key
 invalid_missing_metadata = YamlTest(
     asfyaml.asfyaml.ASFYAMLException,
@@ -229,6 +248,7 @@ def test_schema_validation(test_repo: asfyaml.dataobjects.Repository):
         valid_metadata_with_policy,
         valid_full_policy,
         valid_metadata_with_doap,
+        valid_security_and_download_suffix,
         invalid_missing_metadata,
         invalid_missing_key,
         invalid_unknown_metadata_key,
@@ -495,6 +515,35 @@ project:
     assert policy["license_check_mode"] == "RAT"
     assert policy["binary_artifact_paths"] == ["dist/*.jar"]
     assert policy["file_tag_mappings"] == {"sources": ["*.tar.gz"]}
+
+
+def test_noop_payload_carries_security_and_download_suffix(atr_repo: asfyaml.dataobjects.Repository, capsys):
+    yaml = """
+project:
+    metadata:
+        key: tooling
+        committee: tooling
+        name: Apache Tooling
+        security_contact: security@apache.org
+        threat_model_link: http://test/
+        threat_model_src_link: http://test/
+    policy:
+        download_path_suffix: tesettest
+"""
+    a = asfyaml.asfyaml.ASFYamlInstance(
+        repo=atr_repo, committer="arm", config_data=yaml, branch=asfyaml.dataobjects.DEFAULT_BRANCH
+    )
+    a.environments_enabled.add("noop")
+    a.no_cache = True
+    a.run_parts()
+
+    out = capsys.readouterr().out
+    payload = json.loads(out[out.index("{") : out.rindex("}") + 1])
+    # Security fields ride along in the project block; the suffix is a policy field.
+    assert payload["project"]["security_contact"] == "security@apache.org"
+    assert payload["project"]["threat_model_link"] == "http://test/"
+    assert payload["project"]["threat_model_src_link"] == "http://test/"
+    assert payload["policy"]["download_path_suffix"] == "tesettest"
 
 
 def test_committee_matching_repo_prefix_is_accepted(atr_repo: asfyaml.dataobjects.Repository, capsys):
