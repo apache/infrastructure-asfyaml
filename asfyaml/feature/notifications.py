@@ -64,7 +64,7 @@ VALID_PRIVATE_TARGETS = [
 ]
 
 # regex for valid ASF mailing list
-RE_VALID_MAILING_LIST = re.compile(r"[-a-z0-9]+@([-a-z0-9]+\.)?(incubator\.)?apache\.org$")
+RE_VALID_MAILING_LIST = re.compile(r"[-a-z0-9]+@(?:[-a-z0-9]+\.)?(?:(?:incubator\.)?apache\.org|apachecon\.com)$")
 
 
 class ASFNotificationsFeature(ASFYamlFeature, name="notifications", priority=0):
