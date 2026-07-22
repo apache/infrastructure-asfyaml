@@ -199,7 +199,6 @@ The remaining fields:
 | `manual_vote` | boolean | Conduct the vote manually. Mutually exclusive with `vote_mode`. |
 | `min_hours` | integer | Minimum hours a vote must remain open. |
 | `license_check_mode` | `Both`, `Lightweight` or `RAT` | Which license check(s) to run. |
-| `preserve_download_files` | boolean | Keep download files after a release completes. |
 | `source_artifact_paths` | list of globs | Paths identifying source artifacts. |
 | `binary_artifact_paths` | list of globs | Paths identifying binary artifacts. |
 | `source_excludes_lightweight` | list of globs | Paths excluded from the lightweight license check. |

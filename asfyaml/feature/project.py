@@ -96,7 +96,6 @@ _POLICY_SCHEMA = strictyaml.Map(
         strictyaml.Optional("announce_recipients"): _RECIPIENTS_SCHEMA,
         strictyaml.Optional("manual_vote"): strictyaml.Bool(),
         strictyaml.Optional("min_hours"): strictyaml.Int(),
-        strictyaml.Optional("preserve_download_files"): strictyaml.Bool(),
         strictyaml.Optional("release_checklist"): strictyaml.Str(),
         strictyaml.Optional("source_artifact_paths"): strictyaml.Seq(strictyaml.Str()),
         strictyaml.Optional("source_excludes_lightweight"): strictyaml.Seq(strictyaml.Str()),
