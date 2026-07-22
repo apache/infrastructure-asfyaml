@@ -56,11 +56,10 @@ VALID_NOTIFICATION_SCHEMES = [
 
 # These are the only valid targets for private repo events
 VALID_PRIVATE_TARGETS = [
-    "private@*",
     "security@*",
     "security-notifications@*",
     "commits@infra.apache.org",
-    "private-commits@*",
+    "*private*@*",  # covers private@foo, commits-private@foo, private-commits@foo, etc.
 ]
 
 # regex for valid ASF mailing list
