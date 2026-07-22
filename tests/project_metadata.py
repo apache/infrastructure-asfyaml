@@ -204,7 +204,6 @@ project:
         vote_recipients:
             to: private@tooling.apache.org
         min_hours: 72
-        preserve_download_files: true
         vote_mode: email
 """,
 )
@@ -493,7 +492,7 @@ project:
         name: Apache Trusted Releases
     policy:
         min_hours: 72
-        preserve_download_files: true
+        manual_vote: true
         license_check_mode: RAT
         binary_artifact_paths:
             - dist/*.jar
@@ -511,7 +510,7 @@ project:
     out = capsys.readouterr().out
     policy = json.loads(out[out.index("{") : out.rindex("}") + 1])["policy"]
     assert policy["min_hours"] == 72  # int, not "72"
-    assert policy["preserve_download_files"] is True  # bool, not "true"
+    assert policy["manual_vote"] is True  # bool, not "true"
     assert policy["license_check_mode"] == "RAT"
     assert policy["binary_artifact_paths"] == ["dist/*.jar"]
     assert policy["file_tag_mappings"] == {"sources": ["*.tar.gz"]}
