@@ -68,7 +68,11 @@ It operates on a per-branch basis, meaning you can have different settings for d
       <li><a href="#depend_alerts">Dependabot alerts and updates</a></li>
       <li><a href="#GHA_build_status">GitHub Actions build status emails</a></li>
       <li><a href="#pages">GitHub Pages</a></li>
-      <li><a href="#pull_requests">Pull Request settings</a></li>
+      <li><a href="#pull_requests">Pull Request settings</a>
+        <ul>
+          <li><a href="#pr_creation_cap">Pull request creation cap</a></li>
+        </ul>
+      </li>
       <li><a href="#copilot_code_review">Copilot code review</a></li>
       <li><a href="#rulesets">Rulesets</a></li>
       <li><a href="#merge">Merge buttons</a></li>
@@ -768,6 +772,7 @@ Projects can enable/disable various settings for PRs:
 - allow [auto-merging](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/automatically-merging-a-pull-request) of PRs
 - allow [updating](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/keeping-your-pull-request-in-sync-with-the-base-branch) head branches of PRs
 - automatically [delete](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-the-automatic-deletion-of-branches) head branches after merge
+- cap the number of open PRs a user without write access may have at one time (see [creation cap](#pr_creation_cap) below)
 
 Example:
 
@@ -781,6 +786,33 @@ github:
     # auto-delete head branches after being merged
     del_branch_on_merge: true
 ~~~
+
+<h4 id="pr_creation_cap">Pull request creation cap</h4>
+
+You can limit the number of open pull requests a user **without write access** may have open at one
+time. This is GitHub's [pull request creation cap](https://github.blog/changelog/2026-06-17-limit-open-pull-requests-for-users-without-write-access/)
+interaction limit, and it helps mitigate spam or automated PR floods. Users with write access are not
+affected by the cap.
+
+~~~yaml
+github:
+  pull_requests:
+    creation_cap:
+      # turn the cap on or off
+      enabled: true
+      # maximum number of open PRs a user without write access may have (1-1000)
+      max_open_pull_requests: 5
+~~~
+
+Supported settings:
+
+~~~yaml
+enabled: <boolean>                # required
+max_open_pull_requests: <int>     # optional, 1-1000; if omitted, GitHub's default is used
+~~~
+
+Set `enabled: false` to turn the cap off. Removing the `creation_cap` section also disables a cap that
+was previously managed by `.asf.yaml`.
 
 <h3 id="copilot_code_review">Copilot code review</h3>
 
