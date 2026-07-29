@@ -509,7 +509,10 @@ github:
     - AMBARI
 ~~~
 
-The `autolink_jira` property can be a single string or a list of strings, each corresponding to a Jira project on `issues.apache.org`. It **must** adhere to the Jira project name syntax (uppercase alphabetical characters only).
+The `autolink_jira` property can be a single string or a list of strings, each corresponding to a Jira project on `issues.apache.org`. It **must** adhere to the Jira project name syntax (uppercase alphabetical characters only). Autolinks only match numeric ticket ids, e.g. `INFRA-123` but not `INFRA-FOO`.
+
+Once `autolink_jira` has been configured, it is the authoritative list of Jira autolinks for the repository: removing an entry from the list removes the corresponding autolink, removing the entire section removes all Jira autolinks, and any Jira autolink set up by other means (for instance via an INFRA ticket) is removed if not in the list. Autolinks pointing anywhere else than the ASF Jira are never touched, and if `autolink_jira` has never been configured, no autolinks are added or removed.
+
 We will evaluate the need for other autolink features.
 
 <h3 id="branchpro">Branch protection</h3>
