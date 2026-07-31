@@ -894,6 +894,36 @@ Notes:
 - Convenience entries may intentionally resolve to `rules: []` (for example, while staging migration changes).
 - If `required_conversation_resolution` is set, `required_pull_request_reviews` must be present as well.
 
+#### Merge queue
+
+Enable [GitHub's merge queue](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue)
+on a ruleset with `merge_queue`. All seven fields are required by GitHub's API, so the convenience syntax requires
+them too rather than guessing at defaults:
+
+~~~yaml
+github:
+  rulesets:
+    - name: "Merge Queue"
+      type: branch
+      required_pull_request_reviews:
+        required_approving_review_count: 1
+      merge_queue:
+        check_response_timeout_minutes: 60
+        grouping_strategy: ALLGREEN
+        max_entries_to_build: 5
+        max_entries_to_merge: 5
+        merge_method: SQUASH
+        min_entries_to_merge: 1
+        min_entries_to_merge_wait_minutes: 5
+~~~
+
+Notes:
+
+- `grouping_strategy` must be `ALLGREEN` (all queued PRs in a group must pass checks) or `HEADGREEN` (only the head
+  commit of the group must pass checks).
+- `merge_method` must be `MERGE`, `SQUASH`, or `REBASE`.
+- `merge_queue` combines with the other convenience keys in the same ruleset entry, as in the example above.
+
 Validation and reconciliation behavior:
 
 - Each `rulesets` entry must use exactly one style: convenience syntax or raw payload syntax.
@@ -952,6 +982,7 @@ Rule summary for the raw payload example:
 - `required_linear_history`: Disallows merge commits on matching refs.
 - `pull_request`: Requires pull requests and controls review policy.
 - `required_status_checks`: Requires specific CI checks before merge/update.
+- `merge_queue`: Enables GitHub's merge queue; see the [convenience syntax example above](#rulesets) for the parameters.
 
 For the full list of supported rules and semantics, see GitHub docs:
 
