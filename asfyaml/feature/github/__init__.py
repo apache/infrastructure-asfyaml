@@ -98,12 +98,14 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             # GitHub Pages: branch (can be default or gh-pages) and path (can be /docs or /)
             strictyaml.Optional("ghp_branch"): strictyaml.Str(),
             strictyaml.Optional("ghp_path", default="/docs"): strictyaml.Str(),
-            # Branch protection rules - TODO: add actual schema
+            # Branch protection rules - supports exact branch names and regex patterns
             strictyaml.Optional("protected_branches"): asfyaml.validators.EmptyValue()
             | strictyaml.MapPattern(
                 strictyaml.Str(),
                 strictyaml.Map(
                     {
+                        # NEW: Optional regex pattern for matching multiple branches
+                        strictyaml.Optional("pattern"): asfyaml.validators.BranchPattern(),
                         strictyaml.Optional("required_signatures", default=False): strictyaml.Bool(),
                         strictyaml.Optional("required_linear_history", default=False): strictyaml.Bool(),
                         strictyaml.Optional("required_conversation_resolution", default=False): strictyaml.Bool(),
