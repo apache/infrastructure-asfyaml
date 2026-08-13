@@ -20,6 +20,8 @@
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
+
 import asfyaml.asfyaml
 import asfyaml.dataobjects
 from asfyaml.feature.github.pr_creation_cap import pr_creation_cap
@@ -68,12 +70,14 @@ github:
 
 
 class FakeRequester:
-    def __init__(self):
+    def __init__(self, status: int = 200, body: str = "{}"):
         self.calls: list[dict[str, Any]] = []
+        self.status = status
+        self.body = body
 
     def requestJson(self, method: str, url: str, input: dict[str, Any] | None = None):  # noqa: N802
         self.calls.append({"method": method, "url": url, "input": input})
-        return 200, {}, "{}"
+        return self.status, {}, self.body
 
 
 class FakeFeature:
@@ -209,6 +213,41 @@ def test_out_of_range_max_raises():
         pr_creation_cap(feature)
 
     assert requester.calls == []
+
+
+def test_204_response_is_accepted():
+    requester = FakeRequester(status=204, body="")
+    feature = FakeFeature(
+        yaml={"pull_requests": {"creation_cap": {"enabled": True, "max_open_pull_requests": 5}}},
+        previous_yaml={},
+        requester=requester,
+    )
+
+    pr_creation_cap(feature)
+
+    assert len(requester.calls) == 1
+
+
+@pytest.mark.parametrize(
+    "status, body, expected",
+    [
+        (403, '{"message": "Resource not accessible by integration"}', "Not allowed to set the pull request"),
+        (404, '{"message": "Not Found"}', "not found or not accessible"),
+        (422, '{"message": "Validation Failed"}', "Validation failed while setting"),
+        (500, '{"message": "Server Error"}', "GitHub server error while setting"),
+        (418, "not json at all", "Unexpected response while setting"),
+    ],
+)
+def test_error_response_raises(status: int, body: str, expected: str):
+    requester = FakeRequester(status=status, body=body)
+    feature = FakeFeature(
+        yaml={"pull_requests": {"creation_cap": {"enabled": True, "max_open_pull_requests": 5}}},
+        previous_yaml={},
+        requester=requester,
+    )
+
+    with YamlTest(Exception, expected, "").ctx():
+        pr_creation_cap(feature)
 
 
 def test_noop_mode_does_not_call_api(capsys):

@@ -23,6 +23,7 @@ https://github.com/community/maintainers/discussions/840 and
 https://docs.github.com/rest/interactions/repos#update-pull-request-creation-cap-for-a-repository
 """
 
+import json
 from typing import Any
 
 from . import directive, ASFGitHubFeature
@@ -36,6 +37,29 @@ def _creation_cap_url(self: ASFGitHubFeature) -> str:
     return f"/repos/{self.repository.org_id}/{self.repository.name}/interaction-limits/pulls/creation-cap"
 
 
+def _check_creation_cap_response(self: ASFGitHubFeature, status: int, body: str) -> None:
+    """Raise unless GitHub accepted the creation cap update."""
+    if 200 <= status < 300:
+        return
+    try:
+        parsed = json.loads(body)
+        detail = str(parsed.get("errors") or parsed.get("message") or body)
+    except (json.JSONDecodeError, AttributeError):
+        detail = body
+    repo = f"{self.repository.org_id}/{self.repository.name}"
+    match status:
+        case 403:
+            raise Exception(f"Not allowed to set the pull request creation cap on '{repo}': {detail}")
+        case 404:
+            raise Exception(f"Repository '{repo}' not found or not accessible: {detail}")
+        case 422:
+            raise Exception(f"Validation failed while setting the pull request creation cap: {detail}")
+        case 500:
+            raise Exception(f"GitHub server error while setting the pull request creation cap: {detail}")
+        case _:
+            raise Exception(f"Unexpected response while setting the pull request creation cap: HTTP {status}: {detail}")
+
+
 @directive
 def pr_creation_cap(self: ASFGitHubFeature):
     pull_requests = self.yaml.get("pull_requests") or {}
@@ -47,6 +71,8 @@ def pr_creation_cap(self: ASFGitHubFeature):
 
     if creation_cap:
         enabled = creation_cap.get("enabled", False)
+        # Optional: when omitted (None), the key is left out of the payload below and
+        # GitHub applies its own default cap.
         max_open_pull_requests = creation_cap.get("max_open_pull_requests")
     elif was_previously_configured:
         # The section was removed; disable the cap that .asf.yaml previously managed.
@@ -76,4 +102,5 @@ def pr_creation_cap(self: ASFGitHubFeature):
         print("Disabling pull request creation cap")
 
     if not self.noop("pr_creation_cap"):
-        self.ghrepo._requester.requestJson("PATCH", _creation_cap_url(self), input=payload)
+        status, _headers, body = self.ghrepo._requester.requestJson("PATCH", _creation_cap_url(self), input=payload)
+        _check_creation_cap_response(self, status, body)
