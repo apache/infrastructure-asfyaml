@@ -741,7 +741,7 @@ The **subject line templates** support the use of the following variables only. 
 
 <h3 id="default_branch">Default branch</h3>
 
-To change the default GitHub repository branch (which is the landing branch when users browse to `github.com/apache/<repository>` and the default branch pull requests are initially based on, etc.), go to `gitbox.apache.org` and select the 'Repositories' menu, 'Change Default Branch' option (Project PMC members only). If you are renaming the default branch and the new default branch does not yet exist, you can ask Infra to rename the branch at the same time. Include a **link** to the mailing list thread where the change of the default was agreed.
+To change the default GitHub repository branch (which is the landing branch when users browse to `github.com/apache/<repository>` and the default branch pull requests are initially based on, etc.), go to `https://gitbox.apache.org/boxer/` and select the 'Repositories' menu, 'Change Default Branch' option (Project PMC members only). If you are renaming the default branch and the new default branch does not yet exist, you can ask Infra to rename the branch at the same time. Include a **link** to the mailing list thread where the change of the default was agreed.
 
 <h3 id="delete_branch">Delete branch on merge</h3>
 
