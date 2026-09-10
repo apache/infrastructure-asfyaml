@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/apache/infrastructure-asfyaml/refs/heads/main/asfyaml/feature/pelican.schema.json",
+  "title": "Pelican website builds",
+  "description": "Auto-builds the website with Pelican via CI2. Never builds from the asf-site branch. See: https://github.com/apache/infrastructure-asfyaml#pelican",
+  "type": "object",
+  "minProperties": 1,
+  "additionalProperties": false,
+  "properties": {
+    "whoami": {
+      "type": "string",
+      "description": "Branch this configuration applies to. 'asf-site' is not allowed."
+    },
+    "target": {
+      "type": "string",
+      "description": "Branch to push the built site to. Defaults to the current branch."
+    },
+    "theme": {
+      "type": "string",
+      "description": "Theme name.",
+      "default": "theme"
+    },
+    "notify": {
+      "type": "string",
+      "description": "Recipients of build notifications. Defaults to the project's commits list."
+    },
+    "autobuild": {
+      "type": "string",
+      "description": "Branch glob to auto-build with a dynamic staging profile, e.g. site/* or feature/*. Must end with /*.",
+      "pattern": "/\\*$"
+    },
+    "minimum_page_count": {
+      "type": "integer",
+      "description": "Minimum number of pages the build must produce. Consumed by the ASF Pelican builder."
+    }
+  }
+}

@@ -1,0 +1,19 @@
+# Exercises every notification scheme, including the bot glob schemes.
+notifications:
+  commits: commits@example.apache.org
+  issues: issues@example.apache.org
+  pullrequests: dev@example.apache.org
+  issues_status: dev@example.apache.org
+  issues_comment: dev@example.apache.org
+  pullrequests_status: dev@example.apache.org
+  pullrequests_comment: dev@example.apache.org
+  discussions: dev@example.apache.org
+  jobs: builds@example.apache.org
+  jira_options: link label worklog
+  pullrequests_bot_dependabot: deps@example.apache.org
+  issues_comment_bot_github-actions: bots@example.apache.org
+  commits_by_path:
+    docs/**: docs@example.apache.org
+    site/**:
+      - site@example.apache.org
+      - webmaster@example.org

@@ -1,0 +1,3 @@
+# Unknown keys inside the github section are rejected.
+github:
+  descriptionn: typo in the setting name
