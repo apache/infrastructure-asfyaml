@@ -208,6 +208,7 @@ project:
         github_vote_workflow_path:
             - .github/workflows/vote.yml
         license_check_mode: RAT
+        rat_excludes_url: https://raw.githubusercontent.com/apache/example/main/.rat-excludes
         vote_recipients:
             to: private@tooling.apache.org
         min_hours: 72
