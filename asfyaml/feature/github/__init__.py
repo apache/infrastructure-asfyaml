@@ -150,6 +150,16 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                     strictyaml.Optional("review_on_push", default=False): strictyaml.Bool(),
                 }
             ),
+            # CodeQL code scanning default setup: "true" for a simple setup, or a map of settings
+            strictyaml.Optional("code_scanning"): strictyaml.Bool()
+            | strictyaml.Map(
+                {
+                    strictyaml.Optional("query_suite"): strictyaml.Enum(["default", "extended"]),
+                    strictyaml.Optional("threat_model"): strictyaml.Enum(["remote", "remote_and_local"]),
+                    # Language identifiers are validated by GitHub, not here, as the set grows over time.
+                    strictyaml.Optional("languages"): strictyaml.UniqueSeq(strictyaml.Str()),
+                }
+            ),
             # Delete branch on merge
             # TODO: deprecated, use "pull_requests.del_branch_on_merge" instead
             strictyaml.Optional("del_branch_on_merge"): strictyaml.Bool(),
@@ -275,4 +285,5 @@ from . import (
     deployment_environments,
     rulesets,
     copilot_code_review,
+    code_scanning,
 )
