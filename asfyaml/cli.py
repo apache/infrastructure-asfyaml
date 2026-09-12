@@ -30,13 +30,35 @@ def dir_path(path):
         raise argparse.ArgumentTypeError(f"readable_dir:{path} is not a valid path")
 
 
-def cli():
+def branch_ref(branch):
+    """Normalises a branch argument into a full ``refs/heads/`` ref."""
+    branch = branch.strip()
+    if not branch:
+        raise argparse.ArgumentTypeError("branch must not be empty")
+    if branch.startswith("refs/heads/"):
+        return branch
+    if branch.startswith("refs/"):
+        raise argparse.ArgumentTypeError(f"'{branch}' is not a branch, .asf.yaml is only processed on branches")
+    return f"refs/heads/{branch}"
+
+
+def run_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", type=dir_path, help="path to the repo to process", required=True)
     parser.add_argument("--org", type=str, default="apache", help="the organization this repo belongs to")
     parser.add_argument("--token", type=str, help="token to access the repo via the GH API")
     parser.add_argument("--noop", action=argparse.BooleanOptionalAction, default=False, help="do not perform changes")
-    args = parser.parse_args()
+    parser.add_argument(
+        "--branch",
+        type=branch_ref,
+        default=dataobjects.DEFAULT_BRANCH,
+        help="the branch the .asf.yaml is being processed for, e.g. 'main' or 'refs/heads/main'",
+    )
+    return parser
+
+
+def cli():
+    args = run_parser().parse_args()
 
     repo_path = Path(os.path.abspath(args.repo))
     repo = dataobjects.Repository(str(repo_path), org_id=args.org)
@@ -59,7 +81,7 @@ def cli():
             "no GitHub token has been provided, either add a '--token' argument or set a 'GH_TOKEN' env variable."
         )
 
-    a = ASFYamlInstance(repo, "anonymous", yml_content, dataobjects.DEFAULT_BRANCH)
+    a = ASFYamlInstance(repo, "anonymous", yml_content, args.branch)
 
     if args.noop:
         a.environments_enabled.add("noop")
@@ -69,12 +91,22 @@ def cli():
     a.run_parts()
 
 
-def validate():
-    """Validates a .asf.yaml file according to the current schema."""
+def validate_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", type=dir_path, help="path to the repo to process", required=True)
     parser.add_argument("--org", type=str, default="apache", help="the organization this repo belongs to")
-    args = parser.parse_args()
+    parser.add_argument(
+        "--branch",
+        type=branch_ref,
+        default=dataobjects.DEFAULT_BRANCH,
+        help="the branch the .asf.yaml is being processed for, e.g. 'main' or 'refs/heads/main'",
+    )
+    return parser
+
+
+def validate():
+    """Validates a .asf.yaml file according to the current schema."""
+    args = validate_parser().parse_args()
 
     repo_path = Path(os.path.abspath(args.repo))
     repo = dataobjects.Repository(str(repo_path), org_id=args.org)
@@ -89,7 +121,7 @@ def validate():
     os.environ["PATH_INFO"] = repo_path.name
     os.environ["GIT_PROJECT_ROOT"] = str(repo_path.parent)
 
-    a = ASFYamlInstance(repo, "anonymous", yml_content, dataobjects.DEFAULT_BRANCH)
+    a = ASFYamlInstance(repo, "anonymous", yml_content, args.branch)
 
     a.environments_enabled.add("production")
 

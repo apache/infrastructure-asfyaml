@@ -1,5 +1,10 @@
 # Testing new features
 
+> [!NOTE]
+> This page is about trying out preview features **in your own project's repository**.
+> If you are changing or reviewing the `.asf.yaml` parser itself, see
+> [Testing a parser change against the sandbox repo](testing-a-change.md).
+
 Any git repository within the ASF ecosystem can be used for testing new or upcoming features.
 Enabling a feature branch can be done via the `meta` feature:
 

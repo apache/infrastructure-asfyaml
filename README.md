@@ -5,6 +5,7 @@
 > This is a work in progress. There will be omissions, factually incorrect items,
 > and placeholders while we work to fully migrate the .asf.yaml specifications to this repository.
 > Issues can be reported in this repository, and Pull Requests are also welcome.
+> Changing the parser itself? See [how to test a change against the sandbox repo](docs/testing-a-change.md).
 > We ask that you do not create Jira tickets for suggestions or other remarks concerning this repository.
 
 # Working with .asf.yaml
