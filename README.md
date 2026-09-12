@@ -894,8 +894,9 @@ Notes:
 - `required_status_checks_strict` defaults to `false` (set it to `true` to require branches to be up to date before merge).
 - If `branches`/`refs` is omitted for `type: branch`, it defaults to `~DEFAULT_BRANCH`.
 - `restrict_deletion` and `restrict_force_push` default to `true` in convenience syntax.
-- Set `restrict_deletion: false` and/or `restrict_force_push: false` to disable those rules for a convenience entry.
-- `deletion` and `non_fast_forward` are raw rule types under `rules`, not convenience top-level keys.
+- `restrict_update` defaults to `true` for `type: tag` and to `false` for `type: branch`.
+- Set `restrict_deletion: false`, `restrict_force_push: false` and/or `restrict_update: false` to disable those rules for a convenience entry.
+- `deletion`, `non_fast_forward` and `update` are raw rule types under `rules`, not convenience top-level keys.
 - Convenience entries may intentionally resolve to `rules: []` (for example, while staging migration changes).
 - If `required_conversation_resolution` is set, `required_pull_request_reviews` must be present as well.
 
@@ -979,6 +980,9 @@ github:
           - "v*.*.*"
         excludes: []
 ~~~
+
+By default, a tag ruleset blocks deletion, force-pushes, and updates of matching tags for everyone without bypass permission,
+matching the semantics of the old `protected_tags` setting.
 
 <h3 id="merge">Merge buttons</h3>
 
