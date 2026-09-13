@@ -137,6 +137,14 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                     strictyaml.Optional("del_branch_on_merge"): strictyaml.Bool(),
                     strictyaml.Optional("allow_auto_merge"): strictyaml.Bool(),
                     strictyaml.Optional("allow_update_branch"): strictyaml.Bool(),
+                    # Pull request creation cap: limit the number of open pull requests a user
+                    # without write access may have at one time.
+                    strictyaml.Optional("creation_cap"): strictyaml.Map(
+                        {
+                            "enabled": strictyaml.Bool(),
+                            strictyaml.Optional("max_open_pull_requests"): strictyaml.Int(),
+                        }
+                    ),
                 }
             ),
             # Generic repository rulesets
@@ -266,6 +274,7 @@ from . import (
     features,
     branch_protection,
     pull_requests,
+    pr_creation_cap,
     merge_buttons,
     pages,
     custom_subjects,
