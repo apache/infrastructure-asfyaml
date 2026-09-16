@@ -1,0 +1,241 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+# Applies a given version of the .asf.yaml parser to a sandbox repository, so
+# that a change can be seen acting on a live GitHub repo before it is merged.
+# See docs/testing-a-change.md for the process.
+#
+# This runs in two places:
+#
+#   * In apache/infrastructure-asfyaml, where a committer tests a pull request
+#     before merging it. SECURITY: this checks out and executes code from an
+#     arbitrary ref -- including a PR opened from a fork -- with a token that has
+#     admin rights on the Apache sandbox repo. Only a committer can start it, and
+#     that committer is the security control: read the diff of the exact commit
+#     you are about to run. The commit SHA is recorded in the run summary.
+#
+#   * In a contributor's own fork, where the author tests their own branch before
+#     asking anyone to review it. Nothing special is needed to allow this: the
+#     sandbox defaults to the sandbox repo of whoever owns the repo the workflow
+#     is running in, so a fork's run acts on the fork owner's sandbox and uses
+#     the fork owner's token. A fork cannot reach the Apache sandbox through it.
+
+name: Test a change against the sandbox repo
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: "PR number in THIS repository to test. Takes precedence over 'ref'. In the Apache repo this covers PRs opened from forks; in your own fork, use 'ref' instead."
+        type: string
+        default: ""
+      ref:
+        description: "Branch, tag or commit SHA to test. Ignored when 'pr' is set."
+        type: string
+        default: "main"
+      sandbox_branch:
+        description: "Branch of the sandbox repo holding the .asf.yaml under test."
+        type: string
+        default: "main"
+      sandbox_repo:
+        description: "Sandbox repo to act on, as owner/name. Defaults to <owner of this repo>/infrastructure-asfyaml-sandbox."
+        type: string
+        default: ""
+      noop:
+        description: "Dry run: report what would change without modifying the sandbox repo."
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  sandbox-test:
+    runs-on: ubuntu-latest
+    # Holds ASFYAML_SANDBOX_TOKEN. Protection rules on this environment (required
+    # reviewers, branch restrictions) also apply to this job. A fork creates its
+    # own environment of the same name, holding the fork owner's own token.
+    environment: sandbox
+    steps:
+      - name: Resolve the inputs
+        id: resolve
+        env:
+          PR: ${{ inputs.pr }}
+          REF: ${{ inputs.ref }}
+          SANDBOX_BRANCH: ${{ inputs.sandbox_branch }}
+          SANDBOX_REPO: ${{ inputs.sandbox_repo }}
+          REPO_OWNER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+
+          # Refs reach a checkout, a shell argument and $GITHUB_OUTPUT, so keep
+          # them to the characters a ref can legitimately contain. This step runs
+          # before any checkout, so a rejection stops the job here.
+          for pair in "ref:${REF}" "sandbox_branch:${SANDBOX_BRANCH}"; do
+            name="${pair%%:*}"
+            value="${pair#*:}"
+            if [[ -n "${value}" && ! "${value}" =~ ^[A-Za-z0-9._/-]+$ ]]; then
+              echo "::error::'${name}' may only contain letters, digits, '.', '_', '/' and '-'"
+              exit 1
+            fi
+          done
+          if [[ -z "${SANDBOX_BRANCH}" ]]; then
+            echo "::error::'sandbox_branch' must be set"
+            exit 1
+          fi
+
+          # The sandbox to act on. Unset means "the sandbox belonging to whoever
+          # owns the repo this workflow is running in", which is what makes a run
+          # from a fork stay inside that fork owner's own sandbox.
+          if [[ -z "${SANDBOX_REPO}" ]]; then
+            SANDBOX_REPO="${REPO_OWNER}/infrastructure-asfyaml-sandbox"
+          fi
+          if [[ ! "${SANDBOX_REPO}" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ ]]; then
+            echo "::error::'sandbox_repo' must be of the form owner/name, got '${SANDBOX_REPO}'"
+            exit 1
+          fi
+          SANDBOX_OWNER="${SANDBOX_REPO%%/*}"
+          if [[ "${SANDBOX_OWNER}" != "${REPO_OWNER}" ]]; then
+            echo "::notice::acting on ${SANDBOX_REPO}, which is not owned by ${REPO_OWNER}. This needs a token with admin rights on it."
+          fi
+          {
+            echo "sandbox_repo=${SANDBOX_REPO}"
+            echo "sandbox_owner=${SANDBOX_OWNER}"
+            # The parser derives the GitHub repo it acts on from the directory
+            # name it is given, so the checkout directory has to be the repo name.
+            echo "sandbox_dir=${SANDBOX_REPO##*/}"
+          } >> "$GITHUB_OUTPUT"
+
+          if [[ -n "${PR}" ]]; then
+            # Validate before this ends up in a ref: a PR number is digits, nothing else.
+            if [[ ! "${PR}" =~ ^[0-9]+$ ]]; then
+              echo "::error::'pr' must be a plain PR number, got '${PR}'"
+              exit 1
+            fi
+            if [[ -n "${REF}" && "${REF}" != "main" ]]; then
+              echo "::error::set either 'pr' or 'ref', not both (got pr='${PR}' ref='${REF}')"
+              exit 1
+            fi
+            echo "ref=refs/pull/${PR}/head" >> "$GITHUB_OUTPUT"
+          else
+            if [[ -z "${REF}" ]]; then
+              echo "::error::set either 'pr' or 'ref'"
+              exit 1
+            fi
+            echo "ref=${REF}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check out the parser under test
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.resolve.outputs.ref }}
+          path: parser
+          persist-credentials: false
+
+      - name: Check out the sandbox repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ steps.resolve.outputs.sandbox_repo }}
+          ref: ${{ inputs.sandbox_branch }}
+          path: sandbox/${{ steps.resolve.outputs.sandbox_dir }}
+          persist-credentials: false
+
+      - name: Record what is being run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ inputs.pr }}
+          REF: ${{ steps.resolve.outputs.ref }}
+          SANDBOX_REPO: ${{ steps.resolve.outputs.sandbox_repo }}
+          SANDBOX_DIR: ${{ steps.resolve.outputs.sandbox_dir }}
+          SANDBOX_BRANCH: ${{ inputs.sandbox_branch }}
+          NOOP: ${{ inputs.noop }}
+        run: |
+          set -euo pipefail
+          SHA="$(git -C parser rev-parse HEAD)"
+          AUTHOR="n/a"
+          if [[ -n "${PR}" ]]; then
+            AUTHOR="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR}" --jq .user.login || echo unknown)"
+          fi
+          {
+            echo "## Sandbox test"
+            echo
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Parser repo | \`${GITHUB_REPOSITORY}\` |"
+            echo "| Parser ref | \`${REF}\` |"
+            echo "| Parser commit | \`${SHA}\` |"
+            echo "| PR author | ${AUTHOR} |"
+            echo "| Sandbox repo | \`${SANDBOX_REPO}\` |"
+            echo "| Sandbox branch | \`${SANDBOX_BRANCH}\` |"
+            echo "| Dry run (noop) | ${NOOP} |"
+            echo
+            echo "Confirm that \`${SHA}\` is the commit you reviewed. A push to the"
+            echo "PR after your review changes the code this run executed."
+            echo
+            echo "### .asf.yaml under test"
+            echo
+            echo '```yaml'
+            cat "sandbox/${SANDBOX_DIR}/.asf.yaml" 2>/dev/null || echo "# no .asf.yaml on this branch"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+
+      - name: Install the parser
+        working-directory: parser
+        run: |
+          python3 -m pip install --upgrade poetry
+          poetry install
+
+      - name: Apply the .asf.yaml to the sandbox repo
+        working-directory: parser
+        env:
+          GH_TOKEN: ${{ secrets.ASFYAML_SANDBOX_TOKEN }}
+          SANDBOX_OWNER: ${{ steps.resolve.outputs.sandbox_owner }}
+          SANDBOX_DIR: ${{ steps.resolve.outputs.sandbox_dir }}
+          SANDBOX_BRANCH: ${{ inputs.sandbox_branch }}
+          NOOP: ${{ inputs.noop }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${GH_TOKEN}" ]]; then
+            echo "::error::ASFYAML_SANDBOX_TOKEN is not set on the 'sandbox' environment of this repository. See docs/testing-a-change.md."
+            exit 1
+          fi
+          NOOP_FLAG="--noop"
+          if [[ "${NOOP}" == "false" ]]; then
+            NOOP_FLAG="--no-noop"
+          fi
+          poetry run asfyaml-run \
+            --repo "../sandbox/${SANDBOX_DIR}" \
+            --org "${SANDBOX_OWNER}" \
+            --branch "${SANDBOX_BRANCH}" \
+            "${NOOP_FLAG}"
+
+      - name: Link to the sandbox repo settings
+        if: always()
+        env:
+          SANDBOX_REPO: ${{ steps.resolve.outputs.sandbox_repo }}
+        run: |
+          {
+            echo
+            echo "Check the result at https://github.com/${SANDBOX_REPO}/settings and"
+            echo "reset the sandbox when you are done (see docs/testing-a-change.md)."
+          } >> "$GITHUB_STEP_SUMMARY"
