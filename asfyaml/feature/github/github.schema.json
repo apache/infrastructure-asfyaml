@@ -1,0 +1,104 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/apache/infrastructure-asfyaml/refs/heads/main/asfyaml/feature/github/github.schema.json",
+  "title": "GitHub settings",
+  "description": "Configures GitHub settings for the repository. See: https://github.com/apache/infrastructure-asfyaml#github",
+  "type": "object",
+  "minProperties": 1,
+  "additionalProperties": false,
+  "properties": {
+    "description": {
+      "type": "string",
+      "description": "Repository description, e.g. 'Apache Airflow'. See: https://github.com/apache/infrastructure-asfyaml#repo_meta"
+    },
+    "homepage": {
+      "type": "string",
+      "description": "Repository website, e.g. 'https://airflow.apache.org/'. See: https://github.com/apache/infrastructure-asfyaml#repo_meta"
+    },
+    "labels": {
+      "type": "array",
+      "description": "Topic labels describing the repository. At most 20, each lowercase alphanumeric or dashes, at most 35 characters. See: https://github.com/apache/infrastructure-asfyaml#repo_meta",
+      "maxItems": 20,
+      "items": {
+        "type": "string",
+        "pattern": "^[-a-z0-9]{1,35}$"
+      }
+    },
+    "collaborators": {
+      "type": "array",
+      "description": "GitHub usernames of non-committers to grant the triage role. At most 10. Not allowed on private repositories. See: https://github.com/apache/infrastructure-asfyaml#triage",
+      "maxItems": 10,
+      "items": {
+        "type": "string"
+      }
+    },
+    "protected_tags": {
+      "type": ["null", "array"],
+      "description": "Deprecated and no longer applied; use a tag ruleset instead. See: https://github.com/apache/infrastructure-asfyaml#tag_protect",
+      "items": {
+        "type": "string"
+      }
+    },
+    "custom_subjects": {
+      "$ref": "custom_subjects.schema.json"
+    },
+    "del_branch_on_merge": {
+      "description": "Deprecated; use pull_requests.del_branch_on_merge instead. Mutually exclusive with the pull_requests section. See: https://github.com/apache/infrastructure-asfyaml#delete_branch",
+      "$ref": "../../common.schema.json#/definitions/bool"
+    },
+    "features": {
+      "$ref": "features.schema.json"
+    },
+    "enabled_merge_buttons": {
+      "$ref": "merge_buttons.schema.json"
+    },
+    "autolink_jira": {
+      "description": "Jira project keys to autolink, as a single key or a list. See: https://github.com/apache/infrastructure-asfyaml#autolink",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[A-Z0-9]+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z0-9]+$"
+          }
+        }
+      ]
+    },
+    "ghp_branch": {
+      "type": "string",
+      "description": "Branch to publish GitHub Pages from. Must be the repository default branch or gh-pages. See: https://github.com/apache/infrastructure-asfyaml#pages"
+    },
+    "ghp_path": {
+      "type": "string",
+      "description": "Path to publish GitHub Pages from, /docs or /. Any other value falls back to / with a warning. See: https://github.com/apache/infrastructure-asfyaml#pages",
+      "default": "/docs"
+    },
+    "protected_branches": {
+      "$ref": "branch_protection.schema.json"
+    },
+    "pull_requests": {
+      "$ref": "pull_requests.schema.json"
+    },
+    "rulesets": {
+      "$ref": "rulesets.schema.json"
+    },
+    "copilot_code_review": {
+      "$ref": "copilot_code_review.schema.json"
+    },
+    "dependabot_alerts": {
+      "description": "Enable Dependabot alerts. See: https://github.com/apache/infrastructure-asfyaml#depend_alerts",
+      "$ref": "../../common.schema.json#/definitions/bool"
+    },
+    "dependabot_updates": {
+      "description": "Enable Dependabot security updates. See: https://github.com/apache/infrastructure-asfyaml#depend_alerts",
+      "$ref": "../../common.schema.json#/definitions/bool"
+    },
+    "environments": {
+      "$ref": "deployment_environments.schema.json"
+    }
+  }
+}

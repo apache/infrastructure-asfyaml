@@ -1,0 +1,4 @@
+# Labels must be lowercase alphanumeric or dashes.
+github:
+  labels:
+    - UpperCase
