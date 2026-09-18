@@ -48,7 +48,7 @@ on:
         type: string
         default: "main"
       sandbox_branch:
-        description: "Branch of the sandbox repo holding the .asf.yaml under test."
+        description: "Branch of the sandbox repo holding the .asf.yaml under test. Keep this as 'main' for anything under 'github:' -- those directives are skipped on any other branch."
         type: string
         default: "main"
       sandbox_repo:
@@ -98,6 +98,21 @@ jobs:
             echo "::error::'sandbox_branch' must be set"
             exit 1
           fi
+
+          # Everything under 'github:' is skipped unless the branch being processed is
+          # the repository's default branch, and the parser derives that from a HEAD
+          # file that does not exist in a checkout working tree -- so it falls back to
+          # the DEFAULT_BRANCH constant, 'main'. A run on any other branch applies no
+          # github: directive at all and still exits 0, which looks like a pass. Warn
+          # loudly rather than let someone read that as a result. See
+          # docs/testing-a-change.md.
+          if [[ "${SANDBOX_BRANCH}" != "main" ]]; then
+            echo "::warning title=github: directives will be skipped::sandbox_branch is '${SANDBOX_BRANCH}', not 'main'. Anything under 'github:' in the .asf.yaml will be ignored and this run will still succeed. Put the configuration under test on the sandbox's main branch."
+            SANDBOX_BRANCH_WARNING="yes"
+          else
+            SANDBOX_BRANCH_WARNING="no"
+          fi
+          echo "sandbox_branch_warning=${SANDBOX_BRANCH_WARNING}" >> "$GITHUB_OUTPUT"
 
           # The sandbox to act on. Unset means "the sandbox belonging to whoever
           # owns the repo this workflow is running in", which is what makes a run
@@ -163,6 +178,7 @@ jobs:
           SANDBOX_REPO: ${{ steps.resolve.outputs.sandbox_repo }}
           SANDBOX_DIR: ${{ steps.resolve.outputs.sandbox_dir }}
           SANDBOX_BRANCH: ${{ inputs.sandbox_branch }}
+          SANDBOX_BRANCH_WARNING: ${{ steps.resolve.outputs.sandbox_branch_warning }}
           NOOP: ${{ inputs.noop }}
         run: |
           set -euo pipefail
@@ -183,6 +199,14 @@ jobs:
             echo "| Sandbox repo | \`${SANDBOX_REPO}\` |"
             echo "| Sandbox branch | \`${SANDBOX_BRANCH}\` |"
             echo "| Dry run (noop) | ${NOOP} |"
+            if [[ "${SANDBOX_BRANCH_WARNING}" == "yes" ]]; then
+              echo
+              echo "> [!WARNING]"
+              echo "> \`sandbox_branch\` is \`${SANDBOX_BRANCH}\`, not \`main\`. Every directive under"
+              echo "> \`github:\` is skipped on a non-default branch and this run will still succeed,"
+              echo "> so a pass here says nothing about them. Put the configuration under test on the"
+              echo "> sandbox's \`main\` branch."
+            fi
             echo
             echo "Confirm that \`${SHA}\` is the commit you reviewed. A push to the"
             echo "PR after your review changes the code this run executed."
