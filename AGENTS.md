@@ -91,6 +91,11 @@ Report what you saw in the pull request. A reviewer who reads "I ran this agains
 my own sandbox and `required_signatures` appeared under Settings → Branches" has a
 far easier job than one starting from nothing.
 
+Agents: [`.claude/skills/sandbox-test/SKILL.md`](.claude/skills/sandbox-test/SKILL.md)
+is the procedure to run around that workflow — how to build a set/update/unset test
+matrix, which edge cases the sandbox cannot reach, and how to tell a parser bug from a
+limitation of the environment. Read it before sandbox-testing anything.
+
 ## Opening a pull request
 
 1. **Work on a branch in your own fork**, not on `main`.
