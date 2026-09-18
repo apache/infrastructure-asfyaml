@@ -56,6 +56,12 @@ None of this applies to a run in your own fork: the code, the sandbox and the
 token are all yours, and there is nobody else's trust to spend. That is the
 other reason to self-test first.
 
+> [!TIP]
+> Running this with a coding agent? [`.claude/skills/sandbox-test/SKILL.md`](../.claude/skills/sandbox-test/SKILL.md)
+> is the same process written as a procedure, with the test matrix to build, the two
+> traps that make an edge case silently untestable, and the rule that a green run is
+> never the result — reading the setting back from the API is.
+
 ## Testing a change, step by step
 
 ### 1. Read the diff
