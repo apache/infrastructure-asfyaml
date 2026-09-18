@@ -175,7 +175,11 @@ def test_removed_section_disables_cap():
     assert requester.calls == [{"method": "PATCH", "url": CAP_URL, "input": {"enabled": False}}]
 
 
-def test_disabled_and_never_configured_is_noop():
+def test_disabled_without_previous_config_still_patches():
+    # A cap can be on without .asf.yaml having put it there: set by hand in the
+    # repository settings, or left from a run whose cached yaml has since been lost.
+    # An explicit `enabled: false` has to turn it off in those cases too, so the
+    # PATCH goes out whatever the previous yaml holds.
     requester = FakeRequester()
     feature = FakeFeature(
         yaml={"pull_requests": {"creation_cap": {"enabled": False}}},
@@ -185,7 +189,7 @@ def test_disabled_and_never_configured_is_noop():
 
     pr_creation_cap(feature)
 
-    assert requester.calls == []
+    assert requester.calls == [{"method": "PATCH", "url": CAP_URL, "input": {"enabled": False}}]
 
 
 def test_no_creation_cap_section_is_noop():

@@ -81,9 +81,6 @@ def pr_creation_cap(self: ASFGitHubFeature):
     else:
         return
 
-    if not enabled and not was_previously_configured:
-        return
-
     payload: dict[str, Any] = {"enabled": enabled}
     if enabled and max_open_pull_requests is not None:
         if not MIN_OPEN_PULL_REQUESTS <= max_open_pull_requests <= MAX_OPEN_PULL_REQUESTS:
