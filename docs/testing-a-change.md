@@ -72,7 +72,7 @@ Look at the PR as you normally would, and note the head SHA (`Commits` tab, or
 Self-testing your own branch in your own fork? There is nothing to vouch for —
 start at step 2.
 
-### 2. Put the `.asf.yaml` under test on a sandbox branch
+### 2. Put the `.asf.yaml` under test on the sandbox's `main`
 
 The parser reads its configuration from a branch of the sandbox repo, so write
 the configuration that exercises the change and push it there. Use the Apache
@@ -82,11 +82,18 @@ self-testing:
 ```bash
 git clone https://github.com/apache/infrastructure-asfyaml-sandbox.git   # or <your account>/...
 cd infrastructure-asfyaml-sandbox
-git switch -c test/pr-42          # convention: test/pr-<PR number>
+git switch main
 $EDITOR .asf.yaml                 # the configuration you want to try
 git commit -am "Test config for PR #42"
-git push origin test/pr-42
+git push origin main
 ```
+
+> [!IMPORTANT]
+> **It has to be `main`, not a `test/pr-42` branch.** Everything under `github:`
+> is skipped unless the branch being processed is the default branch, and the run
+> exits 0 anyway — so a test on any other branch reports success having applied
+> nothing. See [`github:` only does anything on `main`](#github-only-does-anything-on-main).
+> Keep a `baseline` branch at the untouched configuration so step 6 is one push.
 
 Keep the configuration minimal — just the feature under test, plus whatever it
 depends on. A large `.asf.yaml` makes it harder to attribute a surprising result
@@ -103,7 +110,7 @@ Go to
 | Use workflow from | **`main`** — see [Why the dropdown stays on main](#why-the-dropdown-stays-on-main) |
 | `pr` | the PR number, e.g. `42`. **In your fork, leave this empty** — see below |
 | `ref` | leave as `main` when using `pr`; **in your fork, your branch name** |
-| `sandbox_branch` | `test/pr-42` |
+| `sandbox_branch` | `main` — anything else skips every `github:` directive |
 | `sandbox_repo` | leave empty — it defaults to your own sandbox |
 | `noop` | **`true`** |
 
@@ -126,6 +133,19 @@ Dispatch again with the same inputs and `noop` set to `false`.
 
 ### 5. Verify on the sandbox repo
 
+**A green run is not the result.** The parser can print "Setting X to Y", exit 0,
+and have changed nothing — a directive whose state check is wrong looks exactly
+like a working one from the outside. Read the setting back and compare it against
+what it was before the run.
+
+The settings pages below are the readable version; `gh api` is the version you can
+quote in a review, for instance:
+
+```bash
+gh api repos/<owner>/infrastructure-asfyaml-sandbox/rulesets
+gh api repos/<owner>/infrastructure-asfyaml-sandbox/autolinks
+```
+
 Check the thing the change was supposed to affect:
 
 | Feature | Where to look |
@@ -146,22 +166,31 @@ Check the thing the change was supposed to affect:
 Leaving the sandbox in a mangled state makes the *next* reviewer's result
 ambiguous, so put it back:
 
-1. Dispatch the workflow once more with `ref` = `main`, `pr` empty,
+1. Put the baseline configuration back on `main`:
+   `git push origin baseline:main --force`.
+2. Dispatch the workflow once more with `ref` = `main`, `pr` empty,
    `sandbox_branch` = `main`, `noop` = `false`. This re-applies the baseline
-   `.asf.yaml` from the sandbox's main branch. (Resetting your own sandbox
-   matters less than resetting the shared one, but stale settings will confuse
-   your next run too.)
-2. Delete your test branch: `git push origin --delete test/pr-42`.
+   `.asf.yaml`. (Resetting your own sandbox matters less than resetting the
+   shared one, but stale settings will confuse your next run too.)
 3. Anything the baseline cannot undo — a created ruleset, a pending collaborator
-   invitation, an environment — remove by hand.
+   invitation, an environment, a branch you pushed to test a pattern — remove by
+   hand. Note that a directive is not always able to undo what it did: a setting
+   the parser can turn on but not off is a bug worth reporting, and you have just
+   found it.
+4. Confirm the reset by reading the settings back from the API, the same way you
+   confirmed the change in step 5.
 
 ### 7. Say so in the PR
 
 Post what you ran, so the next person does not repeat it:
 
-> Sandbox-tested at `abc1234` against `test/pr-42` — `protected_branches` applied
-> as expected, `required_signatures` showed up in Settings → Branches.
+> Sandbox-tested at `abc1234` — `protected_branches` applied as expected:
+> `required_signatures` on `main` went from `false` to `true`, confirmed by reading
+> `/repos/.../branches/main/protection` back afterwards.
 > Run: <link to the workflow run>
+
+Quote the before and after values rather than "it worked". The next person can
+check your claim without re-running anything.
 
 ## Setting it up in your own fork
 
@@ -243,15 +272,34 @@ poetry run asfyaml-validate --repo ../infrastructure-asfyaml-sandbox --branch te
 the token come from reviewed code, while the parser under test is checked out as
 data. Selecting a PR branch there would let that PR rewrite the runner itself.
 
-### Branch-scoped and repo-scoped settings behave differently
+### `github:` only does anything on `main`
 
 `sandbox_branch` decides which branch's `.asf.yaml` is *read*, and which branch
 the parser believes it is processing. Features keyed on the branch — website
 staging and publishing, `whoami`, Pelican and Jekyll builds — only fire when the
-branch matches. Repository metadata under `github:` is not branch-scoped: it
-applies to the whole repo no matter which branch it was read from. So a
-`description:` change takes effect even when read from `test/pr-42`, while a
-`publish:` block may do nothing at all.
+branch matches.
+
+**Everything under `github:` is skipped unless the branch being processed is the
+repository's default branch**, which in a sandbox run means a branch literally
+named `main`. [`feature/github/__init__.py`](../asfyaml/feature/github/__init__.py)
+returns early otherwise, printing:
+
+```
+[github] Saw GitHub meta-data in .asf.yaml, but not in default branch of repository, not updating...
+```
+
+and the run still exits 0. A test on any other branch therefore goes green having
+applied nothing at all — the most misleading result this workflow can give you.
+
+The reason it is `main` specifically, rather than the sandbox repo's own default
+branch, is that `Repository.default_branch` reads a `HEAD` file from the directory
+it was given. That file exists in the bare repositories the parser sees in
+production, but not in the working tree `actions/checkout` produces, so the value
+falls back to the `DEFAULT_BRANCH` constant in
+[`dataobjects.py`](../asfyaml/dataobjects.py) — `main`.
+
+So put the configuration under test on the sandbox's `main`, and reset it
+afterwards. The workflow prints a warning when you point it anywhere else.
 
 ### `noop` is not offline
 

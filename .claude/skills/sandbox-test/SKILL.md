@@ -132,7 +132,8 @@ Rules for building it:
 returns early unless the branch being processed equals the repository's default branch,
 and in a workflow checkout that resolves to `main`. So `sandbox_branch: test/pr-42` makes
 every `github:` directive a no-op and the run still goes green. **Put the test config on
-the sandbox's `main`** and reset afterwards.
+the sandbox's `main`** and reset afterwards. The workflow warns when `sandbox_branch` is
+anything else; treat that warning as "this run proved nothing", not as a style note.
 
 **`previous_yaml` is empty in every sandbox and CI run.** It is read from a cache at
 `/x1/asfyaml`, which exists only in production. Any directive branch guarded by "was this
