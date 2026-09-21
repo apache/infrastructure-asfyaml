@@ -843,6 +843,10 @@ github:
       max_open_pull_requests: 5
       # count draft pull requests toward the cap as well
       include_drafts: true
+      # GitHub logins that may open PRs regardless of the cap
+      bypass_users:
+        - octocat
+        - monalisa
 ~~~
 
 Supported settings:
@@ -851,6 +855,7 @@ Supported settings:
 enabled: <boolean>                # required
 max_open_pull_requests: <int>     # optional, 1-1000; if omitted, GitHub's default is used
 include_drafts: <boolean>         # optional; whether draft PRs count toward the cap
+bypass_users: <list of strings>   # optional, at most 100 GitHub logins; see below
 ~~~
 
 Set `enabled: false` to turn the cap off. Removing the `creation_cap` section also disables a cap that
@@ -860,6 +865,11 @@ By default GitHub does not count draft pull requests toward the cap, so a user c
 of drafts. Set `include_drafts: true` to [count them too](https://github.blog/changelog/2026-10-08-draft-pull-requests-count-toward-pull-request-limits/).
 Removing `include_drafts` after it was set turns it back off. If you leave it out and never set it,
 `.asf.yaml` does not change it, and a value set by hand in the repository settings stays.
+When `bypass_users` is present, GitHub's bypass list for the cap is made to match it exactly: users
+listed here but missing on GitHub are added, and users on GitHub but not listed here are removed,
+including users that were added by hand in the repository settings. Set `bypass_users: ~` to empty
+the list. When `bypass_users` is omitted, the bypass list is left untouched, so a list maintained
+through the repository settings keeps working.
 
 <h3 id="copilot_code_review">Copilot code review</h3>
 

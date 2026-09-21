@@ -145,6 +145,8 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                             strictyaml.Optional("max_open_pull_requests"): strictyaml.Int(),
                             # Whether draft pull requests count toward the cap.
                             strictyaml.Optional("include_drafts"): strictyaml.Bool(),
+                            strictyaml.Optional("bypass_users"): asfyaml.validators.EmptyValue()
+                            | strictyaml.Seq(strictyaml.Str()),
                         }
                     ),
                 }
