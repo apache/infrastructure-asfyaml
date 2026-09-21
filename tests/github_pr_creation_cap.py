@@ -17,6 +17,7 @@
 
 """Unit tests for .asf.yaml GitHub pull request creation cap feature."""
 
+import json
 from types import SimpleNamespace
 from typing import Any
 
@@ -31,6 +32,8 @@ from helpers import YamlTest
 asfyaml.asfyaml.DEBUG = True
 
 CAP_URL = "/repos/apache/infrastructure-asfyaml/interaction-limits/pulls/creation-cap"
+BYPASS_URL = "/repos/apache/infrastructure-asfyaml/interaction-limits/pulls/bypass-list"
+BYPASS_LIST_URL = f"{BYPASS_URL}?per_page=100"
 
 
 valid_creation_cap = YamlTest(
@@ -68,16 +71,75 @@ github:
 """,
 )
 
+valid_creation_cap_with_bypass_users = YamlTest(
+    None,
+    None,
+    """
+github:
+    pull_requests:
+      creation_cap:
+        enabled: true
+        max_open_pull_requests: 5
+        bypass_users:
+          - octocat
+          - monalisa
+""",
+)
+
+valid_creation_cap_with_empty_bypass_users = YamlTest(
+    None,
+    None,
+    """
+github:
+    pull_requests:
+      creation_cap:
+        enabled: true
+        bypass_users: ~
+""",
+)
+
+invalid_bypass_users_type = YamlTest(
+    asfyaml.asfyaml.ASFYAMLException,
+    "when expecting a sequence",
+    """
+github:
+    pull_requests:
+      creation_cap:
+        enabled: true
+        bypass_users: octocat
+""",
+)
+
 
 class FakeRequester:
-    def __init__(self, status: int = 200, body: str = "{}"):
+    def __init__(
+        self,
+        status: int = 200,
+        body: str = "{}",
+        responses: dict[tuple[str, str], tuple[int, str]] | None = None,
+    ):
         self.calls: list[dict[str, Any]] = []
         self.status = status
         self.body = body
+        # Per (method, url) overrides; anything not listed gets the default status/body.
+        self.responses = responses or {}
 
     def requestJson(self, method: str, url: str, input: dict[str, Any] | None = None):  # noqa: N802
         self.calls.append({"method": method, "url": url, "input": input})
-        return self.status, {}, self.body
+        status, body = self.responses.get((method, url), (self.status, self.body))
+        return status, {}, body
+
+
+def bypass_list_body(*logins: str) -> str:
+    return json.dumps([{"login": login, "id": index} for index, login in enumerate(logins, start=1)])
+
+
+def bypass_list_responses(*on_github: str) -> dict[tuple[str, str], tuple[int, str]]:
+    return {
+        ("GET", BYPASS_LIST_URL): (200, bypass_list_body(*on_github)),
+        ("PUT", BYPASS_URL): (204, ""),
+        ("DELETE", BYPASS_URL): (204, ""),
+    }
 
 
 class FakeFeature:
@@ -109,6 +171,9 @@ def test_basic_yaml(test_repo: asfyaml.dataobjects.Repository):
         valid_creation_cap,
         valid_creation_cap_disabled,
         invalid_creation_cap_type,
+        valid_creation_cap_with_bypass_users,
+        valid_creation_cap_with_empty_bypass_users,
+        invalid_bypass_users_type,
     )
 
     for test in tests_to_run:
@@ -267,4 +332,160 @@ def test_noop_mode_does_not_call_api(capsys):
 
     captured = capsys.readouterr()
     assert "noop mode active" in captured.out
+    assert requester.calls == []
+
+
+def test_bypass_users_absent_leaves_list_untouched():
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={"pull_requests": {"creation_cap": {"enabled": True, "max_open_pull_requests": 5}}},
+        previous_yaml={},
+        requester=requester,
+    )
+
+    pr_creation_cap(feature)
+
+    assert [call["url"] for call in requester.calls] == [CAP_URL]
+
+
+def test_removed_section_leaves_bypass_list_untouched():
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={"pull_requests": {}},
+        previous_yaml={"pull_requests": {"creation_cap": {"enabled": True, "bypass_users": ["octocat"]}}},
+        requester=requester,
+    )
+
+    pr_creation_cap(feature)
+
+    assert requester.calls == [{"method": "PATCH", "url": CAP_URL, "input": {"enabled": False}}]
+
+
+@pytest.mark.parametrize(
+    "configured, on_github, expected_calls",
+    [
+        pytest.param(
+            ["octocat", "monalisa"],
+            [],
+            [{"method": "PUT", "input": {"users": ["octocat", "monalisa"]}}],
+            id="adds-missing",
+        ),
+        pytest.param(
+            ["octocat"],
+            ["octocat", "hubot"],
+            [{"method": "DELETE", "input": {"users": ["hubot"]}}],
+            id="removes-extra",
+        ),
+        pytest.param(
+            ["monalisa"],
+            ["octocat"],
+            [
+                {"method": "PUT", "input": {"users": ["monalisa"]}},
+                {"method": "DELETE", "input": {"users": ["octocat"]}},
+            ],
+            id="adds-and-removes",
+        ),
+        pytest.param(["octocat", "monalisa"], ["monalisa", "octocat"], [], id="in-sync"),
+        pytest.param(
+            None,
+            ["octocat", "hubot"],
+            [{"method": "DELETE", "input": {"users": ["octocat", "hubot"]}}],
+            id="empty-clears",
+        ),
+        pytest.param(["OctoCat", "octocat"], ["octocat"], [], id="case-insensitive-and-deduplicated"),
+    ],
+)
+def test_bypass_list_reconciliation(
+    configured: list[str] | None, on_github: list[str], expected_calls: list[dict[str, Any]]
+):
+    requester = FakeRequester(responses=bypass_list_responses(*on_github))
+    feature = FakeFeature(
+        yaml={"pull_requests": {"creation_cap": {"enabled": True, "bypass_users": configured}}},
+        previous_yaml={},
+        requester=requester,
+    )
+
+    pr_creation_cap(feature)
+
+    assert requester.calls[0] == {"method": "PATCH", "url": CAP_URL, "input": {"enabled": True}}
+    assert requester.calls[1] == {"method": "GET", "url": BYPASS_LIST_URL, "input": None}
+    assert [{"method": c["method"], "input": c["input"]} for c in requester.calls[2:]] == expected_calls
+    assert all(c["url"] == BYPASS_URL for c in requester.calls[2:])  # PUT/DELETE carry no query string
+
+
+def test_bypass_list_reconciled_even_when_cap_disabled():
+    requester = FakeRequester(responses=bypass_list_responses())
+    feature = FakeFeature(
+        yaml={"pull_requests": {"creation_cap": {"enabled": False, "bypass_users": ["octocat"]}}},
+        previous_yaml={},
+        requester=requester,
+    )
+
+    pr_creation_cap(feature)
+
+    assert [c["method"] for c in requester.calls] == ["PATCH", "GET", "PUT"]
+
+
+@pytest.mark.parametrize(
+    "bypass_users, expected",
+    [
+        ([f"user{i}" for i in range(101)], "may list at most 100 users, got 101"),
+        (["octocat", ""], "entries must be non-empty GitHub logins"),
+        (["octocat", 42], "entries must be non-empty GitHub logins"),
+        (["octocat", "not a login!"], "'not a login!' is not a valid GitHub ID"),
+        (["-leading-hyphen"], "'-leading-hyphen' is not a valid GitHub ID"),
+        ("octocat", "must be a list of GitHub logins"),
+    ],
+)
+def test_invalid_bypass_users_raise_before_any_call(bypass_users: Any, expected: str):
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={"pull_requests": {"creation_cap": {"enabled": True, "bypass_users": bypass_users}}},
+        previous_yaml={},
+        requester=requester,
+    )
+
+    with YamlTest(Exception, expected, "").ctx():
+        pr_creation_cap(feature)
+
+    assert requester.calls == []
+
+
+@pytest.mark.parametrize(
+    "failing, expected, calls_made",
+    [
+        ("GET", "Failed reading the pull request creation cap bypass list", ["PATCH", "GET"]),
+        ("PUT", "Failed adding users to the pull request creation cap bypass list", ["PATCH", "GET", "PUT"]),
+    ],
+)
+def test_bypass_list_error_response_raises(failing: str, expected: str, calls_made: list[str]):
+    responses = bypass_list_responses()
+    failing_url = BYPASS_LIST_URL if failing == "GET" else BYPASS_URL
+    responses[(failing, failing_url)] = (403, '{"message": "Resource not accessible by personal access token"}')
+    requester = FakeRequester(responses=responses)
+    feature = FakeFeature(
+        yaml={"pull_requests": {"creation_cap": {"enabled": True, "bypass_users": ["octocat"]}}},
+        previous_yaml={},
+        requester=requester,
+    )
+
+    with YamlTest(Exception, expected, "").ctx():
+        pr_creation_cap(feature)
+
+    assert [c["method"] for c in requester.calls] == calls_made
+
+
+def test_bypass_list_noop_mode_does_not_call_api(capsys):
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={"pull_requests": {"creation_cap": {"enabled": True, "bypass_users": ["octocat"]}}},
+        previous_yaml={},
+        requester=requester,
+        noop_enabled=True,
+    )
+
+    pr_creation_cap(feature)
+
+    captured = capsys.readouterr()
+    assert "bypass list to: octocat" in captured.out
     assert requester.calls == []
