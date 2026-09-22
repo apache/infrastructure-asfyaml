@@ -857,7 +857,10 @@ When `bypass_users` is present, GitHub's bypass list for the cap is made to matc
 listed here but missing on GitHub are added, and users on GitHub but not listed here are removed,
 including users that were added by hand in the repository settings. Set `bypass_users: ~` to empty
 the list. When `bypass_users` is omitted, the bypass list is left untouched, so a list maintained
-through the repository settings keeps working.
+through the repository settings keeps working. The list is synced whether the cap is enabled or not, so
+turning the cap off with `enabled: false` keeps `bypass_users` in place for when it is turned back on.
+Every login to be added is checked against GitHub first; the run fails and names the unknown logins
+before anything is changed.
 
 <h3 id="copilot_code_review">Copilot code review</h3>
 

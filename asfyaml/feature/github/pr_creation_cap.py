@@ -106,8 +106,20 @@ def _parse_bypass_users(bypass_users: Any) -> list[str]:
     return users
 
 
-def _reconcile_bypass_list(self: ASFGitHubFeature, desired: list[str]) -> None:
-    """Make the repository's bypass list match `desired`, adding and removing only what differs."""
+def _find_unknown_logins(self: ASFGitHubFeature, logins: list[str]) -> list[str]:
+    """Return the logins in `logins` that GitHub does not know."""
+    unknown: list[str] = []
+    for login in logins:
+        status, _headers, body = self.ghrepo._requester.requestJson("GET", f"/users/{login}")
+        if status == 404:
+            unknown.append(login)
+        elif not 200 <= status < 300:
+            _check_bypass_list_response(self, status, body, f"looking up '{login}' for")
+    return unknown
+
+
+def _plan_bypass_list_changes(self: ASFGitHubFeature, desired: list[str]) -> tuple[list[str], list[str]]:
+    """Return the logins to add to and remove from the repository's bypass list so it matches `desired`."""
     url = _bypass_list_url(self)
     # The list holds at most MAX_BYPASS_USERS entries, so one page covers it.
     status, _headers, body = self.ghrepo._requester.requestJson("GET", f"{url}?per_page={MAX_BYPASS_USERS}")
@@ -120,6 +132,17 @@ def _reconcile_bypass_list(self: ASFGitHubFeature, desired: list[str]) -> None:
     to_add = [login for key, login in desired_by_key.items() if key not in current_by_key]
     to_remove = [login for key, login in current_by_key.items() if key not in desired_by_key]
 
+    # GitHub rejects the whole PUT when any login is unknown, without saying which one.
+    unknown = _find_unknown_logins(self, to_add)
+    if unknown:
+        raise Exception(
+            "github.pull_requests.creation_cap.bypass_users lists GitHub users that do not exist: " + ", ".join(unknown)
+        )
+    return to_add, to_remove
+
+
+def _apply_bypass_list_changes(self: ASFGitHubFeature, to_add: list[str], to_remove: list[str]) -> None:
+    url = _bypass_list_url(self)
     if to_add:
         print(f"Adding to pull request creation cap bypass list: {', '.join(to_add)}")
         status, _headers, body = self.ghrepo._requester.requestJson("PUT", url, input={"users": to_add})
@@ -179,7 +202,10 @@ def pr_creation_cap(self: ASFGitHubFeature):
         print(f"Setting pull request creation cap bypass list to: {', '.join(bypass_users) or '(empty)'}")
 
     if not self.noop("pr_creation_cap"):
+        # Plan the bypass list first so an unknown login fails the run before the cap is changed.
+        if manage_bypass_list:
+            to_add, to_remove = _plan_bypass_list_changes(self, bypass_users)
         status, _headers, body = self.ghrepo._requester.requestJson("PATCH", _creation_cap_url(self), input=payload)
         _check_creation_cap_response(self, status, body)
         if manage_bypass_list:
-            _reconcile_bypass_list(self, bypass_users)
+            _apply_bypass_list_changes(self, to_add, to_remove)

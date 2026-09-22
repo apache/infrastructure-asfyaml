@@ -407,10 +407,14 @@ def test_bypass_list_reconciliation(
 
     pr_creation_cap(feature)
 
-    assert requester.calls[0] == {"method": "PATCH", "url": CAP_URL, "input": {"enabled": True}}
-    assert requester.calls[1] == {"method": "GET", "url": BYPASS_LIST_URL, "input": None}
-    assert [{"method": c["method"], "input": c["input"]} for c in requester.calls[2:]] == expected_calls
-    assert all(c["url"] == BYPASS_URL for c in requester.calls[2:])  # PUT/DELETE carry no query string
+    to_add = [c["input"]["users"] for c in expected_calls if c["method"] == "PUT"]
+    lookups = [{"method": "GET", "url": f"/users/{login}", "input": None} for login in (to_add[0] if to_add else [])]
+    assert requester.calls[0] == {"method": "GET", "url": BYPASS_LIST_URL, "input": None}
+    assert requester.calls[1 : 1 + len(lookups)] == lookups
+    assert requester.calls[1 + len(lookups)] == {"method": "PATCH", "url": CAP_URL, "input": {"enabled": True}}
+    changes = requester.calls[2 + len(lookups) :]
+    assert [{"method": c["method"], "input": c["input"]} for c in changes] == expected_calls
+    assert all(c["url"] == BYPASS_URL for c in changes)  # PUT/DELETE carry no query string
 
 
 def test_bypass_list_reconciled_even_when_cap_disabled():
@@ -423,7 +427,7 @@ def test_bypass_list_reconciled_even_when_cap_disabled():
 
     pr_creation_cap(feature)
 
-    assert [c["method"] for c in requester.calls] == ["PATCH", "GET", "PUT"]
+    assert [c["method"] for c in requester.calls] == ["GET", "GET", "PATCH", "PUT"]
 
 
 @pytest.mark.parametrize(
@@ -454,8 +458,8 @@ def test_invalid_bypass_users_raise_before_any_call(bypass_users: Any, expected:
 @pytest.mark.parametrize(
     "failing, expected, calls_made",
     [
-        ("GET", "Failed reading the pull request creation cap bypass list", ["PATCH", "GET"]),
-        ("PUT", "Failed adding users to the pull request creation cap bypass list", ["PATCH", "GET", "PUT"]),
+        ("GET", "Failed reading the pull request creation cap bypass list", ["GET"]),
+        ("PUT", "Failed adding users to the pull request creation cap bypass list", ["GET", "GET", "PATCH", "PUT"]),
     ],
 )
 def test_bypass_list_error_response_raises(failing: str, expected: str, calls_made: list[str]):
@@ -473,6 +477,44 @@ def test_bypass_list_error_response_raises(failing: str, expected: str, calls_ma
         pr_creation_cap(feature)
 
     assert [c["method"] for c in requester.calls] == calls_made
+
+
+def test_unknown_bypass_users_fail_before_cap_is_changed():
+    responses = bypass_list_responses("hubot")
+    responses[("GET", "/users/no-such-user")] = (404, '{"message": "Not Found"}')
+    responses[("GET", "/users/also-missing")] = (404, '{"message": "Not Found"}')
+    requester = FakeRequester(responses=responses)
+    feature = FakeFeature(
+        yaml={
+            "pull_requests": {
+                "creation_cap": {"enabled": True, "bypass_users": ["no-such-user", "octocat", "also-missing"]}
+            }
+        },
+        previous_yaml={},
+        requester=requester,
+    )
+
+    with YamlTest(Exception, "users that do not exist: no-such-user, also-missing", "").ctx():
+        pr_creation_cap(feature)
+
+    assert [c["method"] for c in requester.calls] == ["GET", "GET", "GET", "GET"]
+    assert [c["url"] for c in requester.calls[1:]] == ["/users/no-such-user", "/users/octocat", "/users/also-missing"]
+
+
+def test_bypass_user_lookup_error_raises():
+    responses = bypass_list_responses()
+    responses[("GET", "/users/octocat")] = (403, '{"message": "API rate limit exceeded"}')
+    requester = FakeRequester(responses=responses)
+    feature = FakeFeature(
+        yaml={"pull_requests": {"creation_cap": {"enabled": True, "bypass_users": ["octocat"]}}},
+        previous_yaml={},
+        requester=requester,
+    )
+
+    with YamlTest(Exception, "Failed looking up 'octocat' for the pull request creation cap bypass list", "").ctx():
+        pr_creation_cap(feature)
+
+    assert [c["method"] for c in requester.calls] == ["GET", "GET"]
 
 
 def test_bypass_list_noop_mode_does_not_call_api(capsys):
