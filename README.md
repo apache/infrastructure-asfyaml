@@ -114,6 +114,8 @@ Most of the field names under `metadata` are either identical to those in DOAP o
 
 `key` (the ATR project key) and `committee` (its owning committee) are both required. The `committee` must match the start of your repository name — for example a repository named `tooling-trusted-releases` must belong to the `tooling` committee.
 
+`name` is the project's full display name in ATR and must start with `Apache ` (including the space), for example `Apache Maven Filtering`. Synchronization does not add this prefix automatically. A name must be supplied when creating a project, either directly or through a `doap:` file. When updating an existing project, omitting the name preserves its current value.
+
 ~~~yaml
 project:
   metadata:
@@ -195,6 +197,8 @@ project:
 ~~~
 
 Note that in this case, for security reasons: you must use https, your link must live under apache.org or raw.githubusercontent.com/apache, and HTTP redirects will not be followed. (A `github.com/apache/...` link redirects to `raw.githubusercontent.com`, so link directly to the raw file as shown above.)
+
+When using `doap:`, the project name comes from the DOAP file and must also start with `Apache `. To correct it, update the DOAP project's `<name>` element; a `name` supplied alongside `doap:` is ignored.
 
 DOAP has no vocabulary for the ATR-only fields — `lifecycle_page`, the security fields, and the version-scheme fields. If you set any of those alongside a `doap:` link, they are kept as authored; the DOAP file supplies only the fields it can express.
 
