@@ -840,6 +840,10 @@ github:
       enabled: true
       # maximum number of open PRs a user without write access may have (1-1000)
       max_open_pull_requests: 5
+      # GitHub logins that may open PRs regardless of the cap
+      bypass_users:
+        - octocat
+        - monalisa
 ~~~
 
 Supported settings:
@@ -847,10 +851,20 @@ Supported settings:
 ~~~yaml
 enabled: <boolean>                # required
 max_open_pull_requests: <int>     # optional, 1-1000; if omitted, GitHub's default is used
+bypass_users: <list of strings>   # optional, at most 100 GitHub logins; see below
 ~~~
 
 Set `enabled: false` to turn the cap off. Removing the `creation_cap` section also disables a cap that
 was previously managed by `.asf.yaml`.
+
+When `bypass_users` is present, GitHub's bypass list for the cap is made to match it exactly: users
+listed here but missing on GitHub are added, and users on GitHub but not listed here are removed,
+including users that were added by hand in the repository settings. Set `bypass_users: ~` to empty
+the list. When `bypass_users` is omitted, the bypass list is left untouched, so a list maintained
+through the repository settings keeps working. The list is synced whether the cap is enabled or not, so
+turning the cap off with `enabled: false` keeps `bypass_users` in place for when it is turned back on.
+Every login to be added is checked against GitHub first; the run fails and names the unknown logins
+before anything is changed.
 
 <h3 id="copilot_code_review">Copilot code review</h3>
 

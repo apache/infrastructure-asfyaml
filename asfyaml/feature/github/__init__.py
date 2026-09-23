@@ -143,6 +143,8 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                         {
                             "enabled": strictyaml.Bool(),
                             strictyaml.Optional("max_open_pull_requests"): strictyaml.Int(),
+                            strictyaml.Optional("bypass_users"): asfyaml.validators.EmptyValue()
+                            | strictyaml.Seq(strictyaml.Str()),
                         }
                     ),
                 }
