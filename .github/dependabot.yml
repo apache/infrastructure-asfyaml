@@ -1,0 +1,91 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+# Every update is grouped, so a run opens one pull request per ecosystem
+# instead of one per dependency -- three a week at most, rather than the dozen
+# or so the same set of bumps would otherwise produce.
+#
+# Dependabot can also consolidate across ecosystems into a single pull request
+# (the top-level `multi-ecosystem-groups` key). That is deliberately not used
+# here: it is a newer feature, and a configuration this file gets wrong fails
+# silently -- Dependabot rejects the file and stops updating anything, which is
+# only visible under Insights -> Dependency graph -> Dependabot. Per-ecosystem
+# grouping relies on long-established configuration and gets most of the win.
+
+version: 2
+
+# `pre-commit` is a recent addition to Dependabot's ecosystems. This flag is
+# what keeps it from being skipped if it is still gated as beta; it has no
+# effect on the other two, which are long since generally available.
+enable-beta-ecosystems: true
+
+updates:
+  # Python dependencies. Dependabot reads pyproject.toml and poetry.lock under
+  # the "pip" ecosystem; there is no separate "poetry" value.
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    # pyproject.toml constrains most dependencies loosely ("*", "^2.7.0") on
+    # purpose. Updating the lock file alone keeps the resolved versions current
+    # without rewriting those constraints on every bump.
+    versioning-strategy: "lockfile-only"
+    groups:
+      python-dependencies:
+        patterns:
+          - "*"
+      # Security fixes are grouped as well, so a batch of advisories arrives as
+      # one pull request instead of one per advisory.
+      python-security:
+        applies-to: "security-updates"
+        patterns:
+          - "*"
+
+  # GitHub Actions. Every `uses:` in this repository is pinned to a commit SHA
+  # with the version in a trailing comment; Dependabot updates both, so the
+  # pinning survives the bump.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+      github-actions-security:
+        applies-to: "security-updates"
+        patterns:
+          - "*"
+
+  # pre-commit hooks, whose revisions are pinned in .pre-commit-config.yaml.
+  # The local hooks in that file (ruff, mypy) come from the Python environment
+  # and are covered by the pip entry above, not here.
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      pre-commit-hooks:
+        patterns:
+          - "*"
+      pre-commit-security:
+        applies-to: "security-updates"
+        patterns:
+          - "*"
