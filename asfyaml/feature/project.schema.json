@@ -1,0 +1,257 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/apache/infrastructure-asfyaml/refs/heads/main/asfyaml/feature/project.schema.json",
+  "title": "Project metadata",
+  "description": "Project metadata and release policy pushed to the Apache Trusted Releases (ATR) platform. See: https://github.com/apache/infrastructure-asfyaml#project",
+  "type": "object",
+  "required": ["metadata"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "$ref": "#/definitions/metadata"
+    },
+    "policy": {
+      "$ref": "#/definitions/policy"
+    },
+    "features": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "atr_sync": {
+          "description": "Whether to sync this project to ATR. Set to false to explicitly opt out. See: https://github.com/apache/infrastructure-asfyaml#atrsync",
+          "$ref": "../common.schema.json#/definitions/bool"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "metadata": {
+      "type": "object",
+      "title": "Project metadata",
+      "description": "Project description fields. When 'doap' is set, most fields are sourced from the DOAP file instead. See: https://github.com/apache/infrastructure-asfyaml#project-definition",
+      "required": ["key", "committee"],
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "The ATR project key."
+        },
+        "committee": {
+          "type": "string",
+          "description": "The committee owning the project. Must match the repository name or be its prefix."
+        },
+        "doap": {
+          "type": "string",
+          "description": "URL of a DOAP file to source the project fields from. Must be an https URL on *.apache.org or raw.githubusercontent.com/apache/."
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "short_description": {
+          "type": "string"
+        },
+        "homepage": {
+          "type": "string"
+        },
+        "lifecycle_page": {
+          "type": "string"
+        },
+        "download_page": {
+          "type": "string"
+        },
+        "bug_database": {
+          "type": "string"
+        },
+        "mailing_lists": {
+          "type": "string"
+        },
+        "security_contact": {
+          "type": "string",
+          "description": "Must be security@apache.org or security@<committee>.apache.org."
+        },
+        "threat_model_link": {
+          "type": "string"
+        },
+        "threat_model_src_link": {
+          "type": "string"
+        },
+        "repositories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "standards": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "programming_languages": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "version_method": {
+          "type": "string",
+          "description": "Version scheme used to group releases into cycles.",
+          "enum": ["simple", "semver", "calver"]
+        },
+        "version_pattern": {
+          "type": "string"
+        },
+        "cycle_match": {
+          "type": "string"
+        },
+        "calver_format": {
+          "type": "string"
+        },
+        "branch_template": {
+          "type": "string"
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "title": "Release policy",
+      "description": "Release policy settings, mirroring ATR's release policy fields.",
+      "additionalProperties": false,
+      "properties": {
+        "announce_release_subject": {
+          "type": "string"
+        },
+        "announce_release_template": {
+          "type": "string"
+        },
+        "binary_artifact_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "download_path_suffix": {
+          "type": "string",
+          "description": "Subdirectory the release is published under. A per-release template that may use {{PROJECT_KEY}} and {{VERSION}}."
+        },
+        "file_tag_mappings": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "github_compose_workflow_path": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "github_finish_workflow_path": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "github_repository_branch": {
+          "type": "string"
+        },
+        "github_repository_name": {
+          "type": "string"
+        },
+        "github_vote_workflow_path": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "license_check_mode": {
+          "type": "string",
+          "enum": ["Both", "Lightweight", "RAT"]
+        },
+        "vote_recipients": {
+          "$ref": "#/definitions/recipients"
+        },
+        "announce_recipients": {
+          "$ref": "#/definitions/recipients"
+        },
+        "manual_vote": {
+          "$ref": "../common.schema.json#/definitions/bool"
+        },
+        "min_hours": {
+          "type": "integer"
+        },
+        "release_checklist": {
+          "type": "string"
+        },
+        "source_artifact_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "source_excludes_lightweight": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "source_excludes_rat": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "start_vote_subject": {
+          "type": "string"
+        },
+        "start_vote_template": {
+          "type": "string"
+        },
+        "finish_vote_template": {
+          "type": "string"
+        },
+        "vote_comment_template": {
+          "type": "string"
+        },
+        "vote_mode": {
+          "type": "string",
+          "enum": ["manual", "email", "trusted"]
+        }
+      }
+    },
+    "recipients": {
+      "type": "object",
+      "description": "Email recipients for a policy action.",
+      "additionalProperties": false,
+      "properties": {
+        "to": {
+          "type": "string"
+        },
+        "cc": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "bcc": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,208 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/apache/infrastructure-asfyaml/refs/heads/main/asfyaml/feature/github/rulesets.schema.json",
+  "title": "Repository rulesets",
+  "description": "Repository rulesets. Set to null (~) to remove all managed rulesets. See: https://github.com/apache/infrastructure-asfyaml#rulesets",
+  "type": ["null", "array"],
+  "items": {
+    "$ref": "#/definitions/ruleset"
+  },
+  "definitions": {
+    "ruleset": {
+      "description": "A single ruleset, in exactly one of two styles: the raw payload style (target, enforcement, conditions, rules, bypass_actors), forwarded to the GitHub Rulesets API as-is, or the convenience style (all other keys). Mixing keys from both styles is an error.",
+      "oneOf": [
+        {
+          "$ref": "#/definitions/rawRuleset"
+        },
+        {
+          "$ref": "#/definitions/convenienceRuleset"
+        }
+      ]
+    },
+    "rawRuleset": {
+      "type": "object",
+      "title": "Raw payload ruleset",
+      "description": "A ruleset payload forwarded to the GitHub Rulesets API as-is. At least one of target, enforcement, conditions, rules and bypass_actors must be present, otherwise the entry is treated as a convenience style ruleset.",
+      "required": ["name"],
+      "anyOf": [
+        {
+          "required": ["target"]
+        },
+        {
+          "required": ["enforcement"]
+        },
+        {
+          "required": ["conditions"]
+        },
+        {
+          "required": ["rules"]
+        },
+        {
+          "required": ["bypass_actors"]
+        }
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the ruleset. Must be unique within the list.",
+          "minLength": 1
+        },
+        "target": {
+          "type": "string",
+          "description": "The ruleset target, e.g. branch or tag."
+        },
+        "enforcement": {
+          "type": "string",
+          "description": "The enforcement level, e.g. active, evaluate or disabled."
+        },
+        "conditions": {
+          "type": "object",
+          "description": "Ref name conditions, forwarded to the GitHub Rulesets API as-is."
+        },
+        "rules": {
+          "type": "array",
+          "description": "The list of rules, forwarded to the GitHub Rulesets API as-is.",
+          "items": {
+            "type": "object"
+          }
+        },
+        "bypass_actors": {
+          "type": "array",
+          "description": "The list of bypass actors, forwarded to the GitHub Rulesets API as-is.",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "convenienceRuleset": {
+      "type": "object",
+      "title": "Convenience ruleset",
+      "description": "A ruleset described with convenience keys, translated to a GitHub Rulesets API payload with enforcement set to active.",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the ruleset. Must be unique within the list.",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "description": "Whether the ruleset applies to branches or tags.",
+          "enum": ["branch", "tag"],
+          "default": "branch"
+        },
+        "branches": {
+          "description": "Branch names the ruleset applies to. Entries are prefixed with refs/heads/ unless they already start with refs/ or ~. Defaults to the repository default branch for branch rulesets.",
+          "$ref": "#/definitions/refSelection"
+        },
+        "refs": {
+          "description": "Fully qualified refs the ruleset applies to, used as-is.",
+          "$ref": "#/definitions/refSelection"
+        },
+        "bypass_teams": {
+          "type": "array",
+          "description": "Teams allowed to bypass the ruleset, as team slugs or numeric ids.",
+          "items": {
+            "type": ["string", "integer"]
+          }
+        },
+        "bypass_mode": {
+          "type": "string",
+          "description": "When the bypass applies.",
+          "default": "always"
+        },
+        "restrict_deletion": {
+          "description": "Prevent deletion of matching refs.",
+          "default": true,
+          "$ref": "../../common.schema.json#/definitions/bool"
+        },
+        "restrict_force_push": {
+          "description": "Prevent force pushes to matching refs.",
+          "default": true,
+          "$ref": "../../common.schema.json#/definitions/bool"
+        },
+        "required_signatures": {
+          "description": "Require signed commits.",
+          "$ref": "../../common.schema.json#/definitions/bool"
+        },
+        "required_linear_history": {
+          "description": "Require a linear commit history.",
+          "$ref": "../../common.schema.json#/definitions/bool"
+        },
+        "required_conversation_resolution": {
+          "description": "Require all review conversations to be resolved before merging.",
+          "$ref": "../../common.schema.json#/definitions/bool"
+        },
+        "required_pull_request_reviews": {
+          "description": "Require pull request reviews before merging.",
+          "$ref": "branch_protection.schema.json#/definitions/requiredPullRequestReviews"
+        },
+        "required_status_checks": {
+          "type": "array",
+          "description": "Status checks that must pass, as plain context names or objects pinning the reporting GitHub App.",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Name of the status check context."
+                  },
+                  "context": {
+                    "type": "string",
+                    "description": "Alias for name."
+                  },
+                  "app_slug": {
+                    "type": ["string", "integer"],
+                    "description": "Slug or numeric id of the GitHub App that must report the check. -1 accepts any source.",
+                    "default": -1
+                  },
+                  "integration_id": {
+                    "type": ["string", "integer"],
+                    "description": "Alias for app_slug.",
+                    "default": -1
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "required_status_checks_strict": {
+          "description": "Require branches to be up to date with the base branch before merging.",
+          "default": false,
+          "$ref": "../../common.schema.json#/definitions/bool"
+        }
+      }
+    },
+    "refSelection": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "includes": {
+          "type": "array",
+          "description": "Refs the ruleset applies to.",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "excludes": {
+          "type": "array",
+          "description": "Refs the ruleset does not apply to.",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
