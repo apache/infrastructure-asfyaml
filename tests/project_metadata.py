@@ -216,6 +216,24 @@ project:
 """,
 )
 
+# Each email template can be given as a URL instead of inline text
+valid_template_urls = YamlTest(
+    None,
+    None,
+    """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+        name: Apache Trusted Releases
+    policy:
+        announce_release_template_url: https://raw.githubusercontent.com/apache/example/main/.atr/announce.txt
+        start_vote_template_url: https://raw.githubusercontent.com/apache/example/main/.atr/start-vote.txt
+        finish_vote_template_url: https://raw.githubusercontent.com/apache/example/main/.atr/finish-vote.txt
+        vote_comment_template_url: https://raw.githubusercontent.com/apache/example/main/.atr/vote-comment.txt
+""",
+)
+
 # A calver project describes its cycles with a date format under metadata.
 valid_calver_metadata = YamlTest(
     None,
@@ -270,6 +288,7 @@ def test_schema_validation(test_repo: asfyaml.dataobjects.Repository):
         valid_metadata_with_policy,
         valid_full_policy,
         valid_calver_metadata,
+        valid_template_urls,
         valid_metadata_with_doap,
         valid_security_and_download_suffix,
         invalid_missing_metadata,
@@ -567,6 +586,29 @@ project:
     assert payload["project"]["threat_model_link"] == "http://test/"
     assert payload["project"]["threat_model_src_link"] == "http://test/"
     assert payload["policy"]["download_path_suffix"] == "tesettest"
+
+
+def test_noop_payload_carries_template_urls(atr_repo: asfyaml.dataobjects.Repository, capsys):
+    url = "https://raw.githubusercontent.com/apache/example/main/.atr/start-vote.txt"
+    yaml = f"""
+project:
+    metadata:
+        key: tooling
+        committee: tooling
+        name: Apache Tooling
+    policy:
+        start_vote_template_url: {url}
+"""
+    a = asfyaml.asfyaml.ASFYamlInstance(
+        repo=atr_repo, committer="arm", config_data=yaml, branch=asfyaml.dataobjects.DEFAULT_BRANCH
+    )
+    a.environments_enabled.add("noop")
+    a.no_cache = True
+    a.run_parts()
+
+    out = capsys.readouterr().out
+    policy = json.loads(out[out.index("{") : out.rindex("}") + 1])["policy"]
+    assert policy["start_vote_template_url"] == url
 
 
 def test_noop_payload_carries_version_scheme(atr_repo: asfyaml.dataobjects.Repository, capsys):

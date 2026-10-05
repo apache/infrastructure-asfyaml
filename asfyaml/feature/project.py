@@ -120,6 +120,7 @@ _POLICY_SCHEMA = strictyaml.Map(
     {
         strictyaml.Optional("announce_release_subject"): strictyaml.Str(),
         strictyaml.Optional("announce_release_template"): strictyaml.Str(),
+        strictyaml.Optional("announce_release_template_url"): strictyaml.Str(),
         strictyaml.Optional("binary_artifact_paths"): strictyaml.Seq(strictyaml.Str()),
         # Subdirectory the release is published under, as a per-release template that may
         # use {{PROJECT_KEY}}/{{VERSION}}. ATR checks it resolves to a valid relative path.
@@ -144,8 +145,11 @@ _POLICY_SCHEMA = strictyaml.Map(
         strictyaml.Optional("rat_excludes_url"): strictyaml.Str(),
         strictyaml.Optional("start_vote_subject"): strictyaml.Str(),
         strictyaml.Optional("start_vote_template"): strictyaml.Str(),
+        strictyaml.Optional("start_vote_template_url"): strictyaml.Str(),
         strictyaml.Optional("finish_vote_template"): strictyaml.Str(),
+        strictyaml.Optional("finish_vote_template_url"): strictyaml.Str(),
         strictyaml.Optional("vote_comment_template"): strictyaml.Str(),
+        strictyaml.Optional("vote_comment_template_url"): strictyaml.Str(),
         strictyaml.Optional("vote_mode"): strictyaml.Enum(["manual", "email", "trusted"]),
     }
 )
@@ -189,6 +193,9 @@ class ASFATRFeature(ASFYamlFeature, name="project", env="production", priority=5
                 vote_recipients:
                   to: private@foo.apache.org
                 download_path_suffix: "{{PROJECT_KEY}}/{{VERSION}}"   # subdir releases land under
+                # Email templates can come from a URL instead of inline text. ATR fetches it each
+                # time it shows the email form; use it in place of the matching *_template field.
+                start_vote_template_url: https://raw.githubusercontent.com/apache/foo/main/.atr/start-vote.txt
               features:
                 atr_sync: true       # set false to opt out of syncing
         """
