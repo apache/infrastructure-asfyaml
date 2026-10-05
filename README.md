@@ -245,6 +245,7 @@ The remaining fields:
 | `vote_comment_template` | string | Template for vote comments. |
 | `finish_vote_template` | string | Template for the vote-result email. |
 | `announce_release_subject` / `announce_release_template` | string | Subject and body for the announcement email. |
+| `start_vote_template_url` / `vote_comment_template_url` / `finish_vote_template_url` / `announce_release_template_url` | string | A URL to fetch the matching email template from, instead of giving it inline. ATR fetches it each time it shows the email form. |
 | `github_repository_name` | string | GitHub repository backing trusted publishing. |
 | `github_repository_branch` | string | Branch within that repository. |
 | `github_compose_workflow_path` / `github_vote_workflow_path` / `github_finish_workflow_path` | list of paths | Workflow files for each release stage. |
