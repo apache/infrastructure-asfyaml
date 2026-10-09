@@ -1,0 +1,5 @@
+# wait_timer must be below 43200 minutes.
+github:
+  environments:
+    production:
+      wait_timer: 43200

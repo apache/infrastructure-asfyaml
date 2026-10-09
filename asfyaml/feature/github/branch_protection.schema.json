@@ -1,0 +1,102 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/apache/infrastructure-asfyaml/refs/heads/main/asfyaml/feature/github/branch_protection.schema.json",
+  "title": "Branch protection",
+  "description": "Branch protection rules, keyed by branch name. Set to null (~) to remove all managed branch protection. See: https://github.com/apache/infrastructure-asfyaml#branchpro",
+  "type": ["null", "object"],
+  "additionalProperties": {
+    "$ref": "#/definitions/branchProtectionRules"
+  },
+  "definitions": {
+    "branchProtectionRules": {
+      "type": "object",
+      "description": "Protection rules for a single branch. The presence of the required_pull_request_reviews and required_status_checks sections is what enables those protections.",
+      "additionalProperties": false,
+      "properties": {
+        "required_signatures": {
+          "description": "Require signed commits.",
+          "default": false,
+          "$ref": "../../common.schema.json#/definitions/bool"
+        },
+        "required_linear_history": {
+          "description": "Require a linear commit history.",
+          "default": false,
+          "$ref": "../../common.schema.json#/definitions/bool"
+        },
+        "required_conversation_resolution": {
+          "description": "Require all review conversations to be resolved before merging.",
+          "default": false,
+          "$ref": "../../common.schema.json#/definitions/bool"
+        },
+        "required_pull_request_reviews": {
+          "$ref": "#/definitions/requiredPullRequestReviews"
+        },
+        "required_status_checks": {
+          "type": "object",
+          "description": "Require status checks to pass before merging. An empty section removes the status check requirement.",
+          "additionalProperties": false,
+          "properties": {
+            "strict": {
+              "description": "Require branches to be up to date with the base branch before merging.",
+              "default": false,
+              "$ref": "../../common.schema.json#/definitions/bool"
+            },
+            "contexts": {
+              "type": "array",
+              "description": "Status check contexts that must pass, regardless of which app reports them.",
+              "items": {
+                "type": "string"
+              }
+            },
+            "checks": {
+              "type": "array",
+              "description": "Status checks that must pass, optionally pinned to the GitHub App that reports them.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "context": {
+                    "type": "string",
+                    "description": "Name of the status check context."
+                  },
+                  "app_id": {
+                    "type": "integer",
+                    "description": "Numeric id of the GitHub App that must report the check. -1 accepts any source.",
+                    "default": -1
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "requiredPullRequestReviews": {
+      "type": "object",
+      "description": "Require pull request reviews before merging.",
+      "additionalProperties": false,
+      "properties": {
+        "dismiss_stale_reviews": {
+          "description": "Dismiss approving reviews when new commits are pushed.",
+          "default": false,
+          "$ref": "../../common.schema.json#/definitions/bool"
+        },
+        "require_code_owner_reviews": {
+          "description": "Require a review from a code owner.",
+          "default": false,
+          "$ref": "../../common.schema.json#/definitions/bool"
+        },
+        "require_last_push_approval": {
+          "description": "Require an approval from someone other than the last pusher.",
+          "default": false,
+          "$ref": "../../common.schema.json#/definitions/bool"
+        },
+        "required_approving_review_count": {
+          "type": "integer",
+          "description": "Number of required approving reviews.",
+          "default": 0
+        }
+      }
+    }
+  }
+}

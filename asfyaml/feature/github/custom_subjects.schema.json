@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/apache/infrastructure-asfyaml/refs/heads/main/asfyaml/feature/github/custom_subjects.schema.json",
+  "title": "Custom subject lines",
+  "description": "Custom email subject templates for GitHub events. Templates may use the variables {repository}, {user}, {pr_id}, {issue_id}, {link}, {title} and {category}, and may not contain line breaks. See: https://github.com/apache/infrastructure-asfyaml#customsubject",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "close_issue": {
+      "$ref": "#/definitions/subjectTemplate"
+    },
+    "close_pr": {
+      "$ref": "#/definitions/subjectTemplate"
+    },
+    "comment_issue": {
+      "$ref": "#/definitions/subjectTemplate"
+    },
+    "comment_pr": {
+      "$ref": "#/definitions/subjectTemplate"
+    },
+    "diffcomment": {
+      "$ref": "#/definitions/subjectTemplate"
+    },
+    "merge_pr": {
+      "$ref": "#/definitions/subjectTemplate"
+    },
+    "new_issue": {
+      "$ref": "#/definitions/subjectTemplate"
+    },
+    "new_pr": {
+      "$ref": "#/definitions/subjectTemplate"
+    },
+    "catchall": {
+      "description": "Fallback template for any issue or pull request event without its own template.",
+      "$ref": "#/definitions/subjectTemplate"
+    },
+    "new_discussion": {
+      "$ref": "#/definitions/subjectTemplate"
+    },
+    "edit_discussion": {
+      "$ref": "#/definitions/subjectTemplate"
+    },
+    "close_discussion": {
+      "$ref": "#/definitions/subjectTemplate"
+    },
+    "close_discussion_with_comment": {
+      "$ref": "#/definitions/subjectTemplate"
+    },
+    "reopen_discussion": {
+      "$ref": "#/definitions/subjectTemplate"
+    },
+    "new_comment_discussion": {
+      "$ref": "#/definitions/subjectTemplate"
+    },
+    "edit_comment_discussion": {
+      "$ref": "#/definitions/subjectTemplate"
+    },
+    "delete_comment_discussion": {
+      "$ref": "#/definitions/subjectTemplate"
+    },
+    "catchall_discussions": {
+      "description": "Fallback template for any discussion event without its own template.",
+      "$ref": "#/definitions/subjectTemplate"
+    }
+  },
+  "definitions": {
+    "subjectTemplate": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

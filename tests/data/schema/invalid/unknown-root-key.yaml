@@ -1,0 +1,3 @@
+# Typo in a feature name: unknown root keys are rejected.
+gitub:
+  description: typo in the feature name

@@ -1,0 +1,18 @@
+# Exercises the website build, staging and publishing features.
+pelican:
+  target: asf-site
+  theme: example
+  notify: commits@example.apache.org
+  autobuild: site/*
+  minimum_page_count: 10
+jekyll:
+  target: asf-site
+  outputdir: _site
+publish:
+  whoami: asf-site
+  subdir: content
+  type: website
+staging:
+  whoami: asf-staging
+  profile: preview
+  autostage: site/*

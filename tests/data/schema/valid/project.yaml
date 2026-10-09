@@ -1,0 +1,25 @@
+# Exercises the project (ATR) metadata, policy and features sections.
+project:
+  metadata:
+    key: example
+    committee: example
+    name: Apache Example
+    description: An example project.
+    homepage: https://example.apache.org/
+    programming_languages:
+      - Java
+    version_method: semver
+  policy:
+    license_check_mode: RAT
+    vote_mode: email
+    min_hours: 72
+    manual_vote: false
+    vote_recipients:
+      to: dev@example.apache.org
+      cc:
+        - private@example.apache.org
+    file_tag_mappings:
+      dist/*.tar.gz:
+        - source
+  features:
+    atr_sync: true

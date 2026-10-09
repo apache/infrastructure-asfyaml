@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/apache/infrastructure-asfyaml/refs/heads/main/asfyaml/common.schema.json",
+  "title": "Shared definitions",
+  "description": "Definitions shared by the .asf.yaml feature schemas.",
+  "definitions": {
+    "bool": {
+      "description": "A boolean value. Besides native YAML booleans, the .asf.yaml parser (strictyaml) accepts the quoted literals yes/no, on/off, true/false and y/n (case-insensitive).",
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "string",
+          "enum": ["yes", "no", "on", "off", "true", "false", "y", "n"]
+        }
+      ]
+    },
+    "asfEmail": {
+      "type": "string",
+      "description": "An ASF mailing list address, e.g. dev@project.apache.org.",
+      "pattern": "^[-a-z0-9]+@(?:[-a-z0-9]+\\.)?(?:(?:incubator\\.)?apache\\.org|apachecon\\.com)$"
+    }
+  }
+}

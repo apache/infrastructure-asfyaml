@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/apache/infrastructure-asfyaml/refs/heads/main/asfyaml/feature/github/deployment_environments.schema.json",
+  "title": "Deployment environments",
+  "description": "GitHub deployment environments, keyed by environment name. See: https://github.com/apache/infrastructure-asfyaml#environments",
+  "type": "object",
+  "additionalProperties": {
+    "$ref": "#/definitions/environment"
+  },
+  "definitions": {
+    "environment": {
+      "type": "object",
+      "description": "Settings for a single deployment environment.",
+      "additionalProperties": false,
+      "properties": {
+        "required_reviewers": {
+          "type": "array",
+          "description": "Users or teams that must approve deployments to this environment. At most 6 entries.",
+          "maxItems": 6,
+          "items": {
+            "type": "object",
+            "required": ["id"],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": ["integer", "string"],
+                "description": "Numeric id, username or team slug of the reviewer."
+              },
+              "type": {
+                "type": "string",
+                "description": "Kind of reviewer.",
+                "enum": ["User", "Team"],
+                "default": "User"
+              }
+            }
+          }
+        },
+        "prevent_self_review": {
+          "description": "Prevent users from approving their own deployments.",
+          "default": true,
+          "$ref": "../../common.schema.json#/definitions/bool"
+        },
+        "wait_timer": {
+          "type": "integer",
+          "description": "Minutes to wait before allowing deployments to proceed.",
+          "minimum": 0,
+          "maximum": 43199,
+          "default": 0
+        },
+        "deployment_branch_policy": {
+          "type": "object",
+          "description": "Restricts which branches or tags may deploy to this environment. Exactly one of protected_branches and policies must be set.",
+          "additionalProperties": false,
+          "properties": {
+            "protected_branches": {
+              "description": "Only allow deployments from protected branches. Mutually exclusive with policies.",
+              "default": false,
+              "$ref": "../../common.schema.json#/definitions/bool"
+            },
+            "policies": {
+              "type": "array",
+              "description": "Branch or tag name patterns allowed to deploy. Mutually exclusive with protected_branches.",
+              "items": {
+                "type": "object",
+                "required": ["name"],
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Branch or tag name pattern."
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "Whether the pattern matches branches or tags.",
+                    "enum": ["branch", "tag"],
+                    "default": "branch"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
