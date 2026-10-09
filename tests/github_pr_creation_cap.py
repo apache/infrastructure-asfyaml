@@ -175,12 +175,14 @@ class FakeFeature:
         previous_yaml: dict[str, Any],
         requester: FakeRequester,
         noop_enabled: bool = False,
+        has_github_client: bool = True,
     ):
         self.yaml = yaml
         self.previous_yaml = previous_yaml
         self.repository = SimpleNamespace(org_id="apache", name="infrastructure-asfyaml")
         self.ghrepo = SimpleNamespace(_requester=requester)
         self._noop_enabled = noop_enabled
+        self.has_github_client = has_github_client
 
     def noop(self, directive: str) -> bool:
         if self._noop_enabled:
@@ -614,8 +616,8 @@ def test_bypass_user_lookup_error_raises():
     assert [c["method"] for c in requester.calls] == ["GET", "GET"]
 
 
-def test_bypass_list_noop_mode_does_not_call_api(capsys):
-    requester = FakeRequester()
+def test_bypass_list_noop_mode_only_reads(capsys):
+    requester = FakeRequester(responses=bypass_list_responses("hubot"))
     feature = FakeFeature(
         yaml={"pull_requests": {"creation_cap": {"enabled": True, "bypass_users": ["octocat"]}}},
         previous_yaml={},
@@ -626,5 +628,43 @@ def test_bypass_list_noop_mode_does_not_call_api(capsys):
     pr_creation_cap(feature)
 
     captured = capsys.readouterr()
-    assert "bypass list to: octocat" in captured.out
+    assert "Adding to pull request creation cap bypass list: octocat" in captured.out
+    assert "Removing from pull request creation cap bypass list: hubot" in captured.out
+    assert [(c["method"], c["url"]) for c in requester.calls] == [
+        ("GET", BYPASS_LIST_URL),
+        ("GET", "/users/octocat"),
+    ]
+
+
+def test_bypass_list_noop_mode_without_client_skips_lookups(capsys):
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={"pull_requests": {"creation_cap": {"enabled": True, "bypass_users": ["octocat"]}}},
+        previous_yaml={},
+        requester=requester,
+        noop_enabled=True,
+        has_github_client=False,
+    )
+
+    pr_creation_cap(feature)
+
+    captured = capsys.readouterr()
+    assert "skipping bypass list lookups" in captured.out
     assert requester.calls == []
+
+
+def test_unknown_bypass_users_fail_in_noop_mode():
+    responses = bypass_list_responses()
+    responses[("GET", "/users/no-such-user")] = (404, '{"message": "Not Found"}')
+    requester = FakeRequester(responses=responses)
+    feature = FakeFeature(
+        yaml={"pull_requests": {"creation_cap": {"enabled": True, "bypass_users": ["no-such-user"]}}},
+        previous_yaml={},
+        requester=requester,
+        noop_enabled=True,
+    )
+
+    with YamlTest(Exception, "users that do not exist: no-such-user", "").ctx():
+        pr_creation_cap(feature)
+
+    assert [c["method"] for c in requester.calls] == ["GET", "GET"]

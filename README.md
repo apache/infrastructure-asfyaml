@@ -872,7 +872,7 @@ the list. When `bypass_users` is omitted, the bypass list is left untouched, so 
 through the repository settings keeps working. The list is synced whether the cap is enabled or not, so
 turning the cap off with `enabled: false` keeps `bypass_users` in place for when it is turned back on.
 Every login to be added is checked against GitHub first; the run fails and names the unknown logins
-before anything is changed.
+before anything is changed. A noop run does the same check when a `GH_TOKEN` is available.
 
 <h3 id="copilot_code_review">Copilot code review</h3>
 

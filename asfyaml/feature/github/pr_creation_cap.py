@@ -141,18 +141,23 @@ def _plan_bypass_list_changes(self: ASFGitHubFeature, desired: list[str]) -> tup
     return to_add, to_remove
 
 
+def _print_bypass_list_plan(to_add: list[str], to_remove: list[str]) -> None:
+    if to_add:
+        print(f"Adding to pull request creation cap bypass list: {', '.join(to_add)}")
+    if to_remove:
+        print(f"Removing from pull request creation cap bypass list: {', '.join(to_remove)}")
+    if not to_add and not to_remove:
+        print("Pull request creation cap bypass list is already up to date")
+
+
 def _apply_bypass_list_changes(self: ASFGitHubFeature, to_add: list[str], to_remove: list[str]) -> None:
     url = _bypass_list_url(self)
     if to_add:
-        print(f"Adding to pull request creation cap bypass list: {', '.join(to_add)}")
         status, _headers, body = self.ghrepo._requester.requestJson("PUT", url, input={"users": to_add})
         _check_bypass_list_response(self, status, body, "adding users to")
     if to_remove:
-        print(f"Removing from pull request creation cap bypass list: {', '.join(to_remove)}")
         status, _headers, body = self.ghrepo._requester.requestJson("DELETE", url, input={"users": to_remove})
         _check_bypass_list_response(self, status, body, "removing users from")
-    if not to_add and not to_remove:
-        print("Pull request creation cap bypass list is already up to date")
 
 
 @directive
@@ -210,12 +215,21 @@ def pr_creation_cap(self: ASFGitHubFeature):
         print("Disabling pull request creation cap")
     if manage_bypass_list:
         print(f"Setting pull request creation cap bypass list to: {', '.join(bypass_users) or '(empty)'}")
+    noop_mode = self.noop("pr_creation_cap")
 
-    if not self.noop("pr_creation_cap"):
-        # Plan the bypass list first so an unknown login fails the run before the cap is changed.
-        if manage_bypass_list:
+    # Planning only reads, so a dry run with a client also names unknown logins before the cap is changed.
+    to_add: list[str] = []
+    to_remove: list[str] = []
+    if manage_bypass_list:
+        if noop_mode and not self.has_github_client:
+            print("No GitHub client available in noop mode, skipping bypass list lookups")
+        else:
             to_add, to_remove = _plan_bypass_list_changes(self, bypass_users)
-        status, _headers, body = self.ghrepo._requester.requestJson("PATCH", _creation_cap_url(self), input=payload)
-        _check_creation_cap_response(self, status, body)
-        if manage_bypass_list:
-            _apply_bypass_list_changes(self, to_add, to_remove)
+            _print_bypass_list_plan(to_add, to_remove)
+
+    if noop_mode:
+        return
+    status, _headers, body = self.ghrepo._requester.requestJson("PATCH", _creation_cap_url(self), input=payload)
+    _check_creation_cap_response(self, status, body)
+    if manage_bypass_list:
+        _apply_bypass_list_changes(self, to_add, to_remove)

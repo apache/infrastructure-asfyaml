@@ -221,6 +221,11 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
         else:
             return self._ghrepo
 
+    @property
+    def has_github_client(self) -> bool:
+        """Whether GitHub can be queried; in noop mode this needs a GH_TOKEN in the environment."""
+        return self._ghrepo is not None
+
     def run(self):
         """GitHub features"""
         # Test if we need to process this (only works on the default branch)
