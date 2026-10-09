@@ -145,6 +145,8 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                             strictyaml.Optional("max_open_pull_requests"): strictyaml.Int(),
                             # Whether draft pull requests count toward the cap.
                             strictyaml.Optional("include_drafts"): strictyaml.Bool(),
+                            strictyaml.Optional("bypass_users"): asfyaml.validators.EmptyValue()
+                            | strictyaml.Seq(strictyaml.Str()),
                         }
                     ),
                 }
@@ -218,6 +220,11 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             raise RuntimeError("something went wrong, ghrepo is not set")
         else:
             return self._ghrepo
+
+    @property
+    def has_github_client(self) -> bool:
+        """Whether GitHub can be queried; in noop mode this needs a GH_TOKEN in the environment."""
+        return self._ghrepo is not None
 
     def run(self):
         """GitHub features"""
