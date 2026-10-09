@@ -41,7 +41,19 @@ _CONVENIENCE_RULESET_KEYS = {
     "required_pull_request_reviews",
     "required_status_checks",
     "required_status_checks_strict",
+    "merge_queue",
 }
+_MERGE_QUEUE_MERGE_METHODS = {"MERGE", "SQUASH", "REBASE"}
+_MERGE_QUEUE_GROUPING_STRATEGIES = {"ALLGREEN", "HEADGREEN"}
+_MERGE_QUEUE_REQUIRED_FIELDS = (
+    "check_response_timeout_minutes",
+    "grouping_strategy",
+    "max_entries_to_build",
+    "max_entries_to_merge",
+    "merge_method",
+    "min_entries_to_merge",
+    "min_entries_to_merge_wait_minutes",
+)
 _NUMERICAL_VALUE_KEYS = {  # Values that are expected to be integers but YAML gets it wrong..
     "max_entries_to_build",
     "min_entries_to_merge",
@@ -409,6 +421,44 @@ def _build_status_checks_rule(
     }
 
 
+def _build_merge_queue_rule(ruleset: dict[str, Any]) -> dict[str, Any] | None:
+    if "merge_queue" not in ruleset:
+        return None
+
+    config = ruleset.get("merge_queue")
+    if not isinstance(config, dict):
+        raise Exception("merge_queue must be a mapping")
+
+    missing = [field for field in _MERGE_QUEUE_REQUIRED_FIELDS if field not in config]
+    if missing:
+        raise Exception(f"merge_queue is missing required field(s): {', '.join(missing)}")
+
+    grouping_strategy = config["grouping_strategy"]
+    if grouping_strategy not in _MERGE_QUEUE_GROUPING_STRATEGIES:
+        raise Exception(f"merge_queue.grouping_strategy must be one of {sorted(_MERGE_QUEUE_GROUPING_STRATEGIES)}")
+
+    merge_method = config["merge_method"]
+    if merge_method not in _MERGE_QUEUE_MERGE_METHODS:
+        raise Exception(f"merge_queue.merge_method must be one of {sorted(_MERGE_QUEUE_MERGE_METHODS)}")
+
+    return {
+        "type": "merge_queue",
+        "parameters": {
+            "check_response_timeout_minutes": _expect_int(
+                config["check_response_timeout_minutes"], "merge_queue.check_response_timeout_minutes"
+            ),
+            "grouping_strategy": grouping_strategy,
+            "max_entries_to_build": _expect_int(config["max_entries_to_build"], "merge_queue.max_entries_to_build"),
+            "max_entries_to_merge": _expect_int(config["max_entries_to_merge"], "merge_queue.max_entries_to_merge"),
+            "merge_method": merge_method,
+            "min_entries_to_merge": _expect_int(config["min_entries_to_merge"], "merge_queue.min_entries_to_merge"),
+            "min_entries_to_merge_wait_minutes": _expect_int(
+                config["min_entries_to_merge_wait_minutes"], "merge_queue.min_entries_to_merge_wait_minutes"
+            ),
+        },
+    }
+
+
 def _is_raw_ruleset_definition(ruleset: dict[str, Any]) -> bool:
     return any(key in ruleset for key in _RAW_RULESET_KEYS)
 
@@ -508,6 +558,10 @@ def _to_payload_ruleset(
     )
     if status_checks_rule:
         rules.append(status_checks_rule)
+
+    merge_queue_rule = _build_merge_queue_rule(ruleset)
+    if merge_queue_rule:
+        rules.append(merge_queue_rule)
 
     payload["rules"] = rules
     return payload
