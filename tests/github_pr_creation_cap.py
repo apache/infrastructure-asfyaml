@@ -56,6 +56,31 @@ github:
 """,
 )
 
+valid_creation_cap_include_drafts = YamlTest(
+    None,
+    None,
+    """
+github:
+    pull_requests:
+      creation_cap:
+        enabled: true
+        max_open_pull_requests: 5
+        include_drafts: true
+""",
+)
+
+invalid_creation_cap_include_drafts_type = YamlTest(
+    asfyaml.asfyaml.ASFYAMLException,
+    "when expecting a boolean value",
+    """
+github:
+    pull_requests:
+      creation_cap:
+        enabled: true
+        include_drafts: sometimes
+""",
+)
+
 invalid_creation_cap_type = YamlTest(
     asfyaml.asfyaml.ASFYAMLException,
     "when expecting an integer",
@@ -108,6 +133,8 @@ def test_basic_yaml(test_repo: asfyaml.dataobjects.Repository):
     tests_to_run = (
         valid_creation_cap,
         valid_creation_cap_disabled,
+        valid_creation_cap_include_drafts,
+        invalid_creation_cap_include_drafts_type,
         invalid_creation_cap_type,
     )
 
@@ -252,6 +279,76 @@ def test_error_response_raises(status: int, body: str, expected: str):
 
     with YamlTest(Exception, expected, "").ctx():
         pr_creation_cap(feature)
+
+
+def test_include_drafts_true_is_sent():
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={
+            "pull_requests": {"creation_cap": {"enabled": True, "max_open_pull_requests": 5, "include_drafts": True}}
+        },
+        previous_yaml={},
+        requester=requester,
+    )
+
+    pr_creation_cap(feature)
+
+    assert requester.calls == [
+        {
+            "method": "PATCH",
+            "url": CAP_URL,
+            "input": {"enabled": True, "max_open_pull_requests": 5, "include_drafts": True},
+        }
+    ]
+
+
+def test_include_drafts_false_is_sent():
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={"pull_requests": {"creation_cap": {"enabled": True, "include_drafts": False}}},
+        previous_yaml={"pull_requests": {"creation_cap": {"enabled": True, "include_drafts": True}}},
+        requester=requester,
+    )
+
+    pr_creation_cap(feature)
+
+    assert requester.calls == [{"method": "PATCH", "url": CAP_URL, "input": {"enabled": True, "include_drafts": False}}]
+
+
+def test_removed_include_drafts_is_reset():
+    # Dropping include_drafts from the yaml should stop drafts counting, rather than
+    # leave the setting where the previous run put it.
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={"pull_requests": {"creation_cap": {"enabled": True, "max_open_pull_requests": 5}}},
+        previous_yaml={
+            "pull_requests": {"creation_cap": {"enabled": True, "max_open_pull_requests": 5, "include_drafts": True}}
+        },
+        requester=requester,
+    )
+
+    pr_creation_cap(feature)
+
+    assert requester.calls == [
+        {
+            "method": "PATCH",
+            "url": CAP_URL,
+            "input": {"enabled": True, "max_open_pull_requests": 5, "include_drafts": False},
+        }
+    ]
+
+
+def test_include_drafts_not_sent_when_disabled():
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={"pull_requests": {"creation_cap": {"enabled": False, "include_drafts": True}}},
+        previous_yaml={},
+        requester=requester,
+    )
+
+    pr_creation_cap(feature)
+
+    assert requester.calls == [{"method": "PATCH", "url": CAP_URL, "input": {"enabled": False}}]
 
 
 def test_noop_mode_does_not_call_api(capsys):
