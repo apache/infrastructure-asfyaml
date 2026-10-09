@@ -841,6 +841,8 @@ github:
       enabled: true
       # maximum number of open PRs a user without write access may have (1-1000)
       max_open_pull_requests: 5
+      # count draft pull requests toward the cap as well
+      include_drafts: true
 ~~~
 
 Supported settings:
@@ -848,10 +850,16 @@ Supported settings:
 ~~~yaml
 enabled: <boolean>                # required
 max_open_pull_requests: <int>     # optional, 1-1000; if omitted, GitHub's default is used
+include_drafts: <boolean>         # optional; whether draft PRs count toward the cap
 ~~~
 
 Set `enabled: false` to turn the cap off. Removing the `creation_cap` section also disables a cap that
 was previously managed by `.asf.yaml`.
+
+By default GitHub does not count draft pull requests toward the cap, so a user could open any number
+of drafts. Set `include_drafts: true` to [count them too](https://github.blog/changelog/2026-10-08-draft-pull-requests-count-toward-pull-request-limits/).
+Removing `include_drafts` after it was set turns it back off. If you leave it out and never set it,
+`.asf.yaml` does not change it, and a value set by hand in the repository settings stays.
 
 <h3 id="copilot_code_review">Copilot code review</h3>
 

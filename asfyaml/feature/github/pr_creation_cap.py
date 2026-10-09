@@ -68,16 +68,22 @@ def pr_creation_cap(self: ASFGitHubFeature):
     previous_yaml = self.previous_yaml if isinstance(self.previous_yaml, dict) else {}
     previous_pull_requests = previous_yaml.get("pull_requests") or {}
     was_previously_configured = "creation_cap" in previous_pull_requests
+    previous_creation_cap = previous_pull_requests.get("creation_cap") or {}
 
     if creation_cap:
         enabled = creation_cap.get("enabled", False)
         # Optional: when omitted (None), the key is left out of the payload below and
         # GitHub applies its own default cap.
         max_open_pull_requests = creation_cap.get("max_open_pull_requests")
+        include_drafts = creation_cap.get("include_drafts")
+        if include_drafts is None and "include_drafts" in previous_creation_cap:
+            # The key was removed; stop counting drafts rather than leave the previous setting.
+            include_drafts = False
     elif was_previously_configured:
         # The section was removed; disable the cap that .asf.yaml previously managed.
         enabled = False
         max_open_pull_requests = None
+        include_drafts = None
     else:
         return
 
@@ -89,12 +95,16 @@ def pr_creation_cap(self: ASFGitHubFeature):
                 f"{MIN_OPEN_PULL_REQUESTS} and {MAX_OPEN_PULL_REQUESTS}, got {max_open_pull_requests}"
             )
         payload["max_open_pull_requests"] = max_open_pull_requests
+    if enabled and include_drafts is not None:
+        payload["include_drafts"] = include_drafts
 
     if enabled:
         if "max_open_pull_requests" in payload:
             print(f"Setting pull request creation cap to enabled, max {max_open_pull_requests} open per user")
         else:
             print("Setting pull request creation cap to enabled")
+        if "include_drafts" in payload:
+            print(f"Draft pull requests {'count' if include_drafts else 'do not count'} toward the cap")
     else:
         print("Disabling pull request creation cap")
 

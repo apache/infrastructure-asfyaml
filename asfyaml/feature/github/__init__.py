@@ -143,6 +143,8 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                         {
                             "enabled": strictyaml.Bool(),
                             strictyaml.Optional("max_open_pull_requests"): strictyaml.Int(),
+                            # Whether draft pull requests count toward the cap.
+                            strictyaml.Optional("include_drafts"): strictyaml.Bool(),
                         }
                     ),
                 }
