@@ -992,7 +992,6 @@ github:
             strict_required_status_checks_policy: false
             required_status_checks:
               - context: gh-infra/jenkins
-                integration_id: -1
 ~~~
 
 Rule summary for the raw payload example:
@@ -1003,6 +1002,14 @@ Rule summary for the raw payload example:
 - `required_linear_history`: Disallows merge commits on matching refs.
 - `pull_request`: Requires pull requests and controls review policy.
 - `required_status_checks`: Requires specific CI checks before merge/update.
+
+Raw payload values reach the Rulesets API as strings, except `true`/`false` and a
+fixed set of keys (such as `actor_id` and `required_approving_review_count`),
+which are converted to booleans and integers. `integration_id` is not one of them: write
+`integration_id: -1` and it is sent as the string `"-1"`, which GitHub rejects
+with `Invalid property /rules/N: data matches no possible input`. To accept a
+check from any source, leave `integration_id` out; to pin it to an app, use the
+convenience syntax and its `app_slug`.
 
 For the full list of supported rules and semantics, see GitHub docs:
 
