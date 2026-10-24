@@ -81,6 +81,7 @@ It operates on a per-branch basis, meaning you can have different settings for d
       <li><a href="#repo_meta">Repository metadata</a></li>
       <li><a href="#tag_protect">Tag protection</a></li>
       <li><a href="#environments">Deployment environments</a></li>
+      <li><a href="#oidc_subject">GitHub Actions OIDC subject claim</a></li>
     </ul>
   </li>
   <li><a href="#static">Generating static website content</a>
@@ -1182,6 +1183,43 @@ deployment_branch_policy: ~
 - by default `protected_branches` is set to `false`
 - the default `type` for a `required_reviewer` is `User`
 - the default `type` for a `deployment_branch_policy` is `branch`
+
+<p align="right"><a href="#top">Return to top</a>
+
+<h3 id="oidc_subject">GitHub Actions OIDC subject claim</h3>
+
+Workflows that log in to a cloud provider with GitHub's [OpenID Connect tokens](https://docs.github.com/en/actions/concepts/security/openid-connect)
+are trusted by the token's `sub` claim. By default it names the repository by owner and name, e.g.
+`repo:apache/foo:ref:refs/heads/main`. With the [immutable format](https://docs.github.com/en/actions/reference/security/oidc#immutable-subject-claims)
+it also carries the owner and repository IDs, e.g. `repo:apache@47359/foo@123456789:ref:refs/heads/main`, so a
+renamed, deleted or re-created repository can no longer match a trust policy written for the old one.
+Repositories created after July 15, 2026 use the immutable format already; older ones keep the old format
+until they opt in.
+
+~~~yaml
+github:
+  oidc_subject:
+    # use the immutable, ID-based subject claim format
+    use_immutable_subject: true
+~~~
+
+Supported settings:
+
+~~~yaml
+use_immutable_subject: <boolean>     # optional; opt in to (or out of) the immutable format
+include_claim_keys: [<string>, ...]  # optional; a custom claim template, e.g. [repo, context, job_workflow_ref]
+~~~
+
+Without `include_claim_keys` the subject uses GitHub's default template. With it, the subject is built from
+the listed [claim keys](https://docs.github.com/en/actions/reference/security/oidc#customizing-the-subject-claims-for-an-organization-or-repository)
+instead. Removing `include_claim_keys`, or the whole `oidc_subject` section, goes back to the default template.
+
+`use_immutable_subject` is only changed when it is written down. Removing it, or the section, leaves the
+format as it is: switching a repository back to the old format breaks every trust policy written for the
+immutable one, so it takes an explicit `use_immutable_subject: false`.
+
+**Note**: a trust policy written for one format does not match tokens in the other. Update the policies in
+your cloud account in the same change, or first allow both subjects, then drop the old one.
 
 <p align="right"><a href="#top">Return to top</a>
 

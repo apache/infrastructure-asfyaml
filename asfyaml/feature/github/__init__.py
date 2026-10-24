@@ -160,6 +160,13 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                     strictyaml.Optional("review_on_push", default=False): strictyaml.Bool(),
                 }
             ),
+            # GitHub Actions OIDC token subject claim format
+            strictyaml.Optional("oidc_subject"): strictyaml.Map(
+                {
+                    strictyaml.Optional("use_immutable_subject"): strictyaml.Bool(),
+                    strictyaml.Optional("include_claim_keys"): strictyaml.Seq(strictyaml.Str()),
+                }
+            ),
             # Delete branch on merge
             # TODO: deprecated, use "pull_requests.del_branch_on_merge" instead
             strictyaml.Optional("del_branch_on_merge"): strictyaml.Bool(),
@@ -286,4 +293,5 @@ from . import (
     deployment_environments,
     rulesets,
     copilot_code_review,
+    oidc_subject,
 )
