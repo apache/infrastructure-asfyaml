@@ -68,6 +68,11 @@ It operates on a per-branch basis, meaning you can have different settings for d
       <li><a href="#delete_branch">Delete branch on merge</a></li>
       <li><a href="#depend_alerts">Dependabot alerts and updates</a></li>
       <li><a href="#GHA_build_status">GitHub Actions build status emails</a></li>
+      <li><a href="#gha_settings">GitHub Actions settings</a>
+        <ul>
+          <li><a href="#fork_pr_contributor_approval">Fork pull request workflow approval</a></li>
+        </ul>
+      </li>
       <li><a href="#pages">GitHub Pages</a></li>
       <li><a href="#pull_requests">Pull Request settings</a>
         <ul>
@@ -787,6 +792,35 @@ notifications:
 ~~~
 
 This triggers emails when a workflow run fails or if it succeeds after a series of failures. We do not send notifications on normal, successful runs, so as to not spam too much.
+
+<h3 id="gha_settings">GitHub Actions settings</h3>
+
+Projects can configure repository-level GitHub Actions permissions under `github.actions`.
+
+<h4 id="fork_pr_contributor_approval">Fork pull request workflow approval</h4>
+
+You can control which external contributors require maintainer approval before [GitHub Actions workflows run on pull requests from forks](https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/approving-workflow-runs-from-public-forks) (`Settings → Actions → General` → *Approval for running fork pull request workflows from contributors*):
+
+~~~yaml
+github:
+  actions:
+    fork_pr_contributor_approval: all_external_contributors
+~~~
+
+Supported values for `fork_pr_contributor_approval`:
+
+| Value | Meaning |
+| --- | --- |
+| `first_time_contributors_new_to_github` | Require approval only for users who are new to GitHub and have never had a commit or pull request merged into the repository. |
+| `first_time_contributors` | Require approval for users who have never had a commit or pull request merged into the repository. |
+| `all_external_contributors` | Require approval for all users who are neither members of the `apache` organization nor collaborators on the repository (the ASF default). |
+
+Removing `fork_pr_contributor_approval` (or the `actions` section) after it was managed by `.asf.yaml` reverts the repository back to `all_external_contributors`. If it is omitted and was never set in `.asf.yaml`, `.asf.yaml` leaves the repository's current setting unchanged.
+
+> [!WARNING]
+> Relaxing this setting below `all_external_contributors` lets returning contributors' fork pull request workflows — including changes to workflow and CI definitions — run without maintainer review. While GitHub-hosted `pull_request` runs have read-only tokens and no secrets, that sandboxing does not protect self-hosted or ASF-provided runners where workflow approval is part of the runner trust model. Projects that rely on workflow approval as a security gate (for self-hosted runners or automated approval gates) should keep `all_external_contributors`; approval load can instead be automated for safe PRs (for example via scheduled inspection from `main` as in [apache/airflow#75455](https://github.com/apache/airflow/pull/75455), or label-triggered approval workflows).
+
+**Note**: GitHub does not offer a repository setting that requires approval for organization members or repository collaborators; `all_external_contributors` is the strictest policy supported by GitHub. If an organization or enterprise policy enforces a stricter baseline, GitHub will reject attempts to select a more permissive option.
 
 <h3 id="pages">GitHub Pages</h3>
 
