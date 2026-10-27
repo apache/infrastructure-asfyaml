@@ -157,6 +157,9 @@ _POLICY_SCHEMA = strictyaml.Map(
 _FEATURES_SCHEMA = strictyaml.Map(
     {
         strictyaml.Optional("atr_sync"): strictyaml.Bool(),
+        # merge (the default) updates only the fields this file sets; full also resets
+        # every field the file leaves out to its ATR default
+        strictyaml.Optional("atr_sync_mode"): strictyaml.Enum(["merge", "full"]),
     }
 )
 
@@ -198,6 +201,7 @@ class ASFATRFeature(ASFYamlFeature, name="project", env="production", priority=5
                 start_vote_template_url: https://raw.githubusercontent.com/apache/foo/main/.atr/start-vote.txt
               features:
                 atr_sync: true       # set false to opt out of syncing
+                atr_sync_mode: full  # merge (default) updates only the fields set here; full resets the rest
         """
         # Only sync from the default branch — metadata is repo-wide, not per-branch.
         if self.instance.branch != self.repository.default_branch:
@@ -232,6 +236,10 @@ class ASFATRFeature(ASFYamlFeature, name="project", env="production", priority=5
         policy = self.yaml.get("policy")
         if policy:
             payload["policy"] = dict(policy)
+        # Only forwarded when authored, so ATR's own default (merge) applies otherwise
+        sync_mode = features.get("atr_sync_mode")
+        if sync_mode:
+            payload["sync_mode"] = sync_mode
 
         if self.noop("atr"):
             print(json.dumps(payload, indent=2))
