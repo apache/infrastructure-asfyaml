@@ -526,6 +526,48 @@ project:
     assert payload["policy"]["vote_recipients"]["to"] == "private@tooling.apache.org"
 
 
+def test_noop_payload_omits_sync_mode_unless_authored(atr_repo: asfyaml.dataobjects.Repository, capsys):
+    yaml = """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+    features:
+        atr_sync: true
+"""
+    a = asfyaml.asfyaml.ASFYamlInstance(
+        repo=atr_repo, committer="arm", config_data=yaml, branch=asfyaml.dataobjects.DEFAULT_BRANCH
+    )
+    a.environments_enabled.add("noop")
+    a.no_cache = True
+    a.run_parts()
+
+    out = capsys.readouterr().out
+    payload = json.loads(out[out.index("{") : out.rindex("}") + 1])
+    assert "sync_mode" not in payload
+
+
+def test_noop_payload_carries_sync_mode(atr_repo: asfyaml.dataobjects.Repository, capsys):
+    yaml = """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+    features:
+        atr_sync_mode: full
+"""
+    a = asfyaml.asfyaml.ASFYamlInstance(
+        repo=atr_repo, committer="arm", config_data=yaml, branch=asfyaml.dataobjects.DEFAULT_BRANCH
+    )
+    a.environments_enabled.add("noop")
+    a.no_cache = True
+    a.run_parts()
+
+    out = capsys.readouterr().out
+    payload = json.loads(out[out.index("{") : out.rindex("}") + 1])
+    assert payload["sync_mode"] == "full"
+
+
 def test_noop_payload_policy_types(atr_repo: asfyaml.dataobjects.Repository, capsys):
     yaml = """
 project:

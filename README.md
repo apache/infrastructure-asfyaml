@@ -163,7 +163,7 @@ The version-scheme fields tell ATR how your version strings decompose into relea
 | `version_method` | `simple`, `semver` or `calver` | How version strings are interpreted. Defaults to `simple`. |
 | `version_pattern` | regex | Validates a release version string. |
 | `cycle_match` | regex | Groups versions into cycles; the first capture group is the cycle key. |
-| `calver_format` | date format | For `calver` projects only. Describes the version shape as a date format (e.g. `(YY.MM).N`); ATR compiles `cycle_match` from it, so set one or the other, not both. |
+| `calver_format` | date format | For `calver` projects only, and `version_method: calver` must be set. Describes the version shape as a date format (e.g. `(YY.MM).N`); ATR compiles `cycle_match` from it, so set one or the other, not both. |
 | `branch_template` | string | Names the release branch per cycle, e.g. `release-{cycle}`. |
 
 A calver project sets `version_method: calver` and `calver_format` instead of `cycle_match`:
@@ -255,6 +255,17 @@ The remaining fields:
 By default, your project definition will be synchronized to ATR. If you wish to opt out of this, setting `atr_sync: false` will allow you to define the values but opt-out of the sync process.
 
 When sync is _enabled_, the .asf.yaml file is the authoritative source of project metadata. You can still edit the values manually in ATR, but the next push from your default branch will overwrite those edits with what the .asf.yaml file says.
+
+By default, a push updates only the fields the file sets. A field you remove from the file keeps its value in ATR. To make the file the whole configuration, set `atr_sync_mode: full`:
+
+~~~yaml
+project:
+  features:
+    atr_sync: true
+    atr_sync_mode: full
+~~~
+
+With `full`, every field the file can set but leaves out is reset to the ATR default on each push. This is also the only way to clear a list from the file. The project name is never reset. The default mode is `merge`. ATR's export function can produce the file in either mode.
 
 <h4 id="atrinit">Initial values from ATR</h4>
 
