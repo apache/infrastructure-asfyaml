@@ -16,14 +16,22 @@
 # under the License.
 
 import json
+import os
+import subprocess
 import time
+from typing import Any
 from urllib.parse import urlparse
 
+import github as pygithub
+import github.Auth as pygithubAuth
+import github.Repository as pygithubrepo
 import requests
 import strictyaml
 from defusedxml.ElementTree import ParseError, fromstring
 
-from asfyaml.asfyaml import ASFYamlFeature
+import asfyaml.dataobjects as dataobjects
+from asfyaml.asfyaml import ASFYamlFeature, ASFYamlInstance
+from asfyaml.feature.github import GH_TOKEN_FILE
 
 # DOAP / RDF / ASF-extension XML namespaces, as used in ASF project DOAP files.
 _DOAP_NS = "{http://usefulinc.com/ns/doap#}"
@@ -163,6 +171,46 @@ _FEATURES_SCHEMA = strictyaml.Map(
     }
 )
 
+# The trusted publishing fields. Registering a workflow with ATR lets that workflow act as the
+# PMC with no login or MFA, so a block carrying any of these is a credential and gets the
+# default-branch protection check before it is sent. Everything else in the policy is not.
+_TP_FIELDS = (
+    "github_repository_name",
+    "github_repository_branch",
+    "github_compose_workflow_path",
+    "github_vote_workflow_path",
+    "github_finish_workflow_path",
+)
+_TP_WORKFLOW_FIELDS = (
+    "github_compose_workflow_path",
+    "github_vote_workflow_path",
+    "github_finish_workflow_path",
+)
+
+# The rules the push must have been evaluated against, in a ruleset enforced as active. In
+# the language of tooling-trusted-releases#1776: pull_request is PUSH, non_fast_forward is
+# MOVE. creation is not needed - the default branch already exists - and a review count is
+# deliberately not required, matching the line ATR takes for the workflows themselves.
+_REQUIRED_RULES = ("pull_request", "non_fast_forward")
+
+# GitHub indexes a rule suite shortly after the push rather than in the same instant, so
+# give it a moment and look again before deciding there is none. Short on purpose: this runs
+# inside the gitbox hook, so the total wait is a few seconds, not minutes.
+_RULE_SUITE_ATTEMPTS = 3
+_RULE_SUITE_RETRY_SECONDS = 3
+
+# Pages of rule suites to walk per attempt. A busy branch can have more than one page in a
+# month; five pages of a hundred is far more than any push has to look back through.
+_RULE_SUITE_MAX_PAGES = 5
+
+_PROTECTION_HELP = (
+    "Add an active ruleset on the default branch with 'Require a pull request before merging' and "
+    "'Block force pushes' (for example through the `github: rulesets:` directive in this file - classic "
+    "branch protection under `github: protected_branches:` is not accepted for this, as only a ruleset "
+    "records explicitly, per push, whether its rules were bypassed), then land the .asf.yaml change "
+    "through a pull request. See 'Trusted publishing requirements' in the .asf.yaml README."
+)
+
 
 class ASFATRFeature(ASFYamlFeature, name="project", env="production", priority=5):
     """Push project metadata from .asf.yaml to the Apache Trusted Releases (ATR) platform."""
@@ -174,6 +222,19 @@ class ASFATRFeature(ASFYamlFeature, name="project", env="production", priority=5
             strictyaml.Optional("features"): _FEATURES_SCHEMA,
         }
     )
+
+    def __init__(self, parent: ASFYamlInstance, yaml: strictyaml.YAML, **kwargs):
+        super().__init__(parent, yaml)
+        # Only built when the block carries trusted publishing fields; a metadata-only block
+        # never contacts GitHub at all.
+        self._gh: pygithub.Github | None = None
+        self._ghrepo: pygithubrepo.Repository | None = None
+
+    @property
+    def ghrepo(self) -> pygithubrepo.Repository:
+        if self._ghrepo is None:
+            raise RuntimeError("something went wrong, ghrepo is not set")
+        return self._ghrepo
 
     def run(self):
         """
@@ -199,6 +260,15 @@ class ASFATRFeature(ASFYamlFeature, name="project", env="production", priority=5
                 # Email templates can come from a URL instead of inline text. ATR fetches it each
                 # time it shows the email form; use it in place of the matching *_template field.
                 start_vote_template_url: https://raw.githubusercontent.com/apache/foo/main/.atr/start-vote.txt
+                # Trusted publishing: workflows in this repository that act as the PMC in ATR.
+                # Setting any of these requires the default branch to be protected by an active
+                # ruleset (pull request required, force pushes blocked) and the change to have
+                # landed through a pull request. Otherwise the sync fails, nothing from this
+                # block reaches ATR, and the committer gets the error by email.
+                github_repository_name: foo    # optional, must be this repository; filled in if left out
+                github_repository_branch: main
+                github_vote_workflow_path:
+                  - .github/workflows/vote.yml
               features:
                 atr_sync: true       # set false to opt out of syncing
                 atr_sync_mode: full  # merge (default) updates only the fields set here; full resets the rest
@@ -222,20 +292,23 @@ class ASFATRFeature(ASFYamlFeature, name="project", env="production", priority=5
         repo_name = self.repository.name
         if repo_name != committee_key and not repo_name.startswith(f"{committee_key}-"):
             raise Exception(f"committee '{committee_key}' does not match repository name '{repo_name}'")
+
+        policy = dict(self.yaml.get("policy") or {})
+        self._gate_trusted_publishing(policy)
+
         # A DOAP file, if given, is the authoritative source for the project fields it can
         # express. The ATR-only fields, which DOAP has no vocabulary for, stay as authored.
         doap_url = metadata.pop("doap", None)
         if doap_url:
             local = {key: value for key, value in metadata.items() if key in _NON_DOAP_FIELDS}
             metadata = _parse_doap(doap_url) | local
-        payload = {
+        payload: dict[str, Any] = {
             "project_key": project_key,
             "committee_key": committee_key,
             "project": metadata,
         }
-        policy = self.yaml.get("policy")
         if policy:
-            payload["policy"] = dict(policy)
+            payload["policy"] = policy
         # Only forwarded when authored, so ATR's own default (merge) applies otherwise
         sync_mode = features.get("atr_sync_mode")
         if sync_mode:
@@ -259,6 +332,283 @@ class ASFATRFeature(ASFYamlFeature, name="project", env="production", priority=5
             # Surface the API's error body — it's the most useful thing to put in the bounce email.
             raise Exception(f"ATR API call failed ({resp.status_code}): {resp.text}")
         print(f"[project] ok: {resp.text}")
+        # The cache means "this block reached ATR", and the trusted publishing gate relies on
+        # exactly that: it is only saved here, after a live POST that ATR accepted. Not in noop,
+        # not after an ATR error, and never after a failed gate (which raised long before this).
+        self.save_cached_yaml()
+
+    def _gate_trusted_publishing(self, policy: dict) -> None:
+        """Refuse to send trusted publishing fields unless the default branch is protected.
+
+        Mutates `policy` to pin `github_repository_name` to this repository when workflow paths
+        are given without one. Returns quietly when there is nothing to gate, or when the
+        fields are the same as the last block that reached ATR.
+        """
+        authored = {key: policy[key] for key in _TP_FIELDS if key in policy}
+        if not authored:
+            return
+
+        # The workflows must live in the repository whose protection we are about to check.
+        # ATR prepends apache/ itself, so this is the bare name on both sides.
+        repo_name = self.repository.name
+        if "github_repository_name" in authored and authored["github_repository_name"] != repo_name:
+            raise Exception(
+                f"policy github_repository_name '{authored['github_repository_name']}' must be this repository "
+                f"('{repo_name}'); trusted publishing workflows can only be registered from the repository "
+                "that holds them"
+            )
+        if "github_repository_name" not in authored and any(key in authored for key in _TP_WORKFLOW_FIELDS):
+            policy["github_repository_name"] = repo_name
+
+        # Compare authored values against the last block that reached ATR, so a push that only
+        # touches metadata does not re-run the check. No cache (or meta: cache: false) means
+        # the check runs, which is the safe direction for a pusher to be able to force.
+        previous_policy = self.load_cached_yaml().get("policy") or {}
+        previous = {key: previous_policy[key] for key in _TP_FIELDS if key in previous_policy}
+        if previous == authored:
+            print(
+                "[project] Trusted publishing fields are unchanged since the last applied .asf.yaml, "
+                "default branch protection check skipped"
+            )
+            return
+
+        branch = self.repository.default_branch
+        sha, old_sha = self._push_to_default_branch(branch)
+        if old_sha is None:
+            print(
+                f"[project] No reflog, so the old state of .asf.yaml is not available: treating this push "
+                f"as the one that changed the trusted publishing fields and checking {sha}"
+            )
+        elif old_sha != "0" * 40 and _tp_fields_at(self.repository.path, old_sha) == authored:
+            fields = ", ".join(sorted(authored))
+            raise Exception(
+                f"Trusted publishing configuration refused: the trusted publishing field(s) {fields} under "
+                f"policy: were introduced by an earlier push to '{branch}' (they are already present at "
+                f"{old_sha}) that did not pass the check, or whose sync did not complete, and they have not "
+                "reached ATR. This push did not change them, so its own rule suite says nothing about how "
+                "they got there. They must be changed again through a pull request so that a protected push "
+                f"carries them. {_PROTECTION_HELP}"
+            )
+
+        self._check_default_branch_protection(sorted(authored), branch, sha)
+
+    def _check_default_branch_protection(self, fields: list[str], branch: str, sha: str) -> None:
+        """Check the rule suite GitHub recorded for the push that put this .asf.yaml on the default branch.
+
+        The per-push record is used rather than the branch's current rules because the same
+        push can add a ruleset through the github: feature, which may run in the same push
+        before or after this one; the current rules would then pass on protection that did not
+        exist when the push landed.
+        """
+        noop_mode = "noop" in self.instance.environments_enabled
+        token = _github_token(noop_mode)
+        if token is None:
+            print(
+                f"[project] No GitHub token available in noop mode, protection check skipped for push {sha} "
+                f"to '{branch}' - a live run would check it"
+            )
+            return
+        self._connect_github(token)
+
+        ref = f"refs/heads/{branch}"
+        suite, suites_seen = self._find_rule_suite(ref, sha)
+        trigger = f"The trusted publishing field(s) {', '.join(fields)} under policy: triggered this check."
+        where = f"default branch '{branch}' (push {sha} to {ref})"
+        problem = _protection_problem(suite, suites_seen, sha, ref)
+        if problem or suite is None:
+            raise Exception(
+                f"Trusted publishing configuration refused: {where}: {problem}. {_PROTECTION_HELP} {trigger}"
+            )
+        print(
+            f"[project] default branch '{branch}' passed the protection check for push {sha}: "
+            f"rule suite {suite['id']} passed with active ruleset rules {', '.join(_passing_ruleset_rules(suite))}"
+        )
+
+    def _push_to_default_branch(self, branch: str) -> tuple[str, str | None]:
+        """The SHA this push left the default branch at, and the SHA it was at before.
+
+        The gitbox hook (and asfyaml-run --old-sha) hand us a reflog, so both come from the
+        changeset for the branch. Plain asfyaml-run has no reflog and runs against a checkout,
+        so HEAD of the repository path is the new SHA and the old one is None: there is no old
+        state to compare against. dataobjects.gitcmd runs in the current directory, hence -C.
+        """
+        ref = f"refs/heads/{branch}"
+        changesets = list(self.repository.changesets)
+        for changeset in changesets:
+            if changeset.name == ref:
+                return changeset.newsha, changeset.oldsha
+        if changesets:
+            # A reflog that does not mention the default branch means we are not looking at
+            # the push that changed it; HEAD would be a guess, so say so instead.
+            refs = ", ".join(changeset.name for changeset in changesets)
+            raise Exception(
+                f"could not work out the SHA pushed to '{branch}': the reflog has no {ref} entry (saw {refs})"
+            )
+        sha = dataobjects.gitcmd("-C", str(self.repository.path), "rev-parse", "HEAD").strip()
+        if not sha:
+            raise Exception(
+                f"could not work out the SHA pushed to '{branch}': no reflog and git rev-parse HEAD "
+                f"failed in {self.repository.path}"
+            )
+        return sha, None
+
+    def _connect_github(self, token: str) -> None:
+        self._gh = pygithub.Github(auth=pygithubAuth.Token(token))
+        self._ghrepo = self._gh.get_repo(f"{self.repository.org_id}/{self.repository.name}")
+
+    def _find_rule_suite(self, ref: str, sha: str) -> tuple[dict | None, int]:
+        """The rule suite for this push, with its rule evaluations, and how many suites the branch had.
+
+        The suite must be for `ref` and have `after_sha` equal to the push. Pages are walked
+        in order until a match or a short page; the count of suites seen lets the caller tell
+        "none for this push yet" from "none for this branch at all". time_period defaults to a
+        day; month is the widest GitHub offers, and keeps a sandbox .asf.yaml that landed
+        yesterday findable.
+        """
+        endpoint = f"/repos/{self.repository.org_id}/{self.repository.name}/rulesets/rule-suites"
+        per_page = 100
+        suites_seen = 0
+        for attempt in range(1, _RULE_SUITE_ATTEMPTS + 1):
+            suites_seen = 0
+            for page in range(1, _RULE_SUITE_MAX_PAGES + 1):
+                parameters = {"ref": ref, "time_period": "month", "per_page": per_page, "page": page}
+                status, _headers, body = self.ghrepo._requester.requestJson("GET", endpoint, parameters=parameters)
+                if status != 200:
+                    raise Exception(f"GitHub returned {status} while listing rule suites for {ref}: {body}")
+                summaries = [summary for summary in json.loads(body) if isinstance(summary, dict)]
+                suites_seen += sum(1 for summary in summaries if summary.get("ref") == ref)
+                for summary in summaries:
+                    if summary.get("ref") == ref and summary.get("after_sha") == sha:
+                        status, _headers, body = self.ghrepo._requester.requestJson(
+                            "GET", f"{endpoint}/{summary['id']}"
+                        )
+                        if status != 200:
+                            raise Exception(
+                                f"GitHub returned {status} while fetching rule suite {summary['id']}: {body}"
+                            )
+                        return json.loads(body), suites_seen
+                if len(summaries) < per_page:
+                    break
+            if attempt < _RULE_SUITE_ATTEMPTS:
+                print(
+                    f"[project] No rule suite for {sha} on {ref} yet, retrying in {_RULE_SUITE_RETRY_SECONDS}s "
+                    f"(attempt {attempt}/{_RULE_SUITE_ATTEMPTS})"
+                )
+                time.sleep(_RULE_SUITE_RETRY_SECONDS)
+        return None, suites_seen
+
+
+def _github_token(noop_mode: bool) -> str | None:
+    """The GitHub token, the same way the github: feature finds it.
+
+    GH_TOKEN from the environment first, else the token file on gitbox. In noop mode with
+    neither, None - a dry run elsewhere has no token and should not fail for that. In live
+    mode the file is required, and a missing one raises as it does for the github: feature.
+    """
+    token = os.environ.get("GH_TOKEN")
+    if token:
+        return token
+    if noop_mode and not os.path.exists(GH_TOKEN_FILE):
+        return None
+    token = open(GH_TOKEN_FILE).read().strip()
+    if not token:
+        if noop_mode:
+            return None
+        raise Exception(f"GitHub token file {GH_TOKEN_FILE} is empty")
+    return token
+
+
+def _tp_fields_at(repo_path: Any, sha: str) -> dict:
+    """The trusted publishing fields in .asf.yaml as it was at `sha`, or {} if there were none.
+
+    The old file is history we do not control, so anything short of a mapping with a
+    `project.policy` mapping in it - no file, unparseable, a list, no project block - is
+    simply "the fields did not exist before", which makes this push the one that wrote them.
+    """
+    result = subprocess.run(
+        [dataobjects.GIT_CMD, "-C", str(repo_path), "show", f"{sha}:.asf.yaml"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return {}
+    try:
+        data = strictyaml.load(result.stdout).data
+    except strictyaml.ruamel.error.YAMLError:
+        return {}
+    project = data.get("project") if isinstance(data, dict) else None
+    policy = project.get("policy") if isinstance(project, dict) else None
+    if not isinstance(policy, dict):
+        return {}
+    return {key: policy[key] for key in _TP_FIELDS if key in policy}
+
+
+def _from_ruleset(evaluation: dict) -> bool:
+    """Whether a rule evaluation came from a ruleset, as opposed to classic branch protection.
+
+    GitHub evaluates classic protection into the suite too, under rule_source type
+    protected_branch. It is not accepted here: only a ruleset records explicitly, per push,
+    whether its rules were bypassed, and that record is what the bar is built on.
+    """
+    source = evaluation.get("rule_source")
+    return isinstance(source, dict) and source.get("type") == "ruleset"
+
+
+def _passing_ruleset_rules(suite: dict) -> list[str]:
+    """The rule types in the suite that an active ruleset evaluated and passed, sorted."""
+    return sorted(
+        {
+            str(e.get("rule_type"))
+            for e in suite.get("rule_evaluations") or []
+            if isinstance(e, dict)
+            and _from_ruleset(e)
+            and e.get("enforcement") == "active"
+            and e.get("result") == "pass"
+        }
+    )
+
+
+def _protection_problem(suite: dict | None, suites_seen: int, sha: str, ref: str) -> str | None:
+    """Why the rule suite fails the bar, or None when it passes.
+
+    The bar: the suite exists, its result is pass (a bypass means GitHub let the push through
+    around the rules, which is exactly what we are checking did not happen), and each required
+    rule was evaluated from an active ruleset and passed. A rule from an evaluate-mode ruleset
+    was only logged, never enforced, so it does not count, and nor does one from classic branch
+    protection. `enforcement` reflects the ruleset as it is now rather than as it was for the
+    push, so the per-rule result from a ruleset source is the check that carries the weight.
+    """
+    if suite is None:
+        if suites_seen:
+            # Seen in the sandbox: a branch that once had a ruleset keeps its old suites, but a
+            # push made under classic protection alone leaves no new one. Say both possibilities.
+            return (
+                f"rule suites exist for {ref} but none for push {sha}: either no ruleset applied to that push "
+                "(classic branch protection alone leaves no record) or GitHub is still indexing it, "
+                "so it cannot be shown that a ruleset was enforced on this push"
+            )
+        return f"no rule suite at all was recorded for {ref}, so no ruleset was enforced on this push"
+    result = suite.get("result")
+    if result != "pass":
+        detail = "the push bypassed the rules" if result == "bypass" else "the rules were not passed"
+        return f"the rule suite recorded result '{result}' ({detail})"
+    evaluations = [e for e in suite.get("rule_evaluations") or [] if isinstance(e, dict)]
+    for rule in _REQUIRED_RULES:
+        seen = [e for e in evaluations if e.get("rule_type") == rule]
+        if not seen:
+            return f"no '{rule}' rule was evaluated for the push"
+        from_rulesets = [e for e in seen if _from_ruleset(e)]
+        if not from_rulesets:
+            return (
+                f"only classic branch protection evaluated the '{rule}' rule; an active ruleset is required "
+                "to count for this"
+            )
+        if not any(e.get("enforcement") == "active" and e.get("result") == "pass" for e in from_rulesets):
+            states = ", ".join(
+                f"enforcement '{e.get('enforcement')}' result '{e.get('result')}'" for e in from_rulesets
+            )
+            return f"the '{rule}' rule was not active and passing in a ruleset ({states})"
+    return None
 
 
 def _load_config(path: str) -> dict:

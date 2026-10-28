@@ -142,3 +142,29 @@ def run(self):
         raise Exception("You need to set up a 'discussions' notification target before enabling GitHub Discussions")
     pass
 ~~~
+
+## Remembering the Last Applied Block
+
+A feature that only wants to act when its part of the file has changed can keep the block
+it last applied, and compare against it next time. `ASFYamlFeature` provides this:
+
+~~~python3
+def run(self):
+    previous = self.load_cached_yaml()   # {} if nothing saved, unparseable, or meta: cache: false
+    if previous == self.yaml:
+        return                           # nothing changed since the last run that saved
+    do_things(self.yaml)
+    self.save_cached_yaml()              # record this block as the one in effect
+~~~
+
+The file lives under `/x1/asfyaml` on gitbox (`/tmp` under pytest), one per feature and
+repository, named `<cache_prefix>.<repository>.yml`. The prefix defaults to
+`<feature name>settings`; pass `cache_prefix="..."` in the class definition to keep an older
+name, as the `github` feature does with `ghsettings`.
+
+Saving is the feature's decision, and *when* it saves is part of the feature's contract. The
+`github` feature saves after its directives have run, including in noop mode; the `project`
+feature saves only after ATR has accepted the block, because it uses the cache to decide
+whether the trusted publishing protection check needs to run again, and a failed check must
+not be remembered as applied. A pusher can set `meta: cache: false` to make `load_cached_yaml()`
+return `{}`, so the cache should only ever be used to *skip* work that is safe to repeat.

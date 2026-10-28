@@ -59,6 +59,10 @@ on:
         description: "Dry run: report what would change without modifying the sandbox repo."
         type: boolean
         default: true
+      old_sha:
+        description: "Commit the sandbox branch was at before the push under test, passed to asfyaml-run as --old-sha. Empty means the first parent of the branch tip, which is right for a merged PR or a single direct push; set it when the push under test moved the branch by more than one commit."
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -80,6 +84,7 @@ jobs:
           SANDBOX_BRANCH: ${{ inputs.sandbox_branch }}
           SANDBOX_REPO: ${{ inputs.sandbox_repo }}
           REPO_OWNER: ${{ github.repository_owner }}
+          OLD_SHA: ${{ inputs.old_sha }}
         run: |
           set -euo pipefail
 
@@ -94,6 +99,13 @@ jobs:
               exit 1
             fi
           done
+          # old_sha becomes a shell argument too: a hex SHA, abbreviated or not, or nothing.
+          # The default (the tip's first parent) is worked out once the sandbox is checked out.
+          if [[ -n "${OLD_SHA}" && ! "${OLD_SHA}" =~ ^[0-9a-fA-F]{4,40}$ ]]; then
+            echo "::error::'old_sha' must be a commit SHA, got '${OLD_SHA}'"
+            exit 1
+          fi
+          echo "old_sha=${OLD_SHA}" >> "$GITHUB_OUTPUT"
           if [[ -z "${SANDBOX_BRANCH}" ]]; then
             echo "::error::'sandbox_branch' must be set"
             exit 1
@@ -169,6 +181,8 @@ jobs:
           ref: ${{ inputs.sandbox_branch }}
           path: sandbox/${{ steps.resolve.outputs.sandbox_dir }}
           persist-credentials: false
+          # Two commits, so the tip's first parent is there to default old_sha to.
+          fetch-depth: 2
 
       - name: Record what is being run
         env:
@@ -180,9 +194,12 @@ jobs:
           SANDBOX_BRANCH: ${{ inputs.sandbox_branch }}
           SANDBOX_BRANCH_WARNING: ${{ steps.resolve.outputs.sandbox_branch_warning }}
           NOOP: ${{ inputs.noop }}
+          OLD_SHA: ${{ steps.resolve.outputs.old_sha }}
         run: |
           set -euo pipefail
           SHA="$(git -C parser rev-parse HEAD)"
+          SANDBOX_SHA="$(git -C "sandbox/${SANDBOX_DIR}" rev-parse HEAD)"
+          OLD_SHA_SHOWN="${OLD_SHA:-$(git -C "sandbox/${SANDBOX_DIR}" rev-parse HEAD^ 2>/dev/null || echo "n/a (tip has no parent)")}"
           AUTHOR="n/a"
           if [[ -n "${PR}" ]]; then
             AUTHOR="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR}" --jq .user.login || echo unknown)"
@@ -198,6 +215,8 @@ jobs:
             echo "| PR author | ${AUTHOR} |"
             echo "| Sandbox repo | \`${SANDBOX_REPO}\` |"
             echo "| Sandbox branch | \`${SANDBOX_BRANCH}\` |"
+            echo "| Sandbox tip | \`${SANDBOX_SHA}\` |"
+            echo "| Old SHA (--old-sha) | \`${OLD_SHA_SHOWN}\` |"
             echo "| Dry run (noop) | ${NOOP} |"
             if [[ "${SANDBOX_BRANCH_WARNING}" == "yes" ]]; then
               echo
@@ -237,6 +256,7 @@ jobs:
           SANDBOX_DIR: ${{ steps.resolve.outputs.sandbox_dir }}
           SANDBOX_BRANCH: ${{ inputs.sandbox_branch }}
           NOOP: ${{ inputs.noop }}
+          OLD_SHA: ${{ steps.resolve.outputs.old_sha }}
         run: |
           set -euo pipefail
           if [[ -z "${GH_TOKEN}" ]]; then
@@ -247,10 +267,21 @@ jobs:
           if [[ "${NOOP}" == "false" ]]; then
             NOOP_FLAG="--no-noop"
           fi
+          # The push under test is "old tip -> current tip". Default the old tip to the
+          # first parent, which is the pre-merge tip for a merged PR and the previous
+          # commit for a direct push. A tip with no parent (a fresh repo) gets no flag.
+          if [[ -z "${OLD_SHA}" ]]; then
+            OLD_SHA="$(git -C "../sandbox/${SANDBOX_DIR}" rev-parse HEAD^ 2>/dev/null || true)"
+          fi
+          OLD_SHA_ARGS=()
+          if [[ -n "${OLD_SHA}" ]]; then
+            OLD_SHA_ARGS=(--old-sha "${OLD_SHA}")
+          fi
           poetry run asfyaml-run \
             --repo "../sandbox/${SANDBOX_DIR}" \
             --org "${SANDBOX_OWNER}" \
             --branch "${SANDBOX_BRANCH}" \
+            "${OLD_SHA_ARGS[@]}" \
             "${NOOP_FLAG}"
 
       - name: Link to the sandbox repo settings

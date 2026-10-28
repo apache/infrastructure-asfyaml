@@ -248,7 +248,9 @@ poetry run asfyaml-run \
 
 Drop `--noop` (or pass `--no-noop`) to apply the changes. `--org` is the owner of
 the sandbox you are acting on, so it is your own account when you run this against
-your own sandbox.
+your own sandbox. Add `--old-sha <commit>` to run as if the push had moved the
+branch from that commit to the current `HEAD`; the `project:` trusted publishing
+check needs it to tell which push changed the fields (see below).
 
 > [!IMPORTANT]
 > **The checkout directory name is the GitHub repo name.** The parser derives the
@@ -305,6 +307,46 @@ afterwards. The workflow prints a warning when you point it anywhere else.
 
 A dry run still authenticates and reads from the GitHub API — that is how it can
 report what *would* change. It only suppresses the writes.
+
+### The `project:` trusted publishing check needs a ruleset and a merged PR
+
+A `project:` block with any of the trusted publishing fields
+(`github_repository_name`, `github_repository_branch` or the three
+`github_*_workflow_path` lists) makes the parser look up the **rule suite** GitHub
+recorded for the push that put the `.asf.yaml` on `main`, and refuses the block
+unless an active ruleset requiring a pull request and blocking force pushes passed
+on that push. To see it pass in the sandbox:
+
+- the sandbox token needs `Administration: read` (the `read and write` the setup
+  above asks for covers it), or the rule-suite endpoints return 403 or 404;
+- the sandbox repo's `main` needs an active ruleset with "Require a pull request
+  before merging" and "Block force pushes" - the `github: rulesets:` directive can
+  create it, but a ruleset created by the *same* run is too late for that run's push.
+  Classic branch protection is evaluated into the rule suite as well, but the check
+  does not accept it; the rule has to come from a ruleset;
+- the `.asf.yaml` under test has to land on `main` through a **merged pull
+  request**. A direct push to `main` from step 2 is either rejected by the ruleset
+  or recorded as a bypass, and the check fails either way - which is the correct
+  verdict for a direct push, not a bug;
+- the parser has to know what the push *was*. On gitbox the hook supplies the old
+  and new tips of the branch; `asfyaml-run` has no such thing, so the workflow passes
+  `--old-sha`, defaulting to the first parent of the sandbox tip (the pre-merge tip
+  for a merged PR). The `old_sha` input overrides it when the push under test moved
+  the branch by more than one commit. Without `--old-sha` the parser assumes the
+  current push is the one that changed the fields and checks its suite, which is
+  fine for the pass/fail rows but cannot show the "earlier push" refusal below.
+
+The check is anchored to the push that changed the fields, not to whichever push
+happens to be running. A useful row for the matrix: with the ruleset active, make a
+direct bypass push that adds a trusted publishing field (refused), then merge a PR
+that changes only the metadata `name`, and run with `old_sha` at the pre-merge tip.
+Expect a refusal saying the fields were introduced by an earlier push, with no call
+to the rule-suite API even though the merge itself has a passing suite. A second
+merged PR that changes a trusted publishing field should then pass.
+
+Only the dry run is meaningful for this check in the sandbox. A live run on the
+Actions runner stops at the ATR config file, which only exists on gitbox, so the
+sandbox can show the verdict but never the POST to ATR.
 
 ## One-time setup for the Apache repo (infra)
 
