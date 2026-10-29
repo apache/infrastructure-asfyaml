@@ -95,6 +95,14 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                 JiraSpaceString(),
                 strictyaml.Seq(JiraSpaceString()),
             ),
+            # GitHub Actions settings
+            strictyaml.Optional("actions"): strictyaml.Map(
+                {
+                    strictyaml.Optional("fork_pr_contributor_approval"): strictyaml.Enum(
+                        list(constants.VALID_FORK_PR_APPROVAL_POLICIES)
+                    ),
+                }
+            ),
             # GitHub Pages: branch (can be default or gh-pages) and path (can be /docs or /)
             strictyaml.Optional("ghp_branch"): strictyaml.Str(),
             strictyaml.Optional("ghp_path", default="/docs"): strictyaml.Str(),
@@ -278,6 +286,7 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
 
 # Import our sub-directives (...after we have declared the feature class, to avoid circular imports)
 from . import (
+    actions,
     metadata,
     autolink,
     features,
