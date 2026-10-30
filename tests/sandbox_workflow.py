@@ -48,6 +48,7 @@ def run_resolve(
     sandbox_branch="main",
     sandbox_repo="",
     owner="apache",
+    old_sha="",
 ):
     """Runs the resolution script, returning (exit code, resolved outputs)."""
     output_file = tmp_path / "github_output"
@@ -61,6 +62,7 @@ def run_resolve(
             "SANDBOX_BRANCH": sandbox_branch,
             "SANDBOX_REPO": sandbox_repo,
             "REPO_OWNER": owner,
+            "OLD_SHA": old_sha,
             "GITHUB_OUTPUT": str(output_file),
         },
         capture_output=True,
@@ -159,3 +161,35 @@ def test_an_explicit_sandbox_repo_overrides_the_default(base_path, tmp_path):
 )
 def test_a_malformed_sandbox_repo_is_rejected(base_path, tmp_path, sandbox_repo):
     assert run_resolve(base_path, tmp_path, sandbox_repo=sandbox_repo)[0] != 0
+
+
+# old_sha reaches a shell argument of asfyaml-run, so it is a hex SHA or nothing.
+
+
+def test_old_sha_passes_through_when_it_is_a_sha(base_path, tmp_path):
+    code, outputs = run_resolve(base_path, tmp_path, old_sha="0123456789abcdef0123456789abcdef01234567")
+    assert (code, outputs["old_sha"]) == (0, "0123456789abcdef0123456789abcdef01234567")
+
+
+def test_old_sha_may_be_abbreviated(base_path, tmp_path):
+    code, outputs = run_resolve(base_path, tmp_path, old_sha="0123abc")
+    assert (code, outputs["old_sha"]) == (0, "0123abc")
+
+
+def test_old_sha_defaults_to_empty(base_path, tmp_path):
+    code, outputs = run_resolve(base_path, tmp_path)
+    assert (code, outputs["old_sha"]) == (0, "")
+
+
+@pytest.mark.parametrize("old_sha", ["HEAD^", "not-hex", "abc; whoami", "$(whoami)", "abc\nref=x"])
+def test_a_malformed_old_sha_is_rejected(base_path, tmp_path, old_sha):
+    assert run_resolve(base_path, tmp_path, old_sha=old_sha)[0] != 0
+
+
+def test_sandbox_checkout_fetches_the_parent_commit(base_path):
+    # The default for old_sha is HEAD's first parent, which only exists in the checkout if
+    # at least two commits are fetched.
+    workflow = yaml.safe_load(base_path.joinpath(WORKFLOW).read_text())
+    steps = workflow["jobs"]["sandbox-test"]["steps"]
+    checkout = next(s for s in steps if s.get("name") == "Check out the sandbox repo")
+    assert checkout["with"]["fetch-depth"] >= 2

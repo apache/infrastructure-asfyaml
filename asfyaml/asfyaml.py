@@ -16,16 +16,24 @@
 # under the License.
 
 import abc
+import os
+import sys
 import typing
 
 import strictyaml
 import strictyaml.ruamel.scanner
 import easydict
+import yaml
 import asfyaml.dataobjects as dataobjects
 import asfyaml.envvars as envvars
 
 DEFAULT_ENVIRONMENT = "production"
 DEBUG = False
+
+# Where a feature keeps the last .asf.yaml block it applied, one file per feature and
+# repository, so the next push can tell whether anything it cares about has changed.
+# Under pytest this points at /tmp so a test run never writes into the real cache.
+BASE_CACHE_PATH = "/x1/asfyaml" if "pytest" not in sys.modules else "/tmp"
 
 # Default priority for features. If set to this, they will be executed in the order they appear
 # in the YAML. If a priority other than this (five) is set, the feature will be moved ahead or
@@ -242,6 +250,7 @@ class ASFYamlFeature:
     name: str
     env: str
     priority: int
+    cache_prefix: str
 
     features: typing.ClassVar[list[type["ASFYamlFeature"]]] = []
     """: list: List for tracking all ASFYamlFeature sub-classes we come across in any environment.
@@ -272,7 +281,14 @@ class ASFYamlFeature:
         #: repository.Committer: The committer (userid+email) that pushed this commit.
         self.committer = parent.committer
 
-    def __init_subclass__(cls, name: str, env: str = "production", priority: int = DEFAULT_PRIORITY, **kwargs):
+    def __init_subclass__(
+        cls,
+        name: str,
+        env: str = "production",
+        priority: int = DEFAULT_PRIORITY,
+        cache_prefix: str | None = None,
+        **kwargs,
+    ):
         """Instantiates a new sub-class of ASFYamlFeature. The :attr:`name` argument should be the
         top dict keyword for this feature in .asf.yaml, for instance :kbd:`github` or :kbd:`pelican`.
         The :attr:`env` variable can be used to denote which environment this .asf.yaml feature will
@@ -280,6 +296,8 @@ class ASFYamlFeature:
         If a priority other than the default (5) is set, the feature will be run based on
         that priority level (0 is highest, 10 lowest)m otherwise it will be run in order of
         appearance in the YAML with the rest of the default priority features.
+        The :attr:`cache_prefix` names the file :meth:`load_cached_yaml` and :meth:`save_cached_yaml`
+        use; it defaults to :samp:`{name}settings` and only needs setting to keep an older name.
 
         Example sub-class definition::
 
@@ -294,6 +312,7 @@ class ASFYamlFeature:
         cls.env = env
         cls.features.append(cls)
         cls.priority = priority
+        cls.cache_prefix = cache_prefix or f"{name}settings"
         super().__init_subclass__(**kwargs)
 
     def noop(self, directivename):
@@ -314,6 +333,44 @@ class ASFYamlFeature:
             print(f"[{self.name}::{directivename}] Not applying changes, noop mode active.")
             return True
         return False
+
+    @property
+    def cache_file(self) -> str:
+        """Path of this feature's settings cache for the repository being processed."""
+        return f"{BASE_CACHE_PATH}/{self.cache_prefix}.{self.repository.name}.yml"
+
+    def load_cached_yaml(self) -> dict:
+        """The block this feature last saved for this repository, as a plain dict.
+
+        Empty when there is nothing saved, the file does not parse, or the push set
+        `meta: cache: false`. A feature compares this against `self.yaml` to decide whether
+        anything worth acting on has changed since the last run that got as far as saving.
+        """
+        if self.instance.no_cache or not os.path.exists(self.cache_file):
+            return {}
+        try:
+            with open(self.cache_file) as fh:
+                previous = yaml.safe_load(fh.read())
+        except yaml.YAMLError:
+            print(f"[{self.name}] Failed to parse previous settings cache, please notify users@infra.apache.org")
+            return {}
+        if not isinstance(previous, dict):
+            return {}
+        # Older caches carried the ref they were written for; it was never part of the block.
+        previous.pop("refname", None)
+        return previous
+
+    def save_cached_yaml(self) -> None:
+        """Record this feature's block as the one in effect for this repository.
+
+        Call it once the block has actually been applied - the next run reads it back as
+        "what is already done", so saving on a failure would hide that failure next time.
+        """
+        if not os.path.exists(BASE_CACHE_PATH):
+            print(f"CACHE Path '{BASE_CACHE_PATH}' does not exist, skip caching")
+            return
+        with open(self.cache_file, "w") as fh:
+            fh.write(yaml.dump(self.yaml_raw, default_flow_style=False))
 
     @abc.abstractmethod
     def run(self): ...

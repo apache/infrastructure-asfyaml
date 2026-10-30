@@ -247,9 +247,34 @@ The remaining fields:
 | `finish_vote_template` | string | Template for the vote-result email. |
 | `announce_release_subject` / `announce_release_template` | string | Subject and body for the announcement email. |
 | `start_vote_template_url` / `vote_comment_template_url` / `finish_vote_template_url` / `announce_release_template_url` | string | A URL to fetch the matching email template from, instead of giving it inline. ATR fetches it each time it shows the email form. |
-| `github_repository_name` | string | GitHub repository backing trusted publishing. |
+| `github_repository_name` | string | GitHub repository backing trusted publishing. Must be this repository; filled in automatically when workflow paths are given without it. See [Trusted publishing requirements](#trustedpublishing). |
 | `github_repository_branch` | string | Branch within that repository. |
-| `github_compose_workflow_path` / `github_vote_workflow_path` / `github_finish_workflow_path` | list of paths | Workflow files for each release stage. |
+| `github_compose_workflow_path` / `github_vote_workflow_path` / `github_finish_workflow_path` | list of paths | Workflow files for each release stage. See [Trusted publishing requirements](#trustedpublishing). |
+
+<h4 id="trustedpublishing">Trusted publishing requirements</h4>
+
+The five trusted publishing fields - `github_repository_name`, `github_repository_branch`, `github_compose_workflow_path`, `github_vote_workflow_path` and `github_finish_workflow_path` - register GitHub workflows that then act in ATR as the PMC, with no login or MFA. Because of that, setting any of them has conditions the rest of the `policy` block does not:
+
+- `github_repository_name`, if given, must be the name of the repository the .asf.yaml is in (the bare name, without `apache/`). If you give workflow paths without a name, it is filled in with this repository.
+- The default branch must be protected by an **active ruleset** that requires a pull request before merging and blocks force pushes. You can set one up through the [`github: rulesets:`](#rulesets) directive in the same file. Classic branch protection (`github: protected_branches:`) is not accepted for this purpose: rulesets are required because their bypass handling is explicit and recorded per push, whereas a push made under classic protection alone leaves no record GitHub can show afterwards.
+- The push that puts the change on the default branch must have gone through that ruleset - a merged pull request. A direct push by someone who can bypass the rules is refused, even though GitHub accepted it.
+- The push that *changes* the fields is the one that is checked. If they were added by a push that was refused, or whose sync did not complete, a later push that leaves them as they are does not make them good: they have to be changed again through a pull request before ATR will take them.
+
+The check runs when those fields are added or changed compared with the last .asf.yaml that reached ATR. A push that only changes metadata or other policy fields does not re-run it. When the check fails the sync fails with an error like this one, nothing from the `project` block reaches ATR, and the committer receives it by email (the commit itself has already landed - asfyaml runs after the push). The fix is to add the ruleset and land the change again through a pull request:
+
+~~~
+Trusted publishing configuration refused: default branch 'main' (push 3f2a... to refs/heads/main):
+no rule suite at all was recorded for refs/heads/main, so no ruleset was enforced on this push.
+Add an active ruleset on the default branch with 'Require a pull request before merging' and
+'Block force pushes' (for example through the `github: rulesets:` directive in this file -
+classic branch protection under `github: protected_branches:` is not accepted for this, as only
+a ruleset records explicitly, per push, whether its rules were bypassed), then land the
+.asf.yaml change through a pull request. See 'Trusted publishing requirements' in the .asf.yaml
+README. The trusted publishing field(s) github_vote_workflow_path under policy: triggered this
+check.
+~~~
+
+The middle part is what was found: no rule suite (no ruleset covered the push, or GitHub has not indexed it yet), a `bypass` result (the push went around the rules), or a required rule that was missing, only in `evaluate` mode, or only evaluated by classic branch protection. Other projects syncing metadata only are not affected by any of this.
 
 <h3 id="atrsync">Synchronizing to ATR</h3>
 

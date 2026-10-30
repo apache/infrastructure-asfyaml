@@ -17,6 +17,7 @@
 
 import os
 import argparse
+import re
 from pathlib import Path
 
 from asfyaml import dataobjects
@@ -42,6 +43,14 @@ def branch_ref(branch):
     return f"refs/heads/{branch}"
 
 
+def commit_sha(sha):
+    """Accepts a (possibly abbreviated) hex commit SHA and nothing else."""
+    sha = sha.strip()
+    if not re.fullmatch(r"[0-9a-fA-F]{4,40}", sha):
+        raise argparse.ArgumentTypeError(f"'{sha}' is not a commit SHA")
+    return sha
+
+
 def run_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", type=dir_path, help="path to the repo to process", required=True)
@@ -54,14 +63,37 @@ def run_parser():
         default=dataobjects.DEFAULT_BRANCH,
         help="the branch the .asf.yaml is being processed for, e.g. 'main' or 'refs/heads/main'",
     )
+    parser.add_argument(
+        "--old-sha",
+        type=commit_sha,
+        default=None,
+        help="the commit the branch was at before this push; with it, the run is treated as the push from "
+        "that commit to HEAD, as the gitbox hook would see it (needed to exercise the trusted publishing check)",
+    )
     return parser
+
+
+def build_repository(repo_path: Path, org: str, branch: str, old_sha: str | None) -> dataobjects.Repository:
+    """The Repository for a run, with the one-line reflog the gitbox hook would have supplied.
+
+    Features that care about the push (rather than just the file) read it from the reflog, so
+    with --old-sha we fabricate the entry "old HEAD ref" and they need not know which entry
+    point they are under. Without it the reflog stays empty, as it always has.
+    """
+    reflog = ""
+    if old_sha is not None:
+        head = dataobjects.gitcmd("-C", str(repo_path), "rev-parse", "HEAD").strip()
+        if not head:
+            raise Exception(f"--old-sha given but git rev-parse HEAD failed in {repo_path}")
+        reflog = f"{old_sha} {head} {branch}\n"
+    return dataobjects.Repository(str(repo_path), reflog=reflog, org_id=org)
 
 
 def cli():
     args = run_parser().parse_args()
 
     repo_path = Path(os.path.abspath(args.repo))
-    repo = dataobjects.Repository(str(repo_path), org_id=args.org)
+    repo = build_repository(repo_path, args.org, args.branch, args.old_sha)
 
     yml_file = os.path.join(repo_path, ".asf.yaml")
     if not os.path.exists(yml_file):

@@ -17,19 +17,16 @@
 
 """This is the GitHub feature for .asf.yaml."""
 
-from asfyaml.asfyaml import ASFYamlFeature, ASFYamlInstance, DEBUG
+from asfyaml.asfyaml import ASFYamlFeature, ASFYamlInstance, DEBUG, BASE_CACHE_PATH
 import asfyaml.validators
 import strictyaml
 import os
-import sys
-import yaml
 import string
 import github as pygithub
 import github.Repository as pygithubrepo
 import github.Auth as pygithubAuth
 from . import constants
 
-BASE_CACHE_PATH = "/x1/asfyaml" if "pytest" not in sys.modules else "/tmp"
 GH_TOKEN_FILE = "/x1/gitbox/tokens/asfyaml.txt"  # Path to .asf.yaml github token
 _features = []
 
@@ -50,7 +47,8 @@ class JiraSpaceString(strictyaml.Str):
         return chunk.contents
 
 
-class ASFGitHubFeature(ASFYamlFeature, name="github"):
+# Keeps the file name from before caching was shared, so caches already on gitbox stay valid.
+class ASFGitHubFeature(ASFYamlFeature, name="github", cache_prefix="ghsettings"):
     """.asf.yaml GitHub feature class."""
 
     schema = strictyaml.Map(
@@ -235,20 +233,12 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             )
             return
 
-        # Check if cached yaml exists, compare if changed
-        self.previous_yaml = {}
-        yaml_filepath = f"{BASE_CACHE_PATH}/ghsettings.{self.repository.name}.yml"
-        if not self.instance.no_cache:
-            try:
-                if os.path.exists(yaml_filepath):
-                    self.previous_yaml = yaml.safe_load(open(yaml_filepath).read())
-                    self.previous_yaml.pop("refname", "")
-                    if self.previous_yaml == self.yaml:
-                        if DEBUG:
-                            print("[github] Saw no changes to GitHub settings, skipping this run.")
-                        return
-            except yaml.YAMLError as _e:  # Failed to parse old yaml? bah.
-                print("[github] Failed to parse previous GitHub settings, please notify users@infra.apache.org")
+        # Compare against the block we last applied; nothing to do if it is the same.
+        self.previous_yaml = self.load_cached_yaml()
+        if self.previous_yaml and self.previous_yaml == self.yaml:
+            if DEBUG:
+                print("[github] Saw no changes to GitHub settings, skipping this run.")
+            return
 
         # Update items
         print(f"[github] GitHub meta-data changed for {self.repository.name}, updating...")
@@ -269,11 +259,7 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
             _feat(self)
 
         # Save cached version of this YAML for next time.
-        if os.path.exists(BASE_CACHE_PATH):
-            with open(yaml_filepath, "w") as f:
-                f.write(yaml.dump(self.yaml_raw, default_flow_style=False))
-        else:
-            print(f"CACHE Path '{BASE_CACHE_PATH}' does not exist, skip caching")
+        self.save_cached_yaml()
 
 
 # Import our sub-directives (...after we have declared the feature class, to avoid circular imports)

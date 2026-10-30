@@ -874,3 +874,713 @@ project:
     a.no_cache = True
     with pytest.raises(asfyaml.asfyaml.ASFYAMLException, match="does not match repository name"):
         a.run_parts()
+
+
+# --- Trusted publishing gate -------------------------------------------------------------
+#
+# A policy block carrying any of the trusted publishing fields makes the feature check how
+# the default branch was protected for the push that landed this .asf.yaml. These tests fake
+# the GitHub client at the point the feature would build one, so nothing here hits the network.
+
+import os
+from types import SimpleNamespace
+
+import yaml as pyyaml
+
+import asfyaml.feature.project
+from asfyaml.feature.project import _RULE_SUITE_ATTEMPTS, ASFATRFeature
+
+PUSH_SHA = "a" * 40
+OTHER_SHA = "b" * 40
+MAIN_REFLOG = f"{'0' * 40} {PUSH_SHA} refs/heads/main\n"
+
+TP_YAML = """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+        name: Apache Trusted Releases
+    policy:
+        github_vote_workflow_path:
+            - .github/workflows/vote.yml
+"""
+
+TP_YAML_WITH_NAME = """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+        name: Apache Trusted Releases
+    policy:
+        github_repository_name: tooling-trusted-releases
+        github_vote_workflow_path:
+            - .github/workflows/vote.yml
+"""
+
+TP_YAML_WRONG_NAME = """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+        name: Apache Trusted Releases
+    policy:
+        github_repository_name: tooling-something-else
+        github_vote_workflow_path:
+            - .github/workflows/vote.yml
+"""
+
+# Same trusted publishing fields as TP_YAML, different metadata.
+TP_YAML_NEW_METADATA = """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+        name: Apache Trusted Releases
+        homepage: https://tooling.apache.org/trusted-releases.html
+    policy:
+        github_vote_workflow_path:
+            - .github/workflows/vote.yml
+"""
+
+TP_YAML_NEW_WORKFLOW = """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+        name: Apache Trusted Releases
+    policy:
+        github_vote_workflow_path:
+            - .github/workflows/vote-v2.yml
+"""
+
+NO_TP_YAML = """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+        name: Apache Trusted Releases
+    policy:
+        min_hours: 72
+"""
+
+
+def _rule(rule_type, enforcement="active", result="pass", source="ruleset"):
+    return {
+        "rule_type": rule_type,
+        "enforcement": enforcement,
+        "result": result,
+        "rule_source": {"type": source, "id": 7, "name": "Default branch"},
+    }
+
+
+PASSING_RULES = [_rule("pull_request"), _rule("non_fast_forward")]
+
+
+def _suite(*, sha=PUSH_SHA, result="pass", rules=None, suite_id=42):
+    """A (list entry, detail) pair as the two rule-suite endpoints hand them back."""
+    summary = {"id": suite_id, "after_sha": sha, "before_sha": "0" * 40, "ref": "refs/heads/main", "result": result}
+    detail = {**summary, "rule_evaluations": PASSING_RULES if rules is None else rules}
+    return summary, detail
+
+
+class FakeSuiteRequester:
+    """Stands in for ghrepo._requester, serving the two rule-suite endpoints.
+
+    `page_size` is how many summaries a list page carries (GitHub honours per_page, this
+    ignores it so a test can force a second page). `hidden_for` is how many list calls come
+    back empty before the suites appear, to mimic GitHub still indexing the push.
+    """
+
+    def __init__(self, *suites, list_status=200, page_size=100, hidden_for=0):
+        self.summaries = [summary for summary, _detail in suites]
+        self.details = {detail["id"]: detail for _summary, detail in suites}
+        self.list_status = list_status
+        self.page_size = page_size
+        self.hidden_for = hidden_for
+        self.calls = []
+
+    def requestJson(self, method, url, parameters=None, headers=None, input=None):
+        self.calls.append((method, url, parameters))
+        if url.endswith("/rule-suites"):
+            if len(self.list_calls) <= self.hidden_for:
+                return self.list_status, {}, "[]"
+            page = (parameters or {}).get("page", 1)
+            start = (page - 1) * self.page_size
+            return self.list_status, {}, json.dumps(self.summaries[start : start + self.page_size])
+        suite_id = int(url.rsplit("/", 1)[-1])
+        return 200, {}, json.dumps(self.details[suite_id])
+
+    @property
+    def list_calls(self):
+        return [call for call in self.calls if call[1].endswith("/rule-suites")]
+
+
+@pytest.fixture
+def cache_dir(tmp_path, monkeypatch):
+    """Point the shared settings cache at a scratch directory."""
+    monkeypatch.setattr("asfyaml.asfyaml.BASE_CACHE_PATH", str(tmp_path))
+    return tmp_path
+
+
+def _cache_file(cache_dir, repo):
+    return cache_dir / f"projectsettings.{repo.name}.yml"
+
+
+def _write_cache(cache_dir, repo, yaml_text):
+    block = pyyaml.safe_load(yaml_text)["project"]
+    _cache_file(cache_dir, repo).write_text(pyyaml.dump(block, default_flow_style=False))
+
+
+def _wire_github(monkeypatch, requester):
+    """Hand the feature a fake GitHub client, a token from the environment, and no real sleeps."""
+
+    def connect(self, token):
+        self._ghrepo = SimpleNamespace(_requester=requester)
+
+    monkeypatch.setattr(ASFATRFeature, "_connect_github", connect)
+    monkeypatch.setenv("GH_TOKEN", "test-token")
+    monkeypatch.setattr("asfyaml.feature.project.time.sleep", lambda _s: None)
+
+
+def _forbid_github(monkeypatch):
+    """Make any attempt to read a token or build a client fail the test."""
+
+    def explode(*args, **kwargs):
+        raise AssertionError("the feature must not touch GitHub here")
+
+    monkeypatch.setattr(ASFATRFeature, "_connect_github", explode)
+    monkeypatch.setattr("asfyaml.feature.project._github_token", explode)
+
+
+def _wire_atr(monkeypatch, *, ok=True):
+    """Fake the ATR side of a live run: config, token exchange and the final POST."""
+    posted = {}
+
+    def fake_post(url, **kwargs):
+        posted["url"] = url
+        posted["json"] = kwargs.get("json")
+        return _FakeResp(200 if ok else 422, text='{"success": true}' if ok else '{"error": "nope"}')
+
+    monkeypatch.setattr("asfyaml.feature.project._load_config", lambda path: {"url": "x", "token": "pat"})
+    monkeypatch.setattr("asfyaml.feature.project._exchange_token_for_jwt", lambda base_url, token: "jwt")
+    monkeypatch.setattr("asfyaml.feature.project._post_with_retry", fake_post)
+    return posted
+
+
+def _tp_repo(atr_repo, reflog=MAIN_REFLOG):
+    return asfyaml.dataobjects.Repository(str(atr_repo.path), reflog=reflog)
+
+
+def _run(repo, yaml_text, *, noop=True, no_cache=False):
+    a = asfyaml.asfyaml.ASFYamlInstance(
+        repo=repo, committer="arm", config_data=yaml_text, branch=asfyaml.dataobjects.DEFAULT_BRANCH
+    )
+    if noop:
+        a.environments_enabled.add("noop")
+    a.no_cache = no_cache
+    a.run_parts()
+
+
+def _payload(out):
+    return json.loads(out[out.index("{") : out.rindex("}") + 1])
+
+
+def test_tp_no_fields_never_touches_github(atr_repo, cache_dir, capsys, monkeypatch):
+    _forbid_github(monkeypatch)
+    _run(_tp_repo(atr_repo), NO_TP_YAML)
+    payload = _payload(capsys.readouterr().out)
+    assert payload["policy"] == {"min_hours": 72}
+
+
+def test_tp_passing_suite_sends_payload_with_repository_name(atr_repo, cache_dir, capsys, monkeypatch):
+    requester = FakeSuiteRequester(_suite())
+    _wire_github(monkeypatch, requester)
+    _run(_tp_repo(atr_repo), TP_YAML)
+    out = capsys.readouterr().out
+    payload = _payload(out)
+    # The repository name is pinned to this repo when workflow paths are given without one.
+    assert payload["policy"]["github_repository_name"] == "tooling-trusted-releases"
+    assert payload["policy"]["github_vote_workflow_path"] == [".github/workflows/vote.yml"]
+    assert "[project] default branch 'main' passed the protection check" in out
+    assert "pull_request" in out and "non_fast_forward" in out
+    # One list call scoped to the default branch over the widest window, then the detail.
+    method, url, parameters = requester.list_calls[0]
+    assert method == "GET"
+    assert url == "/repos/apache/tooling-trusted-releases/rulesets/rule-suites"
+    assert parameters == {"ref": "refs/heads/main", "time_period": "month", "per_page": 100, "page": 1}
+    assert requester.calls[-1][1] == "/repos/apache/tooling-trusted-releases/rulesets/rule-suites/42"
+
+
+def test_tp_authored_repository_name_matching_is_accepted(atr_repo, cache_dir, capsys, monkeypatch):
+    _wire_github(monkeypatch, FakeSuiteRequester(_suite()))
+    _run(_tp_repo(atr_repo), TP_YAML_WITH_NAME)
+    payload = _payload(capsys.readouterr().out)
+    assert payload["policy"]["github_repository_name"] == "tooling-trusted-releases"
+
+
+def test_tp_authored_repository_name_mismatch_raises_before_github(atr_repo, cache_dir, monkeypatch):
+    _forbid_github(monkeypatch)
+    with pytest.raises(asfyaml.asfyaml.ASFYAMLException) as excinfo:
+        _run(_tp_repo(atr_repo), TP_YAML_WRONG_NAME)
+    message = str(excinfo.value)
+    assert "tooling-something-else" in message
+    assert "tooling-trusted-releases" in message
+
+
+def test_tp_bypass_result_raises(atr_repo, cache_dir, monkeypatch):
+    _wire_github(monkeypatch, FakeSuiteRequester(_suite(result="bypass")))
+    with pytest.raises(asfyaml.asfyaml.ASFYAMLException, match="bypass"):
+        _run(_tp_repo(atr_repo), TP_YAML)
+
+
+def test_tp_missing_non_fast_forward_rule_raises(atr_repo, cache_dir, monkeypatch):
+    _wire_github(monkeypatch, FakeSuiteRequester(_suite(rules=[_rule("pull_request")])))
+    with pytest.raises(asfyaml.asfyaml.ASFYAMLException, match="non_fast_forward"):
+        _run(_tp_repo(atr_repo), TP_YAML)
+
+
+def test_tp_missing_pull_request_rule_raises(atr_repo, cache_dir, monkeypatch):
+    _wire_github(monkeypatch, FakeSuiteRequester(_suite(rules=[_rule("non_fast_forward")])))
+    with pytest.raises(asfyaml.asfyaml.ASFYAMLException, match="pull_request"):
+        _run(_tp_repo(atr_repo), TP_YAML)
+
+
+def test_tp_evaluate_mode_rule_does_not_count(atr_repo, cache_dir, monkeypatch):
+    rules = [_rule("pull_request"), _rule("non_fast_forward", enforcement="evaluate")]
+    _wire_github(monkeypatch, FakeSuiteRequester(_suite(rules=rules)))
+    with pytest.raises(asfyaml.asfyaml.ASFYAMLException) as excinfo:
+        _run(_tp_repo(atr_repo), TP_YAML)
+    message = str(excinfo.value)
+    assert "non_fast_forward" in message
+    assert "evaluate" in message
+
+
+def test_tp_failure_message_tells_the_project_what_to_add(atr_repo, cache_dir, monkeypatch):
+    _wire_github(monkeypatch, FakeSuiteRequester())
+    with pytest.raises(asfyaml.asfyaml.ASFYAMLException) as excinfo:
+        _run(_tp_repo(atr_repo), TP_YAML)
+    message = str(excinfo.value)
+    assert "main" in message and PUSH_SHA in message
+    assert "github: rulesets:" in message
+    assert "pull request" in message.lower() and "force push" in message.lower()
+    assert "github_vote_workflow_path" in message
+    assert "protected_branches" in message  # classic protection is called out as not counting
+
+
+def test_tp_no_suite_after_retries_raises(atr_repo, cache_dir, monkeypatch):
+    # A suite exists for the branch, but not for this push.
+    requester = FakeSuiteRequester(_suite(sha=OTHER_SHA))
+    _wire_github(monkeypatch, requester)
+    with pytest.raises(asfyaml.asfyaml.ASFYAMLException, match="none for push"):
+        _run(_tp_repo(atr_repo), TP_YAML)
+    assert len(requester.list_calls) == _RULE_SUITE_ATTEMPTS
+
+
+def test_tp_list_error_raises(atr_repo, cache_dir, monkeypatch):
+    _wire_github(monkeypatch, FakeSuiteRequester(list_status=403))
+    with pytest.raises(asfyaml.asfyaml.ASFYAMLException, match="403"):
+        _run(_tp_repo(atr_repo), TP_YAML)
+
+
+def test_tp_noop_without_token_skips_check(atr_repo, cache_dir, tmp_path, capsys, monkeypatch):
+    monkeypatch.delenv("GH_TOKEN", raising=False)
+    monkeypatch.setattr("asfyaml.feature.project.GH_TOKEN_FILE", str(tmp_path / "no-such-token"))
+
+    def explode(self, token):
+        raise AssertionError("no client should be built without a token")
+
+    monkeypatch.setattr(ASFATRFeature, "_connect_github", explode)
+    _run(_tp_repo(atr_repo), TP_YAML)
+    out = capsys.readouterr().out
+    assert "protection check skipped" in out and "token" in out
+    assert _payload(out)["policy"]["github_repository_name"] == "tooling-trusted-releases"
+
+
+def test_tp_live_without_token_file_raises(atr_repo, cache_dir, tmp_path, monkeypatch):
+    monkeypatch.delenv("GH_TOKEN", raising=False)
+    monkeypatch.setattr("asfyaml.feature.project.GH_TOKEN_FILE", str(tmp_path / "no-such-token"))
+    with pytest.raises(asfyaml.asfyaml.ASFYAMLException, match="no-such-token"):
+        _run(_tp_repo(atr_repo), TP_YAML, noop=False)
+
+
+def test_tp_sha_from_reflog_picks_the_default_branch_push(atr_repo, cache_dir, capsys, monkeypatch):
+    reflog = f"{'0' * 40} {OTHER_SHA} refs/heads/feature\n{MAIN_REFLOG}"
+    requester = FakeSuiteRequester(_suite(sha=OTHER_SHA, suite_id=1, result="bypass"), _suite(sha=PUSH_SHA, suite_id=2))
+    _wire_github(monkeypatch, requester)
+    _run(_tp_repo(atr_repo, reflog=reflog), TP_YAML)
+    out = capsys.readouterr().out
+    assert PUSH_SHA in out
+    assert requester.calls[-1][1].endswith("/rule-suites/2")
+
+
+_GIT_ENV = {
+    **os.environ,
+    "GIT_AUTHOR_NAME": "t",
+    "GIT_AUTHOR_EMAIL": "t@x",
+    "GIT_COMMITTER_NAME": "t",
+    "GIT_COMMITTER_EMAIL": "t@x",
+}
+
+
+def _git(repo_path, *args):
+    import subprocess
+
+    return subprocess.run(["git", *args], cwd=repo_path, check=True, capture_output=True, text=True, env=_GIT_ENV).stdout.strip()
+
+
+def _git_repo(tmp_path, *asf_yamls):
+    """A real repository named like the ATR project, with one commit per .asf.yaml given.
+
+    None commits without an .asf.yaml at all. Returns the path and the commit SHAs in order.
+    """
+    repo_path = tmp_path / "tooling-trusted-releases"
+    repo_path.mkdir()
+    _git(repo_path, "init", "-q", "-b", "main")
+    shas = []
+    for n, content in enumerate(asf_yamls):
+        asf_yaml = repo_path / ".asf.yaml"
+        if content is None:
+            if asf_yaml.exists():
+                _git(repo_path, "rm", "-q", ".asf.yaml")
+        else:
+            asf_yaml.write_text(content)
+            _git(repo_path, "add", ".asf.yaml")
+        _git(repo_path, "commit", "-q", "--allow-empty", "-m", f"commit {n}")
+        shas.append(_git(repo_path, "rev-parse", "HEAD"))
+    return repo_path, shas
+
+
+def _push_repo(repo_path, old_sha, new_sha):
+    """The repository as the gitbox hook sees it: with the reflog line for this push to main."""
+    return asfyaml.dataobjects.Repository(str(repo_path), reflog=f"{old_sha} {new_sha} refs/heads/main\n")
+
+
+def test_tp_sha_from_git_head_without_reflog(tmp_path, cache_dir, capsys, monkeypatch):
+    # asfyaml-run has no reflog, so the SHA comes from HEAD of the repository path, and the
+    # push is taken to be the one that changed the fields since there is no old state to check.
+    repo_path, (head,) = _git_repo(tmp_path, TP_YAML)
+    requester = FakeSuiteRequester(_suite(sha=head))
+    _wire_github(monkeypatch, requester)
+    _run(asfyaml.dataobjects.Repository(str(repo_path)), TP_YAML)
+    out = capsys.readouterr().out
+    assert head in out
+    assert "treating this push as the one that changed" in out
+    assert requester.list_calls
+
+
+def test_tp_push_that_changed_the_fields_is_checked(tmp_path, cache_dir, capsys, monkeypatch):
+    # The fields differ at oldsha, so this push wrote them and its own suite is the evidence.
+    repo_path, (old, new) = _git_repo(tmp_path, NO_TP_YAML, TP_YAML)
+    requester = FakeSuiteRequester(_suite(sha=new))
+    _wire_github(monkeypatch, requester)
+    _run(_push_repo(repo_path, old, new), TP_YAML)
+    assert "passed the protection check" in capsys.readouterr().out
+    assert requester.list_calls
+
+
+def test_tp_push_that_changed_a_workflow_path_is_checked(tmp_path, cache_dir, monkeypatch):
+    repo_path, (old, new) = _git_repo(tmp_path, TP_YAML, TP_YAML_NEW_WORKFLOW)
+    _wire_github(monkeypatch, FakeSuiteRequester(_suite(sha=new, result="bypass")))
+    with pytest.raises(asfyaml.asfyaml.ASFYAMLException, match="bypass"):
+        _run(_push_repo(repo_path, old, new), TP_YAML_NEW_WORKFLOW)
+
+
+def test_tp_fields_from_an_earlier_unverified_push_are_refused(tmp_path, cache_dir, monkeypatch):
+    # The fields were already there at oldsha, and nothing in the cache says they reached ATR:
+    # an earlier push introduced them and was never verified. This push's own suite proves
+    # nothing about that push, so no GitHub call is made and the block is refused.
+    repo_path, (old, new) = _git_repo(tmp_path, TP_YAML, TP_YAML_NEW_METADATA)
+    _forbid_github(monkeypatch)
+    with pytest.raises(asfyaml.asfyaml.ASFYAMLException) as excinfo:
+        _run(_push_repo(repo_path, old, new), TP_YAML_NEW_METADATA)
+    message = str(excinfo.value)
+    assert "earlier push" in message
+    assert "did not pass the check" in message and "sync did not complete" in message
+    assert "changed again through a pull request" in message
+    assert "github: rulesets:" in message
+    assert not _cache_file(cache_dir, asfyaml.dataobjects.Repository(str(repo_path))).exists()
+
+
+def test_tp_earlier_push_refusal_does_not_touch_the_cache(tmp_path, cache_dir, monkeypatch):
+    repo_path, (old, new) = _git_repo(tmp_path, TP_YAML, TP_YAML_NEW_METADATA)
+    repo = _push_repo(repo_path, old, new)
+    _write_cache(cache_dir, repo, NO_TP_YAML)
+    before = _cache_file(cache_dir, repo).read_text()
+    _forbid_github(monkeypatch)
+    _wire_atr(monkeypatch)
+    with pytest.raises(asfyaml.asfyaml.ASFYAMLException, match="earlier push"):
+        _run(repo, TP_YAML_NEW_METADATA, noop=False)
+    assert _cache_file(cache_dir, repo).read_text() == before
+
+
+def test_tp_cache_still_wins_over_the_old_file(tmp_path, cache_dir, capsys, monkeypatch):
+    # Fields identical at oldsha *and* in the cache: they reached ATR already, so skip as before.
+    repo_path, (old, new) = _git_repo(tmp_path, TP_YAML, TP_YAML_NEW_METADATA)
+    repo = _push_repo(repo_path, old, new)
+    _write_cache(cache_dir, repo, TP_YAML)
+    _forbid_github(monkeypatch)
+    _run(repo, TP_YAML_NEW_METADATA)
+    assert "unchanged" in capsys.readouterr().out
+
+
+def test_tp_branch_creation_is_checked(tmp_path, cache_dir, monkeypatch):
+    # An all-zero oldsha is the branch being created; there is no old state, so this push wrote the fields.
+    repo_path, (new,) = _git_repo(tmp_path, TP_YAML)
+    requester = FakeSuiteRequester(_suite(sha=new))
+    _wire_github(monkeypatch, requester)
+    _run(_push_repo(repo_path, "0" * 40, new), TP_YAML)
+    assert requester.list_calls
+
+
+@pytest.mark.parametrize(
+    "old_content",
+    [
+        None,  # no .asf.yaml at oldsha
+        "github:\n    description: Apache Foo\n",  # .asf.yaml without a project block
+        "project:\n    metadata:\n        key: tooling-trusted-releases\n        committee: tooling\n",  # no policy
+        "project: [unclosed",  # unparseable history
+        "- just\n- a list\n",  # not a mapping
+    ],
+    ids=["absent", "no-project-block", "no-policy", "unparseable", "not-a-mapping"],
+)
+def test_tp_fields_absent_at_oldsha_means_this_push_wrote_them(tmp_path, cache_dir, monkeypatch, old_content):
+    repo_path, (old, new) = _git_repo(tmp_path, old_content, TP_YAML)
+    requester = FakeSuiteRequester(_suite(sha=new))
+    _wire_github(monkeypatch, requester)
+    _run(_push_repo(repo_path, old, new), TP_YAML)
+    assert requester.list_calls
+
+
+def test_tp_cache_identical_fields_skips_check(atr_repo, cache_dir, capsys, monkeypatch):
+    repo = _tp_repo(atr_repo)
+    _write_cache(cache_dir, repo, TP_YAML)
+    _forbid_github(monkeypatch)
+    _run(repo, TP_YAML)
+    out = capsys.readouterr().out
+    assert "unchanged" in out and "skipped" in out
+    assert _payload(out)["policy"]["github_repository_name"] == "tooling-trusted-releases"
+
+
+def test_tp_cache_metadata_only_change_skips_check(atr_repo, cache_dir, capsys, monkeypatch):
+    repo = _tp_repo(atr_repo)
+    _write_cache(cache_dir, repo, TP_YAML)
+    _forbid_github(monkeypatch)
+    _run(repo, TP_YAML_NEW_METADATA)
+    assert "unchanged" in capsys.readouterr().out
+
+
+def test_tp_cache_changed_field_runs_check(atr_repo, cache_dir, monkeypatch):
+    repo = _tp_repo(atr_repo)
+    _write_cache(cache_dir, repo, TP_YAML)
+    requester = FakeSuiteRequester(_suite())
+    _wire_github(monkeypatch, requester)
+    _run(repo, TP_YAML_NEW_WORKFLOW)
+    assert requester.list_calls
+
+
+def test_tp_cache_added_fields_run_check(atr_repo, cache_dir, monkeypatch):
+    # The previous block had no trusted publishing fields at all.
+    repo = _tp_repo(atr_repo)
+    _write_cache(cache_dir, repo, NO_TP_YAML)
+    requester = FakeSuiteRequester(_suite())
+    _wire_github(monkeypatch, requester)
+    _run(repo, TP_YAML)
+    assert requester.list_calls
+
+
+def test_tp_no_cache_file_runs_check(atr_repo, cache_dir, monkeypatch):
+    requester = FakeSuiteRequester(_suite())
+    _wire_github(monkeypatch, requester)
+    _run(_tp_repo(atr_repo), TP_YAML)
+    assert requester.list_calls
+
+
+def test_tp_unparseable_cache_runs_check(atr_repo, cache_dir, capsys, monkeypatch):
+    repo = _tp_repo(atr_repo)
+    _cache_file(cache_dir, repo).write_text("policy: [unclosed")
+    requester = FakeSuiteRequester(_suite())
+    _wire_github(monkeypatch, requester)
+    _run(repo, TP_YAML)
+    assert requester.list_calls
+    assert "Failed to parse" in capsys.readouterr().out
+
+
+def test_tp_meta_cache_false_runs_check(atr_repo, cache_dir, monkeypatch):
+    repo = _tp_repo(atr_repo)
+    _write_cache(cache_dir, repo, TP_YAML)
+    requester = FakeSuiteRequester(_suite())
+    _wire_github(monkeypatch, requester)
+    _run(repo, TP_YAML, no_cache=True)
+    assert requester.list_calls
+
+
+def test_tp_failed_gate_leaves_cache_untouched(atr_repo, cache_dir, monkeypatch):
+    repo = _tp_repo(atr_repo)
+    _write_cache(cache_dir, repo, NO_TP_YAML)
+    before = _cache_file(cache_dir, repo).read_text()
+    _wire_github(monkeypatch, FakeSuiteRequester(_suite(result="bypass")))
+    _wire_atr(monkeypatch)
+    with pytest.raises(asfyaml.asfyaml.ASFYAMLException):
+        _run(repo, TP_YAML, noop=False)
+    assert _cache_file(cache_dir, repo).read_text() == before
+
+
+def test_tp_noop_leaves_cache_untouched(atr_repo, cache_dir, monkeypatch):
+    repo = _tp_repo(atr_repo)
+    _wire_github(monkeypatch, FakeSuiteRequester(_suite()))
+    _run(repo, TP_YAML)
+    assert not _cache_file(cache_dir, repo).exists()
+
+
+def test_tp_successful_live_post_writes_cache(atr_repo, cache_dir, monkeypatch):
+    repo = _tp_repo(atr_repo)
+    _wire_github(monkeypatch, FakeSuiteRequester(_suite()))
+    posted = _wire_atr(monkeypatch)
+    _run(repo, TP_YAML, noop=False)
+    assert posted["json"]["policy"]["github_repository_name"] == "tooling-trusted-releases"
+    cached = pyyaml.safe_load(_cache_file(cache_dir, repo).read_text())
+    # The cache holds the block as authored, so the comparison next time is like for like.
+    assert cached["policy"] == {"github_vote_workflow_path": [".github/workflows/vote.yml"]}
+    assert cached["metadata"]["key"] == "tooling-trusted-releases"
+
+
+def test_tp_atr_error_leaves_cache_unwritten(atr_repo, cache_dir, monkeypatch):
+    repo = _tp_repo(atr_repo)
+    _wire_github(monkeypatch, FakeSuiteRequester(_suite()))
+    _wire_atr(monkeypatch, ok=False)
+    with pytest.raises(asfyaml.asfyaml.ASFYAMLException, match="ATR API call failed"):
+        _run(repo, TP_YAML, noop=False)
+    assert not _cache_file(cache_dir, repo).exists()
+
+
+def test_no_tp_fields_live_post_still_writes_cache(atr_repo, cache_dir, monkeypatch):
+    # So a later push that adds trusted publishing fields is seen as a change.
+    repo = _tp_repo(atr_repo)
+    _forbid_github(monkeypatch)
+    _wire_atr(monkeypatch)
+    _run(repo, NO_TP_YAML, noop=False)
+    cached = pyyaml.safe_load(_cache_file(cache_dir, repo).read_text())
+    assert cached["policy"] == {"min_hours": 72}
+
+
+def test_tp_classic_protection_source_does_not_count(atr_repo, cache_dir, monkeypatch):
+    # Classic branch protection is evaluated into the suite too, under rule_source protected_branch.
+    # Only a ruleset counts, so a passing pull_request rule from classic protection is still refused.
+    rules = [_rule("pull_request", source="protected_branch"), _rule("non_fast_forward")]
+    _wire_github(monkeypatch, FakeSuiteRequester(_suite(rules=rules)))
+    with pytest.raises(asfyaml.asfyaml.ASFYAMLException) as excinfo:
+        _run(_tp_repo(atr_repo), TP_YAML)
+    message = str(excinfo.value)
+    assert "pull_request" in message
+    assert "classic branch protection" in message
+    assert "active ruleset is required" in message
+
+
+def test_tp_failing_rule_result_raises(atr_repo, cache_dir, monkeypatch):
+    # The suite as a whole can say pass while an individual rule says fail; the rule's own result counts.
+    rules = [_rule("pull_request", result="fail"), _rule("non_fast_forward")]
+    _wire_github(monkeypatch, FakeSuiteRequester(_suite(rules=rules)))
+    with pytest.raises(asfyaml.asfyaml.ASFYAMLException) as excinfo:
+        _run(_tp_repo(atr_repo), TP_YAML)
+    message = str(excinfo.value)
+    assert "pull_request" in message and "'fail'" in message
+
+
+def test_tp_suite_on_second_page_is_found(atr_repo, cache_dir, capsys, monkeypatch):
+    filler = [_suite(sha=f"{i:040x}", suite_id=100 + i) for i in range(100)]
+    requester = FakeSuiteRequester(*filler, _suite(suite_id=42))
+    _wire_github(monkeypatch, requester)
+    _run(_tp_repo(atr_repo), TP_YAML)
+    assert "passed the protection check" in capsys.readouterr().out
+    pages = [call[2]["page"] for call in requester.list_calls]
+    assert pages == [1, 2]
+    assert requester.calls[-1][1].endswith("/rule-suites/42")
+
+
+def test_tp_suite_found_on_second_attempt(atr_repo, cache_dir, capsys, monkeypatch):
+    requester = FakeSuiteRequester(_suite(), hidden_for=1)
+    _wire_github(monkeypatch, requester)
+    _run(_tp_repo(atr_repo), TP_YAML)
+    out = capsys.readouterr().out
+    assert "retrying" in out
+    assert "passed the protection check" in out
+    assert len(requester.list_calls) == 2
+
+
+def test_tp_summary_for_another_ref_is_ignored(atr_repo, cache_dir, monkeypatch):
+    summary, detail = _suite()
+    summary["ref"] = "refs/heads/other"
+    _wire_github(monkeypatch, FakeSuiteRequester((summary, detail)))
+    with pytest.raises(asfyaml.asfyaml.ASFYAMLException, match="no rule suite"):
+        _run(_tp_repo(atr_repo), TP_YAML)
+
+
+def test_tp_no_suite_for_this_push_says_so(atr_repo, cache_dir, monkeypatch):
+    _wire_github(monkeypatch, FakeSuiteRequester(_suite(sha=OTHER_SHA)))
+    with pytest.raises(asfyaml.asfyaml.ASFYAMLException) as excinfo:
+        _run(_tp_repo(atr_repo), TP_YAML)
+    message = str(excinfo.value)
+    assert "none for push" in message and "classic branch protection alone leaves no record" in message
+    assert "github: rulesets:" in message
+
+
+def test_tp_no_suite_at_all_says_so(atr_repo, cache_dir, monkeypatch):
+    _wire_github(monkeypatch, FakeSuiteRequester())
+    with pytest.raises(asfyaml.asfyaml.ASFYAMLException) as excinfo:
+        _run(_tp_repo(atr_repo), TP_YAML)
+    message = str(excinfo.value)
+    assert "no rule suite at all" in message and "refs/heads/main" in message
+    assert "github: rulesets:" in message
+
+
+def test_tp_success_line_lists_rules_seen(atr_repo, cache_dir, capsys, monkeypatch):
+    rules = [*PASSING_RULES, _rule("required_signatures")]
+    _wire_github(monkeypatch, FakeSuiteRequester(_suite(rules=rules)))
+    _run(_tp_repo(atr_repo), TP_YAML)
+    out = capsys.readouterr().out
+    assert "non_fast_forward, pull_request, required_signatures" in out
+
+
+def test_tp_reflog_without_default_branch_raises(atr_repo, cache_dir, monkeypatch):
+    # A reflog that does not mention the default branch is not a reason to guess from HEAD.
+    _wire_github(monkeypatch, FakeSuiteRequester(_suite()))
+    reflog = f"{'0' * 40} {OTHER_SHA} refs/heads/feature\n"
+    with pytest.raises(asfyaml.asfyaml.ASFYAMLException, match="refs/heads/main"):
+        _run(_tp_repo(atr_repo, reflog=reflog), TP_YAML)
+
+
+def test_tp_empty_token_file_noop_skips(atr_repo, cache_dir, tmp_path, capsys, monkeypatch):
+    monkeypatch.delenv("GH_TOKEN", raising=False)
+    token_file = tmp_path / "empty-token"
+    token_file.write_text("\n")
+    monkeypatch.setattr("asfyaml.feature.project.GH_TOKEN_FILE", str(token_file))
+
+    def explode(self, token):
+        raise AssertionError("no client should be built with an empty token")
+
+    monkeypatch.setattr(ASFATRFeature, "_connect_github", explode)
+    _run(_tp_repo(atr_repo), TP_YAML)
+    assert "protection check skipped" in capsys.readouterr().out
+
+
+def test_tp_empty_token_file_live_raises(atr_repo, cache_dir, tmp_path, monkeypatch):
+    monkeypatch.delenv("GH_TOKEN", raising=False)
+    token_file = tmp_path / "empty-token"
+    token_file.write_text("")
+    monkeypatch.setattr("asfyaml.feature.project.GH_TOKEN_FILE", str(token_file))
+    with pytest.raises(asfyaml.asfyaml.ASFYAMLException, match="empty"):
+        _run(_tp_repo(atr_repo), TP_YAML, noop=False)
+
+
+def test_tp_cache_round_trip_through_the_feature(atr_repo, cache_dir, capsys, monkeypatch):
+    # What the feature writes after a live POST must compare equal to the strictyaml-derived
+    # values of the next push, or the skip would never happen in production.
+    repo = _tp_repo(atr_repo)
+    _wire_github(monkeypatch, FakeSuiteRequester(_suite()))
+    _wire_atr(monkeypatch)
+    _run(repo, TP_YAML, noop=False)
+    capsys.readouterr()
+
+    _forbid_github(monkeypatch)
+    _run(repo, TP_YAML_NEW_METADATA)
+    assert "unchanged" in capsys.readouterr().out
