@@ -22,6 +22,9 @@ import os
 from . import directive, ASFGitHubFeature, constants
 import github as pygithub
 
+# A valid GitHub login: alphanumerics and single hyphens, no leading/trailing hyphen, at most 39 characters.
+GITHUB_LOGIN_RE = re.compile(r"^[A-Za-z\d](?:[-A-Za-z\d]|-(?=[A-Za-z\d])){0,38}$")
+
 
 @directive
 def collaborators(self: ASFGitHubFeature):
@@ -38,7 +41,7 @@ def collaborators(self: ASFGitHubFeature):
             f"You can only have a maximum of {constants.MAX_COLLABORATORS} external triage collaborators, please contact vp-infra@apache.org to request an exception."
         )
     for user in collabs:
-        if not re.match(r"^[A-Za-z\d](?:[-A-Za-z\d]|-(?=[A-Za-z\d])){0,38}$", user):
+        if not GITHUB_LOGIN_RE.match(user):
             raise Exception("Username %s in collaborator list is not a valid GitHub ID!" % user)
     collab_file = os.path.join(self.repository.path, "github_collaborators.txt")
     if os.path.exists(collab_file):
