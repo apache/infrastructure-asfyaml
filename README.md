@@ -81,6 +81,7 @@ It operates on a per-branch basis, meaning you can have different settings for d
       <li><a href="#repo_meta">Repository metadata</a></li>
       <li><a href="#tag_protect">Tag protection</a></li>
       <li><a href="#environments">Deployment environments</a></li>
+      <li><a href="#oidc_subject">GitHub Actions OIDC subject claim</a></li>
     </ul>
   </li>
   <li><a href="#static">Generating static website content</a>
@@ -879,6 +880,10 @@ github:
       max_open_pull_requests: 5
       # count draft pull requests toward the cap as well
       include_drafts: true
+      # GitHub logins that may open PRs regardless of the cap
+      bypass_users:
+        - octocat
+        - monalisa
 ~~~
 
 Supported settings:
@@ -887,6 +892,7 @@ Supported settings:
 enabled: <boolean>                # required
 max_open_pull_requests: <int>     # optional, 1-1000; if omitted, GitHub's default is used
 include_drafts: <boolean>         # optional; whether draft PRs count toward the cap
+bypass_users: <list of strings>   # optional, at most 100 GitHub logins; see below
 ~~~
 
 Set `enabled: false` to turn the cap off. Removing the `creation_cap` section also disables a cap that
@@ -896,6 +902,14 @@ By default GitHub does not count draft pull requests toward the cap, so a user c
 of drafts. Set `include_drafts: true` to [count them too](https://github.blog/changelog/2026-10-08-draft-pull-requests-count-toward-pull-request-limits/).
 Removing `include_drafts` after it was set turns it back off. If you leave it out and never set it,
 `.asf.yaml` does not change it, and a value set by hand in the repository settings stays.
+When `bypass_users` is present, GitHub's bypass list for the cap is made to match it exactly: users
+listed here but missing on GitHub are added, and users on GitHub but not listed here are removed,
+including users that were added by hand in the repository settings. Set `bypass_users: ~` to empty
+the list. When `bypass_users` is omitted, the bypass list is left untouched, so a list maintained
+through the repository settings keeps working. The list is synced whether the cap is enabled or not, so
+turning the cap off with `enabled: false` keeps `bypass_users` in place for when it is turned back on.
+Every login to be added is checked against GitHub first; the run fails and names the unknown logins
+before anything is changed. A noop run does the same check when a `GH_TOKEN` is available.
 
 <h3 id="copilot_code_review">Copilot code review</h3>
 
@@ -1218,6 +1232,43 @@ deployment_branch_policy: ~
 - by default `protected_branches` is set to `false`
 - the default `type` for a `required_reviewer` is `User`
 - the default `type` for a `deployment_branch_policy` is `branch`
+
+<p align="right"><a href="#top">Return to top</a>
+
+<h3 id="oidc_subject">GitHub Actions OIDC subject claim</h3>
+
+Workflows that log in to a cloud provider with GitHub's [OpenID Connect tokens](https://docs.github.com/en/actions/concepts/security/openid-connect)
+are trusted by the token's `sub` claim. By default it names the repository by owner and name, e.g.
+`repo:apache/foo:ref:refs/heads/main`. With the [immutable format](https://docs.github.com/en/actions/reference/security/oidc#immutable-subject-claims)
+it also carries the owner and repository IDs, e.g. `repo:apache@47359/foo@123456789:ref:refs/heads/main`, so a
+renamed, deleted or re-created repository can no longer match a trust policy written for the old one.
+Repositories created after July 15, 2026 use the immutable format already; older ones keep the old format
+until they opt in.
+
+~~~yaml
+github:
+  oidc_subject:
+    # use the immutable, ID-based subject claim format
+    use_immutable_subject: true
+~~~
+
+Supported settings:
+
+~~~yaml
+use_immutable_subject: <boolean>     # optional; opt in to (or out of) the immutable format
+include_claim_keys: [<string>, ...]  # optional; a custom claim template, e.g. [repo, context, job_workflow_ref]
+~~~
+
+Without `include_claim_keys` the subject uses GitHub's default template. With it, the subject is built from
+the listed [claim keys](https://docs.github.com/en/actions/reference/security/oidc#customizing-the-subject-claims-for-an-organization-or-repository)
+instead. Removing `include_claim_keys`, or the whole `oidc_subject` section, goes back to the default template.
+
+`use_immutable_subject` is only changed when it is written down. Removing it, or the section, leaves the
+format as it is: switching a repository back to the old format breaks every trust policy written for the
+immutable one, so it takes an explicit `use_immutable_subject: false`.
+
+**Note**: a trust policy written for one format does not match tokens in the other. Update the policies in
+your cloud account in the same change, or first allow both subjects, then drop the old one.
 
 <p align="right"><a href="#top">Return to top</a>
 

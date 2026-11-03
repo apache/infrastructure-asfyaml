@@ -143,6 +143,8 @@ class ASFGitHubFeature(ASFYamlFeature, name="github", cache_prefix="ghsettings")
                             strictyaml.Optional("max_open_pull_requests"): strictyaml.Int(),
                             # Whether draft pull requests count toward the cap.
                             strictyaml.Optional("include_drafts"): strictyaml.Bool(),
+                            strictyaml.Optional("bypass_users"): asfyaml.validators.EmptyValue()
+                            | strictyaml.Seq(strictyaml.Str()),
                         }
                     ),
                 }
@@ -156,6 +158,13 @@ class ASFGitHubFeature(ASFYamlFeature, name="github", cache_prefix="ghsettings")
                     "enabled": strictyaml.Bool(),
                     strictyaml.Optional("review_drafts", default=False): strictyaml.Bool(),
                     strictyaml.Optional("review_on_push", default=False): strictyaml.Bool(),
+                }
+            ),
+            # GitHub Actions OIDC token subject claim format
+            strictyaml.Optional("oidc_subject"): strictyaml.Map(
+                {
+                    strictyaml.Optional("use_immutable_subject"): strictyaml.Bool(),
+                    strictyaml.Optional("include_claim_keys"): strictyaml.Seq(strictyaml.Str()),
                 }
             ),
             # Delete branch on merge
@@ -217,6 +226,11 @@ class ASFGitHubFeature(ASFYamlFeature, name="github", cache_prefix="ghsettings")
         else:
             return self._ghrepo
 
+    @property
+    def has_github_client(self) -> bool:
+        """Whether GitHub can be queried; in noop mode this needs a GH_TOKEN in the environment."""
+        return self._ghrepo is not None
+
     def run(self):
         """GitHub features"""
         # Test if we need to process this (only works on the default branch)
@@ -272,4 +286,5 @@ from . import (
     deployment_environments,
     rulesets,
     copilot_code_review,
+    oidc_subject,
 )

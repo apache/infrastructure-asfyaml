@@ -158,6 +158,7 @@ Check the thing the change was supposed to affect:
 | `environments` | `Settings → Environments` |
 | `copilot_code_review` | `Settings → Rules`, and a PR in the sandbox |
 | `ghp_branch`, `ghp_path` | `Settings → Pages` |
+| `oidc_subject` | `gh api repos/<owner>/infrastructure-asfyaml-sandbox/actions/oidc/customization/sub` (no settings page shows it) |
 | `collaborators` | `Settings → Collaborators` (invitations are pending until accepted) |
 | `autolink_jira` | `Settings → Autolink references` |
 

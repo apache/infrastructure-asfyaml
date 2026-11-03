@@ -74,6 +74,7 @@ Token permissions, by what you are testing:
 | most repository settings, rulesets, autolinks, interaction limits, branch protection | `Administration: Read and write` |
 | deployment environments | `Environments: Read and write` |
 | Pages | `Pages: Read and write` |
+| `oidc_subject` (Actions OIDC subject claim) | `Actions: Read and write` |
 | pushing test branches to the sandbox | `Contents: Read and write` |
 
 A 403 saying `Resource not accessible by personal access token` almost always means the
