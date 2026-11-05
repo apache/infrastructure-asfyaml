@@ -241,6 +241,8 @@ The remaining fields:
 | `source_excludes_rat` | list of globs | Paths excluded from the RAT license check. |
 | `file_tag_mappings` | map of label to globs | Groups release files under named tags. |
 | `release_checklist` | string | Checklist shown to release managers. |
+| `require_version_in_filenames` | boolean | Block a release whose artifact filenames do not contain its version. |
+| `auto_archive_prior_release` | boolean | Allow a new release to archive the prior release in its cycle when it is announced. Release managers can still opt out per release. Needs a `cycle_match` (or `calver_format`) in `metadata`, otherwise there is no prior release to find. |
 | `download_path_suffix` | string | Subdirectory the release is published under. A per-release template that may use `{{PROJECT_KEY}}`, `{{VERSION}}` and `{{MAJOR_VERSION}}`. |
 | `start_vote_subject` / `start_vote_template` | string | Subject and body for the vote-start email. |
 | `vote_comment_template` | string | Template for vote comments. |
