@@ -129,6 +129,8 @@ _POLICY_SCHEMA = strictyaml.Map(
         strictyaml.Optional("announce_release_subject"): strictyaml.Str(),
         strictyaml.Optional("announce_release_template"): strictyaml.Str(),
         strictyaml.Optional("announce_release_template_url"): strictyaml.Str(),
+        # ATR only acts on this once the project has a cycle_match to find the prior release by
+        strictyaml.Optional("auto_archive_prior_release"): strictyaml.Bool(),
         strictyaml.Optional("binary_artifact_paths"): strictyaml.Seq(strictyaml.Str()),
         # Subdirectory the release is published under, as a per-release template that may
         # use {{PROJECT_KEY}}/{{VERSION}}. ATR checks it resolves to a valid relative path.
@@ -147,6 +149,7 @@ _POLICY_SCHEMA = strictyaml.Map(
         strictyaml.Optional("manual_vote"): strictyaml.Bool(),
         strictyaml.Optional("min_hours"): strictyaml.Int(),
         strictyaml.Optional("release_checklist"): strictyaml.Str(),
+        strictyaml.Optional("require_version_in_filenames"): strictyaml.Bool(),
         strictyaml.Optional("source_artifact_paths"): strictyaml.Seq(strictyaml.Str()),
         strictyaml.Optional("source_excludes_lightweight"): strictyaml.Seq(strictyaml.Str()),
         strictyaml.Optional("source_excludes_rat"): strictyaml.Seq(strictyaml.Str()),
