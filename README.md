@@ -249,9 +249,8 @@ The remaining fields:
 | `finish_vote_template` | string | Template for the vote-result email. |
 | `announce_release_subject` / `announce_release_template` | string | Subject and body for the announcement email. |
 | `start_vote_template_url` / `vote_comment_template_url` / `finish_vote_template_url` / `announce_release_template_url` | string | A URL to fetch the matching email template from, instead of giving it inline. ATR fetches it each time it shows the email form. |
-| `github_repository_name` | string | GitHub repository backing trusted publishing. |
-| `github_repository_branch` | string | Branch within that repository. |
-| `github_compose_workflow_path` / `github_vote_workflow_path` / `github_finish_workflow_path` | list of paths | Workflow files for each release stage. |
+
+Trusted publishing (the GitHub repository, branch and workflow files that may upload to ATR on the project's behalf) is **not** configured here. A registered workflow acts in ATR as the PMC without a login, so those settings are a credential, and they are set in ATR itself. The keys `github_repository_name`, `github_repository_branch`, `github_compose_workflow_path`, `github_vote_workflow_path` and `github_finish_workflow_path` are still accepted so that existing files keep validating, but they are not sent: the rest of the block syncs as normal and ATR keeps whatever it already holds for them, in both sync modes. You can remove them from the file at any time without changing anything in ATR.
 
 <h3 id="atrsync">Synchronizing to ATR</h3>
 

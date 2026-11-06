@@ -130,6 +130,8 @@ _POLICY_SCHEMA = strictyaml.Map(
         strictyaml.Optional("file_tag_mappings"): strictyaml.MapPattern(
             strictyaml.Str(), strictyaml.Seq(strictyaml.Str())
         ),
+        # The trusted publishing settings are still accepted by the schema, so files that
+        # carry them keep validating, but they are never sent to ATR: see _TP_FIELDS below.
         strictyaml.Optional("github_compose_workflow_path"): strictyaml.Seq(strictyaml.Str()),
         strictyaml.Optional("github_finish_workflow_path"): strictyaml.Seq(strictyaml.Str()),
         strictyaml.Optional("github_repository_branch"): strictyaml.Str(),
@@ -154,6 +156,24 @@ _POLICY_SCHEMA = strictyaml.Map(
         strictyaml.Optional("vote_comment_template"): strictyaml.Str(),
         strictyaml.Optional("vote_comment_template_url"): strictyaml.Str(),
         strictyaml.Optional("vote_mode"): strictyaml.Enum(["manual", "email", "trusted"]),
+    }
+)
+
+# The trusted publishing settings: the repository, branch and workflow files that may upload
+# to ATR on the project's behalf. A workflow registered that way acts in ATR as the PMC with
+# no login or MFA behind it, which makes these a credential, and a file anyone with push
+# access can change is no place to keep one. They are configured in ATR itself, behind a
+# login, so they are dropped from the payload here rather than sent. The schema still
+# accepts them so that files written before this keep validating; ATR leaves whatever it
+# already holds for them untouched, in merge and full mode alike.
+# See tooling-trusted-releases#1777.
+_TP_FIELDS = frozenset(
+    {
+        "github_repository_name",
+        "github_repository_branch",
+        "github_compose_workflow_path",
+        "github_vote_workflow_path",
+        "github_finish_workflow_path",
     }
 )
 
@@ -238,7 +258,17 @@ class ASFATRFeature(ASFYamlFeature, name="project", env="production", priority=5
         }
         policy = self.yaml.get("policy")
         if policy:
-            payload["policy"] = dict(policy)
+            policy = dict(policy)
+            ignored = sorted(_TP_FIELDS & set(policy))
+            if ignored:
+                print(
+                    f"[project] Ignoring {', '.join(ignored)}: trusted publishing is configured in ATR, "
+                    "not in .asf.yaml, so these are not sent and ATR keeps what it already holds"
+                )
+                for key in ignored:
+                    del policy[key]
+        if policy:
+            payload["policy"] = policy
         # Only forwarded when authored, so ATR's own default (merge) applies otherwise
         sync_mode = features.get("atr_sync_mode")
         if sync_mode:
