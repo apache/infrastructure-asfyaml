@@ -526,6 +526,61 @@ project:
     assert payload["policy"]["vote_recipients"]["to"] == "private@tooling.apache.org"
 
 
+def test_noop_payload_drops_trusted_publishing_fields(atr_repo: asfyaml.dataobjects.Repository, capsys):
+    # Trusted publishing is configured in ATR, not here. The keys still validate, so files that
+    # carry them keep working, but they never reach the payload; the rest of the policy does.
+    yaml = """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+    policy:
+        github_repository_name: tooling-trusted-releases
+        github_repository_branch: main
+        github_vote_workflow_path:
+            - .github/workflows/vote.yml
+        vote_recipients:
+            to: private@tooling.apache.org
+"""
+    a = asfyaml.asfyaml.ASFYamlInstance(
+        repo=atr_repo, committer="arm", config_data=yaml, branch=asfyaml.dataobjects.DEFAULT_BRANCH
+    )
+    a.environments_enabled.add("noop")
+    a.no_cache = True
+    a.run_parts()
+
+    out = capsys.readouterr().out
+    payload = json.loads(out[out.index("{") : out.rindex("}") + 1])
+    assert payload["policy"] == {"vote_recipients": {"to": "private@tooling.apache.org"}}
+    assert "Ignoring github_repository_branch, github_repository_name, github_vote_workflow_path" in out
+    assert "configured in ATR" in out
+
+
+def test_noop_payload_omits_policy_when_only_trusted_publishing_fields(
+    atr_repo: asfyaml.dataobjects.Repository, capsys
+):
+    # Once the ignored keys are gone there is nothing left to say about the policy, so the
+    # payload carries no policy at all rather than an empty one.
+    yaml = """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+    policy:
+        github_repository_name: tooling-trusted-releases
+"""
+    a = asfyaml.asfyaml.ASFYamlInstance(
+        repo=atr_repo, committer="arm", config_data=yaml, branch=asfyaml.dataobjects.DEFAULT_BRANCH
+    )
+    a.environments_enabled.add("noop")
+    a.no_cache = True
+    a.run_parts()
+
+    out = capsys.readouterr().out
+    payload = json.loads(out[out.index("{") : out.rindex("}") + 1])
+    assert "policy" not in payload
+
+
 def test_noop_payload_omits_sync_mode_unless_authored(atr_repo: asfyaml.dataobjects.Repository, capsys):
     yaml = """
 project:
