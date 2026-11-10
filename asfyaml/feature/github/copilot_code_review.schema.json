@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/apache/infrastructure-asfyaml/refs/heads/main/asfyaml/feature/github/copilot_code_review.schema.json",
+  "title": "Copilot code review",
+  "description": "Automatic Copilot code review of pull requests, managed through the rulesets API. Mutually exclusive with a manually managed 'Copilot Code Review' ruleset. See: https://github.com/apache/infrastructure-asfyaml#copilot_code_review",
+  "type": "object",
+  "required": ["enabled"],
+  "additionalProperties": false,
+  "properties": {
+    "enabled": {
+      "description": "Whether Copilot automatically reviews pull requests.",
+      "$ref": "../../common.schema.json#/definitions/bool"
+    },
+    "review_drafts": {
+      "description": "Also review draft pull requests.",
+      "default": false,
+      "$ref": "../../common.schema.json#/definitions/bool"
+    },
+    "review_on_push": {
+      "description": "Re-review when new commits are pushed.",
+      "default": false,
+      "$ref": "../../common.schema.json#/definitions/bool"
+    }
+  }
+}

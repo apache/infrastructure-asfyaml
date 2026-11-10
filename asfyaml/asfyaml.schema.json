@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/apache/infrastructure-asfyaml/refs/heads/main/asfyaml/asfyaml.schema.json",
+  "title": ".asf.yaml",
+  "description": "Configuration file for Apache Software Foundation repositories. See: https://github.com/apache/infrastructure-asfyaml#working-with-asfyaml",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "type": "object",
+      "title": "Parser settings",
+      "description": "Settings for the .asf.yaml parser itself. This section is not validated server-side.",
+      "properties": {
+        "environment": {
+          "type": "string",
+          "description": "Additional environment to enable for this run. The 'production' environment is always enabled."
+        },
+        "environments": {
+          "type": "array",
+          "description": "Additional environments to enable for this run. The 'production' environment is always enabled.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cache": {
+          "description": "Whether the parser may skip features whose configuration is unchanged.",
+          "$ref": "common.schema.json#/definitions/bool"
+        }
+      }
+    },
+    "notifications": {
+      "$ref": "feature/notifications.schema.json"
+    },
+    "project": {
+      "$ref": "feature/project.schema.json"
+    },
+    "github": {
+      "$ref": "feature/github/github.schema.json"
+    },
+    "pelican": {
+      "$ref": "feature/pelican.schema.json"
+    },
+    "jekyll": {
+      "$ref": "feature/jekyll.schema.json"
+    },
+    "publish": {
+      "$ref": "feature/website_publish.schema.json"
+    },
+    "staging": {
+      "$ref": "feature/website_staging.schema.json"
+    },
+    "test": {
+      "type": "object",
+      "title": "Test feature",
+      "description": "Internal test fixture used by the asfyaml test suite. Not for production use.",
+      "required": ["foo"],
+      "additionalProperties": false,
+      "properties": {
+        "foo": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,3 @@
+# Notification targets must be ASF mailing lists.
+notifications:
+  commits: someone@gmail.com

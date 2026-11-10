@@ -1,0 +1,8 @@
+# Keys that accept an explicit null (~) value.
+github:
+  protected_tags: ~
+  protected_branches: ~
+  rulesets: ~
+staging:
+  profile: ~
+  subdir: content

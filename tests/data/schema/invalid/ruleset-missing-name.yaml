@@ -1,0 +1,5 @@
+# Every ruleset requires a name.
+github:
+  rulesets:
+    - type: branch
+      required_signatures: true

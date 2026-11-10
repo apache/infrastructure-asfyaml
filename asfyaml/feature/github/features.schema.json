@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/apache/infrastructure-asfyaml/refs/heads/main/asfyaml/feature/github/features.schema.json",
+  "title": "Repository features",
+  "description": "Enables or disables GitHub repository features. Omitted features are disabled. See: https://github.com/apache/infrastructure-asfyaml#repo_features",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "wiki": {
+      "description": "Enable the wiki.",
+      "$ref": "../../common.schema.json#/definitions/bool"
+    },
+    "issues": {
+      "description": "Enable GitHub issues.",
+      "$ref": "../../common.schema.json#/definitions/bool"
+    },
+    "projects": {
+      "description": "Enable GitHub projects.",
+      "$ref": "../../common.schema.json#/definitions/bool"
+    },
+    "discussions": {
+      "description": "Enable GitHub discussions. Requires a discussions target in the notifications section.",
+      "$ref": "../../common.schema.json#/definitions/bool"
+    }
+  }
+}

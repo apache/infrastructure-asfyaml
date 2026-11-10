@@ -1,0 +1,6 @@
+# A ruleset may not mix raw payload keys with convenience keys.
+github:
+  rulesets:
+    - name: mixed
+      target: branch
+      required_signatures: true

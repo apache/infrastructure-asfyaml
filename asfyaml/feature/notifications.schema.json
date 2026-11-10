@@ -1,0 +1,82 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/apache/infrastructure-asfyaml/refs/heads/main/asfyaml/feature/notifications.schema.json",
+  "title": "Notification settings",
+  "description": "Configures where email notifications for repository events are sent. Targets must be existing ASF mailing lists, normally on the project's own domain. See: https://github.com/apache/infrastructure-asfyaml#notif",
+  "type": "object",
+  "minProperties": 1,
+  "additionalProperties": false,
+  "properties": {
+    "commits": {
+      "description": "Mailing list that receives commit notifications.",
+      "$ref": "../common.schema.json#/definitions/asfEmail"
+    },
+    "issues": {
+      "description": "Mailing list that receives GitHub issue notifications.",
+      "$ref": "../common.schema.json#/definitions/asfEmail"
+    },
+    "pullrequests": {
+      "description": "Mailing list that receives GitHub pull request notifications.",
+      "$ref": "../common.schema.json#/definitions/asfEmail"
+    },
+    "issues_status": {
+      "description": "Mailing list that receives notifications when a GitHub issue is opened or closed. See: https://github.com/apache/infrastructure-asfyaml#split",
+      "$ref": "../common.schema.json#/definitions/asfEmail"
+    },
+    "issues_comment": {
+      "description": "Mailing list that receives notifications when a comment is added to a GitHub issue. See: https://github.com/apache/infrastructure-asfyaml#split",
+      "$ref": "../common.schema.json#/definitions/asfEmail"
+    },
+    "pullrequests_status": {
+      "description": "Mailing list that receives notifications when a GitHub pull request is opened or closed. See: https://github.com/apache/infrastructure-asfyaml#split",
+      "$ref": "../common.schema.json#/definitions/asfEmail"
+    },
+    "pullrequests_comment": {
+      "description": "Mailing list that receives notifications when a comment is added to a GitHub pull request. See: https://github.com/apache/infrastructure-asfyaml#split",
+      "$ref": "../common.schema.json#/definitions/asfEmail"
+    },
+    "discussions": {
+      "description": "Mailing list that receives GitHub discussion notifications. Required when github.features.discussions is enabled.",
+      "$ref": "../common.schema.json#/definitions/asfEmail"
+    },
+    "jobs": {
+      "description": "Mailing list that receives GitHub Actions build status notifications. See: https://github.com/apache/infrastructure-asfyaml#GHA_build_status",
+      "$ref": "../common.schema.json#/definitions/asfEmail"
+    },
+    "jira_options": {
+      "type": "string",
+      "description": "Space-separated list of Jira notification options: link, label, comment, worklog. See: https://github.com/apache/infrastructure-asfyaml#jiraoptions"
+    },
+    "commits_by_path": {
+      "type": "object",
+      "title": "By-path commit emails",
+      "description": "Sends commit notifications for specific paths to specific addresses. Keys are path globs, values are one or more email addresses (not restricted to ASF mailing lists). See: https://github.com/apache/infrastructure-asfyaml#bypath",
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "$ref": "#/definitions/email"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/email"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "patternProperties": {
+    "^(pullrequests|issues)(_status|_comment)?_bot_.+$": {
+      "description": "Mailing list that receives the corresponding notifications for events triggered by the bot named in the key suffix, e.g. pullrequests_bot_dependabot. See: https://github.com/apache/infrastructure-asfyaml#botschemes",
+      "$ref": "../common.schema.json#/definitions/asfEmail"
+    }
+  },
+  "definitions": {
+    "email": {
+      "type": "string",
+      "description": "An email address.",
+      "pattern": "^[^@]+@.+\\..+$"
+    }
+  }
+}

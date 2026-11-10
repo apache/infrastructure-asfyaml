@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/apache/infrastructure-asfyaml/refs/heads/main/asfyaml/feature/website_staging.schema.json",
+  "title": "Website staging",
+  "description": "Stages a branch on a *.staged.apache.org preview domain. See: https://github.com/apache/infrastructure-asfyaml#staging",
+  "type": "object",
+  "minProperties": 1,
+  "additionalProperties": false,
+  "properties": {
+    "whoami": {
+      "type": "string",
+      "description": "Branch to stage from. Staging only happens when this matches the current branch.",
+      "default": ""
+    },
+    "subdir": {
+      "type": "string",
+      "description": "Subdirectory to stage from. See: https://github.com/apache/infrastructure-asfyaml#subdir"
+    },
+    "type": {
+      "type": "string",
+      "description": "Type of site being staged.",
+      "default": "website"
+    },
+    "hostname": {
+      "type": "string",
+      "description": "Accepted but unused. The staging hostname is always inferred from the repository."
+    },
+    "profile": {
+      "type": ["null", "string"],
+      "description": "Staging profile, used as part of the *.staged.apache.org domain. May not contain dots. Set to null (~) for the default profile.",
+      "pattern": "^[-a-zA-Z0-9]*$"
+    },
+    "autostage": {
+      "type": "string",
+      "description": "Branch glob to auto-stage with a dynamic profile, e.g. site/*. Must end with /*. See: https://github.com/apache/infrastructure-asfyaml#autostage",
+      "pattern": "/\\*$"
+    }
+  }
+}

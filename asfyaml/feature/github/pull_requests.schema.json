@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/apache/infrastructure-asfyaml/refs/heads/main/asfyaml/feature/github/pull_requests.schema.json",
+  "title": "Pull request settings",
+  "description": "Repository pull request settings. See: https://github.com/apache/infrastructure-asfyaml#pull_requests",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "del_branch_on_merge": {
+      "description": "Automatically delete head branches when pull requests are merged.",
+      "$ref": "../../common.schema.json#/definitions/bool"
+    },
+    "allow_auto_merge": {
+      "description": "Allow auto-merge on pull requests.",
+      "$ref": "../../common.schema.json#/definitions/bool"
+    },
+    "allow_update_branch": {
+      "description": "Show the 'Update branch' button on pull requests.",
+      "$ref": "../../common.schema.json#/definitions/bool"
+    }
+  }
+}
