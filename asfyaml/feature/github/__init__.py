@@ -78,6 +78,7 @@ class ASFGitHubFeature(ASFYamlFeature, name="github"):
                     strictyaml.Optional("issues"): strictyaml.Bool(),
                     strictyaml.Optional("projects"): strictyaml.Bool(),
                     strictyaml.Optional("discussions"): strictyaml.Bool(),
+                    strictyaml.Optional("pullrequests"): strictyaml.Bool(),
                 }
             ),
             # enabled_merge_buttons
