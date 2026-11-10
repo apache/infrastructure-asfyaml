@@ -154,6 +154,7 @@ Check the thing the change was supposed to affect:
 | `protected_branches`, `protected_tags` | `Settings → Branches`, `Settings → Tags` |
 | `rulesets` | `Settings → Rules` |
 | `del_branch_on_merge`, `enabled_merge_buttons`, `pull_requests` | `Settings → General` |
+| `actions` | `Settings → Actions → General`, or `gh api repos/<owner>/infrastructure-asfyaml-sandbox/actions/permissions/fork-pr-contributor-approval` |
 | `dependabot_alerts`, `dependabot_updates` | `Settings → Advanced Security` |
 | `environments` | `Settings → Environments` |
 | `copilot_code_review` | `Settings → Rules`, and a PR in the sandbox |
