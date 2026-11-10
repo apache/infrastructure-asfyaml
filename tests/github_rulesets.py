@@ -606,6 +606,166 @@ def test_rulesets_convenience_conversation_resolution_false_does_not_add_pull_re
     assert "pull_request" not in rule_types
 
 
+def _merge_queue_config(**overrides: Any) -> dict[str, Any]:
+    config = {
+        "check_response_timeout_minutes": 60,
+        "grouping_strategy": "ALLGREEN",
+        "max_entries_to_build": 5,
+        "max_entries_to_merge": 5,
+        "merge_method": "SQUASH",
+        "min_entries_to_merge": 1,
+        "min_entries_to_merge_wait_minutes": 5,
+    }
+    config.update(overrides)
+    return config
+
+
+def test_rulesets_convenience_merge_queue_creates_rule():
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={
+            "rulesets": [
+                {
+                    "name": "Merge Queue",
+                    "type": "branch",
+                    "merge_queue": _merge_queue_config(),
+                }
+            ]
+        },
+        previous_yaml={},
+        requester=requester,
+    )
+
+    configure_rulesets(feature)
+
+    payload = requester.calls[1]["input"]
+    merge_queue_rule = next(rule for rule in payload["rules"] if rule["type"] == "merge_queue")
+    assert merge_queue_rule["parameters"] == {
+        "check_response_timeout_minutes": 60,
+        "grouping_strategy": "ALLGREEN",
+        "max_entries_to_build": 5,
+        "max_entries_to_merge": 5,
+        "merge_method": "SQUASH",
+        "min_entries_to_merge": 1,
+        "min_entries_to_merge_wait_minutes": 5,
+    }
+
+
+def test_rulesets_convenience_merge_queue_combines_with_other_convenience_rules():
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={
+            "rulesets": [
+                {
+                    "name": "Merge Queue",
+                    "type": "branch",
+                    "required_signatures": True,
+                    "merge_queue": _merge_queue_config(),
+                }
+            ]
+        },
+        previous_yaml={},
+        requester=requester,
+    )
+
+    configure_rulesets(feature)
+
+    payload = requester.calls[1]["input"]
+    rule_types = [rule["type"] for rule in payload["rules"]]
+    assert "required_signatures" in rule_types
+    assert "merge_queue" in rule_types
+
+
+@pytest.mark.parametrize(
+    "missing_field",
+    [
+        "check_response_timeout_minutes",
+        "grouping_strategy",
+        "max_entries_to_build",
+        "max_entries_to_merge",
+        "merge_method",
+        "min_entries_to_merge",
+        "min_entries_to_merge_wait_minutes",
+    ],
+)
+def test_rulesets_convenience_merge_queue_missing_field_raises(missing_field: str):
+    config = _merge_queue_config()
+    del config[missing_field]
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={"rulesets": [{"name": "Merge Queue", "type": "branch", "merge_queue": config}]},
+        previous_yaml={},
+        requester=requester,
+    )
+
+    with pytest.raises(Exception, match=f"missing required field.*{missing_field}"):
+        configure_rulesets(feature)
+
+
+def test_rulesets_convenience_merge_queue_invalid_grouping_strategy_raises():
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={
+            "rulesets": [
+                {
+                    "name": "Merge Queue",
+                    "type": "branch",
+                    "merge_queue": _merge_queue_config(grouping_strategy="EVERYTHING"),
+                }
+            ]
+        },
+        previous_yaml={},
+        requester=requester,
+    )
+
+    with pytest.raises(Exception, match=r"merge_queue\.grouping_strategy must be one of"):
+        configure_rulesets(feature)
+
+
+def test_rulesets_convenience_merge_queue_invalid_merge_method_raises():
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={
+            "rulesets": [
+                {
+                    "name": "Merge Queue",
+                    "type": "branch",
+                    "merge_queue": _merge_queue_config(merge_method="FAST_FORWARD"),
+                }
+            ]
+        },
+        previous_yaml={},
+        requester=requester,
+    )
+
+    with pytest.raises(Exception, match=r"merge_queue\.merge_method must be one of"):
+        configure_rulesets(feature)
+
+
+def test_rulesets_raw_merge_queue_rule_passes_through():
+    payload = _build_ruleset_payload("Merge Queue")
+    payload["rules"] = [
+        {
+            "type": "merge_queue",
+            "parameters": {
+                "check_response_timeout_minutes": 60,
+                "grouping_strategy": "ALLGREEN",
+                "max_entries_to_build": 5,
+                "max_entries_to_merge": 5,
+                "merge_method": "SQUASH",
+                "min_entries_to_merge": 1,
+                "min_entries_to_merge_wait_minutes": 5,
+            },
+        }
+    ]
+    requester = FakeRequester()
+    feature = FakeFeature(yaml={"rulesets": [payload]}, previous_yaml={}, requester=requester)
+
+    configure_rulesets(feature)
+
+    assert requester.calls[1]["input"] == payload
+
+
 @pytest.mark.parametrize(
     ("status", "match"),
     [
