@@ -35,6 +35,7 @@ _CONVENIENCE_RULESET_KEYS = {
     "bypass_mode",
     "restrict_deletion",
     "restrict_force_push",
+    "restrict_update",
     "required_signatures",
     "required_linear_history",
     "required_conversation_resolution",
@@ -413,9 +414,9 @@ def _is_raw_ruleset_definition(ruleset: dict[str, Any]) -> bool:
     return any(key in ruleset for key in _RAW_RULESET_KEYS)
 
 
-def _is_safety_rule_enabled(ruleset: dict[str, Any], field_name: str) -> bool:
+def _is_safety_rule_enabled(ruleset: dict[str, Any], field_name: str, *, default: bool = True) -> bool:
     if field_name not in ruleset:
-        return True
+        return default
     return _expect_bool(ruleset.get(field_name), field_name)
 
 
@@ -495,6 +496,8 @@ def _to_payload_ruleset(
         rules.append({"type": "deletion"})
     if _is_safety_rule_enabled(ruleset, "restrict_force_push"):
         rules.append({"type": "non_fast_forward"})
+    if _is_safety_rule_enabled(ruleset, "restrict_update", default=(target == "tag")):
+        rules.append({"type": "update"})
 
     pull_request_rule = _build_pull_request_rule(ruleset)
     if pull_request_rule:
