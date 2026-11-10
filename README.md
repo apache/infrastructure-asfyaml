@@ -1090,9 +1090,13 @@ github:
     projects: true
     # Enable discussions
     discussions: true
+    # Disable pull requests (enabled unless set to false)
+    pullrequests: false
 ~~~
 
 **NOTE**: When enabling discussions, you must specify a valid <a href="#notif">notification target</a> for discussions.
+
+`pullrequests` works differently from the other features. Leaving `wiki`, `issues`, `projects` or `discussions` out of a `features` block turns that feature off, but leaving `pullrequests` out leaves pull requests as they are. Set `pullrequests: false` to turn off pull requests for a project that does not accept contributions through GitHub, so contributors are not misled into opening one. If you later remove the setting, pull requests are turned back on.
 
 <h3 id="repo_meta">Repository metadata</h3>
 
