@@ -264,6 +264,68 @@ project:
 """,
 )
 
+valid_distributions = YamlTest(
+    None,
+    None,
+    """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+    distributions:
+        - platform: maven
+          owner_namespace: org.apache.tooling
+          packages:
+            - core
+            - api
+        - platform: docker_hub
+          owner_namespace: apache
+          packages:
+            - tooling
+          version: "{{VERSION}}-jdk17"
+""",
+)
+
+valid_empty_distributions = YamlTest(
+    None,
+    None,
+    """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+    distributions: []
+""",
+)
+
+invalid_unknown_distribution_platform = YamlTest(
+    asfyaml.asfyaml.ASFYAMLException,
+    "when expecting one of: artifact_hub, docker_hub, maven, npm, npm_scoped, pypi",
+    """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+    distributions:
+        - platform: crates
+          packages:
+            - tooling
+""",
+)
+
+invalid_distribution_without_packages = YamlTest(
+    asfyaml.asfyaml.ASFYAMLException,
+    "'packages' not found",
+    """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+    distributions:
+        - platform: pypi
+""",
+)
+
 # unexpected key inside policy
 invalid_unknown_policy_key = YamlTest(
     asfyaml.asfyaml.ASFYAMLException,
@@ -291,11 +353,15 @@ def test_schema_validation(test_repo: asfyaml.dataobjects.Repository):
         valid_template_urls,
         valid_metadata_with_doap,
         valid_security_and_download_suffix,
+        valid_distributions,
+        valid_empty_distributions,
         invalid_missing_metadata,
         invalid_missing_key,
         invalid_unknown_metadata_key,
         invalid_bad_vote_mode,
         invalid_unknown_policy_key,
+        invalid_unknown_distribution_platform,
+        invalid_distribution_without_packages,
     )
     for test in tests_to_run:
         with test.ctx():
@@ -621,6 +687,98 @@ project:
     out = capsys.readouterr().out
     payload = json.loads(out[out.index("{") : out.rindex("}") + 1])
     assert payload["sync_mode"] == "full"
+
+
+def test_noop_payload_carries_distributions(atr_repo: asfyaml.dataobjects.Repository, capsys):
+    yaml = """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+    distributions:
+        - platform: maven
+          owner_namespace: org.apache.tooling
+          packages:
+            - core
+            - api
+        - platform: pypi
+          packages:
+            - tooling
+          version: "{{VERSION}}.post1"
+"""
+    a = asfyaml.asfyaml.ASFYamlInstance(
+        repo=atr_repo, committer="arm", config_data=yaml, branch=asfyaml.dataobjects.DEFAULT_BRANCH
+    )
+    a.environments_enabled.add("noop")
+    a.no_cache = True
+    a.run_parts()
+
+    out = capsys.readouterr().out
+    payload = json.loads(out[out.index("{") : out.rindex("}") + 1])
+    assert payload["distributions"] == [
+        {"platform": "maven", "owner_namespace": "org.apache.tooling", "packages": ["core", "api"]},
+        {"platform": "pypi", "packages": ["tooling"], "version": "{{VERSION}}.post1"},
+    ]
+
+
+def test_noop_payload_omits_distributions_unless_authored(atr_repo: asfyaml.dataobjects.Repository, capsys):
+    yaml = """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+"""
+    a = asfyaml.asfyaml.ASFYamlInstance(
+        repo=atr_repo, committer="arm", config_data=yaml, branch=asfyaml.dataobjects.DEFAULT_BRANCH
+    )
+    a.environments_enabled.add("noop")
+    a.no_cache = True
+    a.run_parts()
+
+    out = capsys.readouterr().out
+    payload = json.loads(out[out.index("{") : out.rindex("}") + 1])
+    assert "distributions" not in payload
+
+
+def test_noop_payload_clears_distributions_in_full_mode(atr_repo: asfyaml.dataobjects.Repository, capsys):
+    yaml = """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+    features:
+        atr_sync_mode: full
+"""
+    a = asfyaml.asfyaml.ASFYamlInstance(
+        repo=atr_repo, committer="arm", config_data=yaml, branch=asfyaml.dataobjects.DEFAULT_BRANCH
+    )
+    a.environments_enabled.add("noop")
+    a.no_cache = True
+    a.run_parts()
+
+    out = capsys.readouterr().out
+    payload = json.loads(out[out.index("{") : out.rindex("}") + 1])
+    assert payload["distributions"] == []
+
+
+def test_noop_payload_carries_empty_distributions(atr_repo: asfyaml.dataobjects.Repository, capsys):
+    yaml = """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+    distributions: []
+"""
+    a = asfyaml.asfyaml.ASFYamlInstance(
+        repo=atr_repo, committer="arm", config_data=yaml, branch=asfyaml.dataobjects.DEFAULT_BRANCH
+    )
+    a.environments_enabled.add("noop")
+    a.no_cache = True
+    a.run_parts()
+
+    out = capsys.readouterr().out
+    payload = json.loads(out[out.index("{") : out.rindex("}") + 1])
+    assert payload["distributions"] == []
 
 
 def test_noop_payload_policy_types(atr_repo: asfyaml.dataobjects.Repository, capsys):
