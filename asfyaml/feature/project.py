@@ -186,6 +186,20 @@ _FEATURES_SCHEMA = strictyaml.Map(
     }
 )
 
+# The packages ATR looks for on third-party platforms for each release. Packages that share
+# a platform, namespace and version go under one entry. ATR validates the namespace and the
+# version, which may use {{VERSION}}, {{MAJOR_VERSION}} and {{PROJECT_KEY}}.
+_DISTRIBUTIONS_SCHEMA = strictyaml.Seq(
+    strictyaml.Map(
+        {
+            "platform": strictyaml.Enum(["artifact_hub", "docker_hub", "maven", "npm", "npm_scoped", "pypi"]),
+            strictyaml.Optional("owner_namespace"): strictyaml.Str(),
+            "packages": strictyaml.Seq(strictyaml.Str()),
+            strictyaml.Optional("version"): strictyaml.Str(),
+        }
+    )
+)
+
 
 class ASFATRFeature(ASFYamlFeature, name="project", env="production", priority=5):
     """Push project metadata from .asf.yaml to the Apache Trusted Releases (ATR) platform."""
@@ -194,6 +208,7 @@ class ASFATRFeature(ASFYamlFeature, name="project", env="production", priority=5
         {
             "metadata": _METADATA_SCHEMA,
             strictyaml.Optional("policy"): _POLICY_SCHEMA,
+            strictyaml.Optional("distributions"): _DISTRIBUTIONS_SCHEMA,
             strictyaml.Optional("features"): _FEATURES_SCHEMA,
         }
     )
@@ -222,6 +237,12 @@ class ASFATRFeature(ASFYamlFeature, name="project", env="production", priority=5
                 # Email templates can come from a URL instead of inline text. ATR fetches it each
                 # time it shows the email form; use it in place of the matching *_template field.
                 start_vote_template_url: https://raw.githubusercontent.com/apache/foo/main/.atr/start-vote.txt
+              distributions:         # packages ATR looks for on other platforms for each release
+                - platform: maven
+                  owner_namespace: org.apache.foo
+                  packages:
+                    - foo-core
+                    - foo-api
               features:
                 atr_sync: true       # set false to opt out of syncing
                 atr_sync_mode: full  # merge (default) updates only the fields set here; full resets the rest
@@ -273,6 +294,13 @@ class ASFATRFeature(ASFYamlFeature, name="project", env="production", priority=5
         sync_mode = features.get("atr_sync_mode")
         if sync_mode:
             payload["sync_mode"] = sync_mode
+        # ATR replaces its whole list with the one sent, and leaves it alone when none is sent.
+        # So a file in full mode that lists none sends an empty list, to clear it
+        distributions = self.yaml.get("distributions")
+        if distributions is not None:
+            payload["distributions"] = [dict(entry) for entry in distributions]
+        elif sync_mode == "full":
+            payload["distributions"] = []
 
         if self.noop("atr"):
             print(json.dumps(payload, indent=2))

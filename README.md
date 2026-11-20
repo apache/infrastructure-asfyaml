@@ -32,6 +32,7 @@ It operates on a per-branch basis, meaning you can have different settings for d
   <li><a href="#project">Project metadata</a>
     <ul>
         <li><a href="#project-definition">Schema</a></li>
+        <li><a href="#distributions">Third-party distributions</a></li>
         <li><a href="#atrsync">Sync to Apache Trusted Releases</a>
             <ul>
                 <li><a href="#atrinit">Initial setup</a></li>
@@ -251,6 +252,39 @@ The remaining fields:
 | `start_vote_template_url` / `vote_comment_template_url` / `finish_vote_template_url` / `announce_release_template_url` | string | A URL to fetch the matching email template from, instead of giving it inline. ATR fetches it each time it shows the email form. |
 
 Trusted publishing (the GitHub repository, branch and workflow files that may upload to ATR on the project's behalf) is **not** configured here. A registered workflow acts in ATR as the PMC without a login, so those settings are a credential, and they are set in ATR itself. The keys `github_repository_name`, `github_repository_branch`, `github_compose_workflow_path`, `github_vote_workflow_path` and `github_finish_workflow_path` are still accepted so that existing files keep validating, but they are not sent: the rest of the block syncs as normal and ATR keeps whatever it already holds for them, in both sync modes. You can remove them from the file at any time without changing anything in ATR.
+
+<h3 id="distributions">Third-party distributions</h3>
+
+The optional `distributions` list names the packages your project publishes on other platforms for each release. Once a release's vote passes, ATR looks for each of them, and the release cannot be announced until each one has been found or ignored.
+
+Packages that share a platform, namespace and version go under one entry:
+
+~~~yaml
+project:
+  metadata:
+    key: tooling-trusted-releases
+    committee: tooling
+  distributions:
+    - platform: maven
+      owner_namespace: org.apache.tooling
+      packages:
+        - trusted-releases-core
+        - trusted-releases-api
+    - platform: docker_hub
+      owner_namespace: apache
+      packages:
+        - trusted-releases
+      version: "{{VERSION}}-jdk17"
+~~~
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `platform` | `maven`, `pypi`, `npm`, `npm_scoped`, `docker_hub` or `artifact_hub` | Where the packages are published. |
+| `owner_namespace` | string | The groupId for Maven Central, the scope for a scoped npm package, the namespace on Docker Hub (`library` if left out), or the repository on Artifact Hub. Leave it out for PyPI and unscoped npm. |
+| `packages` | list of strings | The package names, which may contain only letters, digits and hyphens. |
+| `version` | string | The package version, when it differs from the release version. A per-release template that may use `{{PROJECT_KEY}}`, `{{VERSION}}` and `{{MAJOR_VERSION}}`. |
+
+A list in the file replaces the whole list in ATR. If the file has no `distributions` key, ATR keeps the list it has, unless `atr_sync_mode` is `full`, in which case the list is cleared. `distributions: []` clears it in either mode.
 
 <h3 id="atrsync">Synchronizing to ATR</h3>
 
