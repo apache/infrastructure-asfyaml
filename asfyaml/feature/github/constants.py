@@ -55,3 +55,12 @@ VALID_GITHUB_ACTIONS = (
 # Maximum number of non-committer collaborators per repository on GitHub.
 # The only way to increase the limit is by talking to vp infra.
 MAX_COLLABORATORS = 10
+
+# Valid policies for requiring approval before running GitHub Actions workflows on fork PRs.
+# See https://docs.github.com/rest/actions/permissions#set-fork-pr-contributor-approval-permissions-for-a-repository
+VALID_FORK_PR_APPROVAL_POLICIES = (
+    "first_time_contributors_new_to_github",
+    "first_time_contributors",
+    "all_external_contributors",
+)
+DEFAULT_FORK_PR_APPROVAL_POLICY = "all_external_contributors"
