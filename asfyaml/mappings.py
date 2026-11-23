@@ -43,4 +43,5 @@ WS_HOSTNAME_OVERRIDES = {
     "logging-flume-site": "flume.apache.org",
     "accumulo-fluo-website": "fluo.apache.org",
     "conferences-cc-website": "communityovercode.apache.org",
+    "httpd": "documentation.httpd.apache.org",
 }
