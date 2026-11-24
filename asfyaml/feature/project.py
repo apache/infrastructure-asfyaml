@@ -140,7 +140,6 @@ _POLICY_SCHEMA = strictyaml.Map(
         strictyaml.Optional("license_check_mode"): strictyaml.Enum(["Both", "Lightweight", "RAT"]),
         strictyaml.Optional("vote_recipients"): _RECIPIENTS_SCHEMA,
         strictyaml.Optional("announce_recipients"): _RECIPIENTS_SCHEMA,
-        strictyaml.Optional("manual_vote"): strictyaml.Bool(),
         strictyaml.Optional("min_hours"): strictyaml.Int(),
         strictyaml.Optional("release_checklist"): strictyaml.Str(),
         strictyaml.Optional("require_version_in_filenames"): strictyaml.Bool(),
@@ -155,7 +154,7 @@ _POLICY_SCHEMA = strictyaml.Map(
         strictyaml.Optional("finish_vote_template_url"): strictyaml.Str(),
         strictyaml.Optional("vote_comment_template"): strictyaml.Str(),
         strictyaml.Optional("vote_comment_template_url"): strictyaml.Str(),
-        strictyaml.Optional("vote_mode"): strictyaml.Enum(["manual", "email", "trusted"]),
+        strictyaml.Optional("vote_mode"): strictyaml.Enum(["email"]),
     }
 )
 
