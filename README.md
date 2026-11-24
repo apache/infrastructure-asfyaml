@@ -216,7 +216,6 @@ project:
     key: tooling-trusted-releases
     committee: tooling
   policy:
-    vote_mode: email
     min_hours: 72
     license_check_mode: RAT
     vote_recipients:
@@ -232,8 +231,7 @@ The remaining fields:
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `vote_mode` | `manual`, `email` or `trusted` | How a release vote is conducted. Mutually exclusive with `manual_vote`. |
-| `manual_vote` | boolean | Conduct the vote manually. Mutually exclusive with `vote_mode`. |
+| `vote_mode` | `email` | No effect. Accepted so that existing files keep working. Votes are held by email unless the committee turns on streamlined voting, on its page in ATR. |
 | `min_hours` | integer | Minimum hours a vote must remain open. |
 | `license_check_mode` | `Both`, `Lightweight` or `RAT` | Which license check(s) to run. |
 | `source_artifact_paths` | list of globs | Paths identifying source artifacts. |

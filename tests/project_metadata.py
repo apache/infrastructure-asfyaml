@@ -249,10 +249,10 @@ project:
 """,
 )
 
-# vote_mode only accepts manual/email/trusted
+# vote_mode only accepts email, because streamlined voting is set per committee in ATR
 invalid_bad_vote_mode = YamlTest(
     asfyaml.asfyaml.ASFYAMLException,
-    "when expecting one of: manual, email, trusted",
+    "when expecting one of: email",
     """
 project:
     metadata:
@@ -260,7 +260,7 @@ project:
         committee: tooling
         name: Apache Trusted Releases
     policy:
-        vote_mode: telepathy
+        vote_mode: trusted
 """,
 )
 
@@ -790,7 +790,6 @@ project:
         name: Apache Trusted Releases
     policy:
         min_hours: 72
-        manual_vote: true
         auto_archive_prior_release: true
         require_version_in_filenames: true
         license_check_mode: RAT
@@ -810,7 +809,6 @@ project:
     out = capsys.readouterr().out
     policy = json.loads(out[out.index("{") : out.rindex("}") + 1])["policy"]
     assert policy["min_hours"] == 72  # int, not "72"
-    assert policy["manual_vote"] is True  # bool, not "true"
     assert policy["auto_archive_prior_release"] is True
     assert policy["require_version_in_filenames"] is True
     assert policy["license_check_mode"] == "RAT"
