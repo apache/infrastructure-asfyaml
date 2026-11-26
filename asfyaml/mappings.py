@@ -25,6 +25,7 @@ LDAP_TO_HOSTNAME = {
     "webservices": "ws",
     "infrastructure": "infra",
     "comdev": "community",
+    "httpcomponents": "hc",
 }
 
 # Repository filename syntax for inferring project names.
