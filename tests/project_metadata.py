@@ -327,6 +327,53 @@ project:
 )
 
 # unexpected key inside policy
+valid_cycles = YamlTest(
+    None,
+    None,
+    """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+    cycles:
+        10.1:
+            min_hours: 120
+            start_vote_template: |
+                The proposed release is ready for a vote.
+        "9.0":
+            source_excludes_rat: []
+            vote_recipients: {}
+            start_vote_subject: ""
+""",
+)
+
+valid_empty_cycles = YamlTest(
+    None,
+    None,
+    """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+    cycles: {}
+""",
+)
+
+invalid_cycle_key_for_every_cycle = YamlTest(
+    asfyaml.asfyaml.ASFYAMLException,
+    "unexpected key not in schema 'binary_artifact_paths'",
+    """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+    cycles:
+        10.1:
+            binary_artifact_paths:
+                - bin/
+""",
+)
+
 invalid_unknown_policy_key = YamlTest(
     asfyaml.asfyaml.ASFYAMLException,
     "unexpected key not in schema 'reviewers'",
@@ -355,6 +402,9 @@ def test_schema_validation(test_repo: asfyaml.dataobjects.Repository):
         valid_security_and_download_suffix,
         valid_distributions,
         valid_empty_distributions,
+        valid_cycles,
+        valid_empty_cycles,
+        invalid_cycle_key_for_every_cycle,
         invalid_missing_metadata,
         invalid_missing_key,
         invalid_unknown_metadata_key,
@@ -687,6 +737,83 @@ project:
     out = capsys.readouterr().out
     payload = json.loads(out[out.index("{") : out.rindex("}") + 1])
     assert payload["sync_mode"] == "full"
+
+
+def test_noop_payload_carries_cycles(atr_repo: asfyaml.dataobjects.Repository, capsys):
+    yaml = """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+    cycles:
+        10.1:
+            min_hours: 120
+            auto_archive_prior_release: false
+            vote_recipients:
+                to: dev@tooling.apache.org
+        "9.0":
+            source_excludes_rat: []
+            announce_recipients: {}
+            start_vote_subject: ""
+"""
+    a = asfyaml.asfyaml.ASFYamlInstance(
+        repo=atr_repo, committer="arm", config_data=yaml, branch=asfyaml.dataobjects.DEFAULT_BRANCH
+    )
+    a.environments_enabled.add("noop")
+    a.no_cache = True
+    a.run_parts()
+
+    out = capsys.readouterr().out
+    payload = json.loads(out[out.index("{") : out.rindex("}") + 1])
+    # A blank value reaches ATR as blank, which is how a cycle drops a value the project has
+    assert payload["cycles"] == {
+        "10.1": {
+            "min_hours": 120,
+            "auto_archive_prior_release": False,
+            "vote_recipients": {"to": "dev@tooling.apache.org"},
+        },
+        "9.0": {"source_excludes_rat": [], "announce_recipients": {}, "start_vote_subject": ""},
+    }
+
+
+def test_noop_payload_omits_cycles_unless_authored(atr_repo: asfyaml.dataobjects.Repository, capsys):
+    yaml = """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+"""
+    a = asfyaml.asfyaml.ASFYamlInstance(
+        repo=atr_repo, committer="arm", config_data=yaml, branch=asfyaml.dataobjects.DEFAULT_BRANCH
+    )
+    a.environments_enabled.add("noop")
+    a.no_cache = True
+    a.run_parts()
+
+    out = capsys.readouterr().out
+    payload = json.loads(out[out.index("{") : out.rindex("}") + 1])
+    assert "cycles" not in payload
+
+
+def test_noop_payload_clears_cycles_in_full_mode(atr_repo: asfyaml.dataobjects.Repository, capsys):
+    yaml = """
+project:
+    metadata:
+        key: tooling-trusted-releases
+        committee: tooling
+    features:
+        atr_sync_mode: full
+"""
+    a = asfyaml.asfyaml.ASFYamlInstance(
+        repo=atr_repo, committer="arm", config_data=yaml, branch=asfyaml.dataobjects.DEFAULT_BRANCH
+    )
+    a.environments_enabled.add("noop")
+    a.no_cache = True
+    a.run_parts()
+
+    out = capsys.readouterr().out
+    payload = json.loads(out[out.index("{") : out.rindex("}") + 1])
+    assert payload["cycles"] == {}
 
 
 def test_noop_payload_carries_distributions(atr_repo: asfyaml.dataobjects.Repository, capsys):

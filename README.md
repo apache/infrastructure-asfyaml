@@ -32,6 +32,7 @@ It operates on a per-branch basis, meaning you can have different settings for d
   <li><a href="#project">Project metadata</a>
     <ul>
         <li><a href="#project-definition">Schema</a></li>
+        <li><a href="#cycles">Settings for one cycle</a></li>
         <li><a href="#distributions">Third-party distributions</a></li>
         <li><a href="#atrsync">Sync to Apache Trusted Releases</a>
             <ul>
@@ -253,6 +254,46 @@ The remaining fields:
 
 Trusted publishing (the GitHub repository, branch and workflow files that may upload to ATR on the project's behalf) is **not** configured here. A registered workflow acts in ATR as the PMC without a login, so those settings are a credential, and they are set in ATR itself. The keys `github_repository_name`, `github_repository_branch`, `github_compose_workflow_path`, `github_vote_workflow_path` and `github_finish_workflow_path` are still accepted so that existing files keep validating, but they are not sent: the rest of the block syncs as normal and ATR keeps whatever it already holds for them, in both sync modes. You can remove them from the file at any time without changing anything in ATR.
 
+<h3 id="cycles">Settings for one cycle</h3>
+
+A project that maintains several release lines can give one of them its own release settings. The optional `cycles` block is keyed by cycle, which is the text your `cycle_match` captures from a version, such as `10.1`:
+
+~~~yaml
+project:
+  metadata:
+    key: tooling-trusted-releases
+    committee: tooling
+    version_method: semver
+    cycle_match: '^(\d+\.\d+)\..*$'
+  policy:
+    min_hours: 72
+  cycles:
+    "10.1":
+      min_hours: 120
+      start_vote_template: |
+        The proposed {{PROJECT}} {{VERSION}} release is ready for a vote.
+    "9.0":
+      vote_recipients:
+        to: dev@tooling.apache.org
+~~~
+
+A cycle takes the same keys as `policy`, apart from `binary_artifact_paths`, `source_artifact_paths`, `file_tag_mappings`, `require_version_in_filenames`, `vote_mode` and `manual_vote`, which apply to every cycle.
+
+A cycle uses the `policy` value for any key it leaves out. To give a cycle a blank value where the policy has one, write `[]` for a list, `{}` for recipients and `""` for text:
+
+~~~yaml
+project:
+  cycles:
+    "10.1":
+      source_excludes_rat: []
+      vote_recipients: {}
+      start_vote_template: ""
+~~~
+
+A cycle has to be one that a release is in, or one that your version scheme allows.
+
+A `cycles` block replaces the settings of every cycle, in either sync mode, so a cycle it leaves out loses its settings. If the file has no `cycles` key, ATR keeps the settings it has, unless `atr_sync_mode` is `full`, in which case they are cleared. `cycles: {}` clears them in either mode.
+
 <h3 id="distributions">Third-party distributions</h3>
 
 The optional `distributions` list names the packages your project publishes on other platforms for each release. Once a release's vote passes, ATR looks for each of them, and the release cannot be announced until each one has been found or ignored.
@@ -301,7 +342,7 @@ project:
     atr_sync_mode: full
 ~~~
 
-With `full`, every field the file can set but leaves out is reset to the ATR default on each push. This is also the only way to clear a list from the file. The project name is never reset. The default mode is `merge`. ATR's export function can produce the file in either mode.
+With `full`, every field the file can set but leaves out is reset to the ATR default on each push. In either mode, giving a list as empty, such as `repositories: []`, clears it. The project name is never reset. The default mode is `merge`. ATR's export function can produce the file in either mode.
 
 <h4 id="atrinit">Initial values from ATR</h4>
 

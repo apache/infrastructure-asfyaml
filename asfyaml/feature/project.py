@@ -159,6 +159,37 @@ _POLICY_SCHEMA = strictyaml.Map(
     }
 )
 
+# Release settings for one cycle of a project, such as its 10.1 line. A cycle takes the policy
+# keys that ATR lets a cycle set, and the rest apply to every cycle. A blank value is allowed
+# where the project has one: [] for a list, {} for recipients and "" for text.
+_CYCLE_SCHEMA = strictyaml.Map(
+    {
+        strictyaml.Optional("announce_release_subject"): strictyaml.Str(),
+        strictyaml.Optional("announce_release_template"): strictyaml.Str(),
+        strictyaml.Optional("announce_release_template_url"): strictyaml.Str(),
+        strictyaml.Optional("auto_archive_prior_release"): strictyaml.Bool(),
+        strictyaml.Optional("download_path_suffix"): strictyaml.Str(),
+        strictyaml.Optional("license_check_mode"): strictyaml.Enum(["Both", "Lightweight", "RAT"]),
+        strictyaml.Optional("vote_recipients"): _RECIPIENTS_SCHEMA,
+        strictyaml.Optional("announce_recipients"): _RECIPIENTS_SCHEMA,
+        strictyaml.Optional("min_hours"): strictyaml.Int(),
+        strictyaml.Optional("release_checklist"): strictyaml.Str(),
+        strictyaml.Optional("source_excludes_lightweight"): strictyaml.Seq(strictyaml.Str()),
+        strictyaml.Optional("source_excludes_rat"): strictyaml.Seq(strictyaml.Str()),
+        strictyaml.Optional("rat_excludes_url"): strictyaml.Str(),
+        strictyaml.Optional("start_vote_subject"): strictyaml.Str(),
+        strictyaml.Optional("start_vote_template"): strictyaml.Str(),
+        strictyaml.Optional("start_vote_template_url"): strictyaml.Str(),
+        strictyaml.Optional("finish_vote_template"): strictyaml.Str(),
+        strictyaml.Optional("finish_vote_template_url"): strictyaml.Str(),
+        strictyaml.Optional("vote_comment_template"): strictyaml.Str(),
+        strictyaml.Optional("vote_comment_template_url"): strictyaml.Str(),
+    }
+)
+
+# Keyed by the text of the cycle, which is what the project's cycle_match captures from a version
+_CYCLES_SCHEMA = strictyaml.MapPattern(strictyaml.Str(), _CYCLE_SCHEMA)
+
 # The trusted publishing settings: the repository, branch and workflow files that may upload
 # to ATR on the project's behalf. A workflow registered that way acts in ATR as the PMC with
 # no login or MFA behind it, which makes these a credential, and a file anyone with push
@@ -208,6 +239,7 @@ class ASFATRFeature(ASFYamlFeature, name="project", env="production", priority=5
         {
             "metadata": _METADATA_SCHEMA,
             strictyaml.Optional("policy"): _POLICY_SCHEMA,
+            strictyaml.Optional("cycles"): _CYCLES_SCHEMA,
             strictyaml.Optional("distributions"): _DISTRIBUTIONS_SCHEMA,
             strictyaml.Optional("features"): _FEATURES_SCHEMA,
         }
@@ -237,6 +269,9 @@ class ASFATRFeature(ASFYamlFeature, name="project", env="production", priority=5
                 # Email templates can come from a URL instead of inline text. ATR fetches it each
                 # time it shows the email form; use it in place of the matching *_template field.
                 start_vote_template_url: https://raw.githubusercontent.com/apache/foo/main/.atr/start-vote.txt
+              cycles:                # settings for one cycle, where they differ from the policy
+                "10.1":
+                  min_hours: 120
               distributions:         # packages ATR looks for on other platforms for each release
                 - platform: maven
                   owner_namespace: org.apache.foo
@@ -294,6 +329,13 @@ class ASFATRFeature(ASFYamlFeature, name="project", env="production", priority=5
         sync_mode = features.get("atr_sync_mode")
         if sync_mode:
             payload["sync_mode"] = sync_mode
+        # ATR replaces every cycle's settings with the ones sent, and leaves them alone when none
+        # are sent. So a file in full mode that has none sends an empty block, to clear them
+        cycles = self.yaml.get("cycles")
+        if cycles is not None:
+            payload["cycles"] = {cycle: dict(settings) for cycle, settings in cycles.items()}
+        elif sync_mode == "full":
+            payload["cycles"] = {}
         # ATR replaces its whole list with the one sent, and leaves it alone when none is sent.
         # So a file in full mode that lists none sends an empty list, to clear it
         distributions = self.yaml.get("distributions")
