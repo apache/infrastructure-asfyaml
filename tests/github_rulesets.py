@@ -425,6 +425,7 @@ def test_rulesets_convenience_tag_restrict_force_push_rule():
     rule_types = [rule["type"] for rule in payload["rules"]]
     assert "deletion" in rule_types
     assert "non_fast_forward" in rule_types
+    assert "update" in rule_types
 
 
 def test_rulesets_convenience_minimal_config_includes_safety_rules():
@@ -447,6 +448,101 @@ def test_rulesets_convenience_minimal_config_includes_safety_rules():
     payload = requester.calls[1]["input"]
     rule_types = [rule["type"] for rule in payload["rules"]]
     assert rule_types == ["deletion", "non_fast_forward"]
+
+
+def test_rulesets_convenience_minimal_tag_config_includes_safety_rules():
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={
+            "rulesets": [
+                {
+                    "name": "Tag safety defaults only",
+                    "type": "tag",
+                    "branches": {"includes": ["v*.*.*"]},
+                }
+            ]
+        },
+        previous_yaml={},
+        requester=requester,
+    )
+
+    configure_rulesets(feature)
+
+    payload = requester.calls[1]["input"]
+    rule_types = [rule["type"] for rule in payload["rules"]]
+    assert rule_types == ["deletion", "non_fast_forward", "update"]
+
+
+def test_rulesets_convenience_restrict_update_false_disables_tag_rule():
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={
+            "rulesets": [
+                {
+                    "name": "Release tags",
+                    "type": "tag",
+                    "branches": {"includes": ["v*.*.*"]},
+                    "restrict_update": False,
+                }
+            ]
+        },
+        previous_yaml={},
+        requester=requester,
+    )
+
+    configure_rulesets(feature)
+
+    payload = requester.calls[1]["input"]
+    rule_types = [rule["type"] for rule in payload["rules"]]
+    assert rule_types == ["deletion", "non_fast_forward"]
+
+
+def test_rulesets_convenience_restrict_update_true_enables_branch_rule():
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={
+            "rulesets": [
+                {
+                    "name": "Branch Protection",
+                    "type": "branch",
+                    "restrict_update": True,
+                }
+            ]
+        },
+        previous_yaml={},
+        requester=requester,
+    )
+
+    configure_rulesets(feature)
+
+    payload = requester.calls[1]["input"]
+    rule_types = [rule["type"] for rule in payload["rules"]]
+    assert rule_types == ["deletion", "non_fast_forward", "update"]
+
+
+def test_rulesets_convenience_all_safety_rules_false_allows_empty_tag_rules():
+    requester = FakeRequester()
+    feature = FakeFeature(
+        yaml={
+            "rulesets": [
+                {
+                    "name": "Release tags",
+                    "type": "tag",
+                    "branches": {"includes": ["v*.*.*"]},
+                    "restrict_deletion": False,
+                    "restrict_force_push": False,
+                    "restrict_update": False,
+                }
+            ]
+        },
+        previous_yaml={},
+        requester=requester,
+    )
+
+    configure_rulesets(feature)
+
+    payload = requester.calls[1]["input"]
+    assert payload["rules"] == []
 
 
 def test_rulesets_convenience_restrict_deletion_false_disables_rule():
@@ -523,15 +619,19 @@ def test_rulesets_convenience_both_safety_rules_false_allows_empty_rules():
 
 
 @pytest.mark.parametrize(
-    ("field_name", "field_value"),
+    ("field_name", "field_value", "expected_rule_type"),
     [
-        ("restrict_deletion", True),
-        ("restrict_deletion", "true"),
-        ("restrict_force_push", True),
-        ("restrict_force_push", "true"),
+        ("restrict_deletion", True, "deletion"),
+        ("restrict_deletion", "true", "deletion"),
+        ("restrict_force_push", True, "non_fast_forward"),
+        ("restrict_force_push", "true", "non_fast_forward"),
+        ("restrict_update", True, "update"),
+        ("restrict_update", "true", "update"),
     ],
 )
-def test_rulesets_convenience_allow_explicit_safety_true(field_name: str, field_value: bool | str):
+def test_rulesets_convenience_allow_explicit_safety_true(
+    field_name: str, field_value: bool | str, expected_rule_type: str
+):
     requester = FakeRequester()
     feature = FakeFeature(
         yaml={
@@ -552,13 +652,12 @@ def test_rulesets_convenience_allow_explicit_safety_true(field_name: str, field_
 
     payload = requester.calls[1]["input"]
     rule_types = [rule["type"] for rule in payload["rules"]]
-    assert "deletion" in rule_types
-    assert "non_fast_forward" in rule_types
+    assert expected_rule_type in rule_types
 
 
 @pytest.mark.parametrize(
     "field_name",
-    ["restrict_deletion", "restrict_force_push"],
+    ["restrict_deletion", "restrict_force_push", "restrict_update"],
 )
 def test_rulesets_convenience_reject_invalid_safety_type(field_name: str):
     requester = FakeRequester()
@@ -800,7 +899,11 @@ def test_rulesets_duplicate_names_raise():
         configure_rulesets(feature)
 
 
-def test_rulesets_mixed_raw_and_convenience_keys_raise():
+@pytest.mark.parametrize(
+    "convenience_key",
+    ["required_signatures", "restrict_update"],
+)
+def test_rulesets_mixed_raw_and_convenience_keys_raise(convenience_key: str):
     requester = FakeRequester()
     feature = FakeFeature(
         yaml={
@@ -809,7 +912,7 @@ def test_rulesets_mixed_raw_and_convenience_keys_raise():
                     "name": "Branch Protection",
                     "target": "branch",
                     "rules": [{"type": "required_signatures"}],
-                    "required_signatures": True,
+                    convenience_key: True,
                 }
             ]
         },
